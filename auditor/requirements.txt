@@ -1,0 +1,8 @@
+click
+jinja2
+requests
+pyyaml
+rich
+
+# dev
+pytest
