@@ -1,0 +1,142 @@
+### AI Agent Deliverable - Manual API Testing
+@endpoint = http://localhost:4000/graphql
+
+### 0a. Register User
+# @name registerUser
+POST {{endpoint}}
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+mutation {
+  register(email: "test@example.com", password: "password123") {
+    token
+    user {
+      id
+      email
+    }
+  }
+}
+
+### 0b. Login User
+# @name loginUser
+POST {{endpoint}}
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+mutation {
+  login(email: "test@example.com", password: "password123") {
+    token
+  }
+}
+
+### Set token variable
+@authToken = {{loginUser.response.body.data.login.token}}
+
+### 0c. Get current user
+POST {{endpoint}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+X-REQUEST-TYPE: GraphQL
+
+query {
+  me {
+    id
+    email
+  }
+}
+
+### 1. List all tasks
+POST {{endpoint}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+X-REQUEST-TYPE: GraphQL
+
+query {
+  tasks {
+    id
+    title
+    description
+    status
+  }
+}
+
+### 2. Create Task A (Parent)
+# @name createTaskA
+POST {{endpoint}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+X-REQUEST-TYPE: GraphQL
+
+mutation {
+  createTask(input: {
+    title: "Task A",
+    description: "Parent task"
+  }) {
+    id
+    title
+    status
+  }
+}
+
+### 3. Create Task B (Dependent on A)
+# Use the ID from the previous response if possible, or replace manually
+@taskAId = {{createTaskA.response.body.data.createTask.id}}
+
+# @name createTaskB
+POST {{endpoint}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+X-REQUEST-TYPE: GraphQL
+
+mutation {
+  createTask(input: {
+    title: "Task B",
+    description: "Dependent task",
+    dependsOn: ["{{taskAId}}"]
+  }) {
+    id
+    title
+    status
+  }
+}
+
+### 4. Attempt to close Task B (Should FAIL if A is OPEN)
+@taskBId = {{createTaskB.response.body.data.createTask.id}}
+
+POST {{endpoint}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+X-REQUEST-TYPE: GraphQL
+
+mutation {
+  updateTaskStatus(id: "{{taskBId}}", status: "COMPLETED") {
+    id
+    status
+  }
+}
+
+### 5. Close Task A (Success)
+POST {{endpoint}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+X-REQUEST-TYPE: GraphQL
+
+mutation {
+  updateTaskStatus(id: "{{taskAId}}", status: "COMPLETED") {
+    id
+    status
+  }
+}
+
+### 6. Close Task B (Should now PASS)
+POST {{endpoint}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+X-REQUEST-TYPE: GraphQL
+
+mutation {
+  updateTaskStatus(id: "{{taskBId}}", status: "COMPLETED") {
+    id
+    status
+  }
+}

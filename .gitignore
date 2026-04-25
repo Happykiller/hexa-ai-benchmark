@@ -5,3 +5,6 @@ __pycache__/
 .claude/
 .claude_cache/
 venv/
+CLAUDE.md
+CODEX.md
+GEMINI.md
