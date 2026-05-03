@@ -644,8 +644,8 @@ def analyze(path: str, skip_dynamic: bool) -> None:
 
         console.print("Running Auth scenario...")
         auth_tester = AuthTester(endpoint)
-        auth_token = auth_tester.obtain_token()
         auth_e2e_results = auth_tester.run_scenario()
+        auth_token = auth_tester.token
 
         e2e = E2EFunctionalTester(endpoint, token=auth_token)
         perf = PerformanceBenchmarker(endpoint, token=auth_token)

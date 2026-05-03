@@ -297,12 +297,13 @@ class PerformanceBenchmarker:
 class AuthTester:
     """Tests JWT authentication: registration, login, access control, and token validation."""
 
-    _TEST_EMAIL = "audit_agent@test.com"
     _TEST_PASSWORD = "AuditPass1!"
 
     def __init__(self, endpoint: str):
+        import uuid
         self.endpoint = endpoint
         self.token: Optional[str] = None
+        self._TEST_EMAIL = f"audit_agent_{uuid.uuid4().hex[:8]}@test.com"
 
     def obtain_token(self) -> Optional[str]:
         """Attempt register then login to obtain a bearer token for downstream tests."""
