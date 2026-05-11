@@ -7,6 +7,88 @@ from typing import Dict, List, Any  # List used in HexagonalComplianceChecker._s
 # Globals for filtering
 EXCLUDED_DIRS = {'node_modules', 'dist', 'build', '.git', '.idea', '.vscode', 'coverage', 'venv'}
 
+
+def strip_ts_comments(code: str) -> str:
+    """Remove JS/TS comments while preserving strings and template literals."""
+    result: List[str] = []
+    i = 0
+    length = len(code)
+    state = "normal"
+
+    while i < length:
+        char = code[i]
+        next_char = code[i + 1] if i + 1 < length else ""
+
+        if state == "normal":
+            if char == "/" and next_char == "/":
+                state = "line_comment"
+                i += 2
+                continue
+            if char == "/" and next_char == "*":
+                state = "block_comment"
+                i += 2
+                continue
+            if char == "'":
+                state = "single_quote"
+            elif char == '"':
+                state = "double_quote"
+            elif char == "`":
+                state = "template"
+            result.append(char)
+            i += 1
+            continue
+
+        if state == "line_comment":
+            if char == "\n":
+                result.append(char)
+                state = "normal"
+            i += 1
+            continue
+
+        if state == "block_comment":
+            if char == "*" and next_char == "/":
+                state = "normal"
+                i += 2
+            else:
+                if char == "\n":
+                    result.append("\n")
+                i += 1
+            continue
+
+        result.append(char)
+        if char == "\\" and i + 1 < length:
+            result.append(code[i + 1])
+            i += 2
+            continue
+        if (state == "single_quote" and char == "'") or (state == "double_quote" and char == '"') or (state == "template" and char == "`"):
+            state = "normal"
+        i += 1
+
+    return "".join(result)
+
+
+def extract_ts_import_targets(code: str) -> List[str]:
+    clean = strip_ts_comments(code)
+    patterns = [
+        re.compile(r'import\s+.*?\s+from\s+[\'"]([^\'"]+)[\'"]'),
+        re.compile(r'import\s+[\'"]([^\'"]+)[\'"]'),
+        re.compile(r'export\s+.*?\s+from\s+[\'"]([^\'"]+)[\'"]'),
+        re.compile(r'require\s*\(\s*[\'"]([^\'"]+)[\'"]\s*\)'),
+    ]
+    targets: List[str] = []
+    for pattern in patterns:
+        targets.extend(pattern.findall(clean))
+    return targets
+
+
+def read_text_file(path: str) -> str:
+    with open(path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
+def markdown_has_heading(content: str, heading_pattern: str) -> bool:
+    return re.search(rf'^\s{{0,3}}#{{1,6}}\s+{heading_pattern}\s*$', content, re.IGNORECASE | re.MULTILINE) is not None
+
 class ProjectStatsAnalyzer:
     def __init__(self, target_path: str):
         self.target_path = target_path
@@ -102,19 +184,18 @@ class CodeSmellAnalyzer:
                         abstract_factory_count += 1
                     
                     try:
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            content = f.read()
-                            lines = content.split('\n')
+                        content = strip_ts_comments(read_text_file(file_path))
+                        lines = content.split('\n')
                             
-                            code_lines = [l for l in lines if l.strip() and not l.strip().startswith('import')]
-                            if len(code_lines) < 10:
-                                tiny_files_count += 1
-                            
-                            if err_pattern.search(content): flags["custom_errors"] = True
-                            if env_pattern.search(content): flags["env_validation"] = True
-                            if health_pattern.search(content): flags["healthcheck"] = True
-                            if relay_pattern.search(content): flags["relay_pagination"] = True
-                            if logger_pattern.search(content): flags["structured_logger"] = True
+                        code_lines = [l for l in lines if l.strip() and not l.strip().startswith('import')]
+                        if len(code_lines) < 10:
+                            tiny_files_count += 1
+
+                        if err_pattern.search(content): flags["custom_errors"] = True
+                        if env_pattern.search(content): flags["env_validation"] = True
+                        if health_pattern.search(content): flags["healthcheck"] = True
+                        if relay_pattern.search(content): flags["relay_pagination"] = True
+                        if logger_pattern.search(content): flags["structured_logger"] = True
                     except (UnicodeDecodeError, OSError):
                         pass
 
@@ -176,12 +257,6 @@ class HexagonalComplianceChecker:
     def __init__(self, target_path: str):
         self.target_path = target_path
 
-    def _strip_comments(self, code: str) -> str:
-        # Remove comments but keep string literals intact so import paths remain analyzable.
-        code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
-        code = re.sub(r'//.*', '', code)
-        return code
-
     # Rules: (scan_dir, forbidden_import_segment, reason)
     _LAYER_RULES = [
         ("core",         "adapters",      "Adapters leak into Core"),
@@ -193,25 +268,22 @@ class HexagonalComplianceChecker:
 
     def _scan_layer(self, layer_path: str, forbidden_segment: str, reason: str) -> List[Dict]:
         violations = []
-        import_patterns = [
-            re.compile(rf'import\s+.*\s+from\s+[\'"].*{forbidden_segment}.*[\'"]'),
-            re.compile(rf'import\s+[\'"].*{forbidden_segment}.*[\'"]'),
-            re.compile(rf'require\s*\(\s*[\'"].*{forbidden_segment}.*[\'"]\s*\)'),
-        ]
         for root, dirs, files in os.walk(layer_path):
             dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
             for file in files:
                 if file.endswith((".ts", ".tsx")):
                     file_path = os.path.join(root, file)
                     try:
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            clean = self._strip_comments(f.read())
-                        for pat in import_patterns:
-                            if pat.search(clean):
+                        content = read_text_file(file_path)
+                        targets = extract_ts_import_targets(content)
+                        for target in targets:
+                            normalized = target.replace("\\", "/")
+                            parts = [part for part in normalized.split("/") if part not in ("", ".")]
+                            if forbidden_segment in parts:
                                 violations.append({
                                     "file": os.path.relpath(file_path, self.target_path),
                                     "reason": reason,
-                                    "pattern": pat.pattern,
+                                    "pattern": target,
                                 })
                                 break
                     except (UnicodeDecodeError, OSError):
@@ -258,16 +330,22 @@ class ReadmeChecker:
             return {"status": "KO", "found": False, "score": 0, "indicators": {}}
 
         try:
-            with open(readme_path, "r", encoding="utf-8") as f:
-                content = f.read().lower()
+            content = read_text_file(readme_path)
         except Exception:
             return {"status": "KO", "found": True, "error": "Could not read README.md", "score": 0, "indicators": {}}
 
         indicators = {
-            "has_architecture_section": "architecture" in content,
-            "has_installation_section": any(x in content for x in ["install", "setup", "démarrage"]),
-            "has_api_documentation": "graphql" in content or "api" in content,
-            "has_docker_info": "docker" in content,
+            "has_architecture_section": markdown_has_heading(content, r"architecture"),
+            "has_installation_section": (
+                markdown_has_heading(content, r"installation")
+                or markdown_has_heading(content, r"setup")
+                or markdown_has_heading(content, r"d[eé]marrage")
+            ),
+            "has_api_documentation": (
+                markdown_has_heading(content, r"api(?:\s+graphql)?")
+                or markdown_has_heading(content, r"graphql")
+            ),
+            "has_docker_info": markdown_has_heading(content, r"docker"),
         }
         
         score = sum(1 for v in indicators.values() if v)
@@ -327,8 +405,7 @@ class UseCaseInjectionChecker:
                 is_usecase = any(kw in fname_lower for kw in ('usecase', 'use-case', 'use_case', 'interactor'))
                 file_path = os.path.join(root, file)
                 try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
+                    content = strip_ts_comments(read_text_file(file_path))
                 except (UnicodeDecodeError, OSError):
                     continue
 
@@ -372,8 +449,7 @@ class DualPersistenceChecker:
     def __init__(self, target_path: str):
         self.target_path = target_path
 
-    _mongoose_import = re.compile(r'from\s+[\'"]mongoose[\'"]')
-    _sql_import = re.compile(r'from\s+[\'"](typeorm|sequelize|knex|mysql2|mysql|@nestjs/typeorm)[\'"]')
+    _SQL_IMPORT_TARGETS = {"typeorm", "sequelize", "knex", "mysql2", "mysql", "@nestjs/typeorm"}
     _SQL_DEPS = {"typeorm", "sequelize", "knex", "mysql2", "mysql", "@nestjs/typeorm"}
 
     def check(self) -> Dict[str, Any]:
@@ -408,15 +484,16 @@ class DualPersistenceChecker:
                 fname_lower = file.lower()
                 file_path = os.path.join(root, file)
                 try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
+                    content = read_text_file(file_path)
                 except (UnicodeDecodeError, OSError):
                     continue
 
-                if 'task' in fname_lower and self._mongoose_import.search(content):
+                targets = set(extract_ts_import_targets(content))
+
+                if 'task' in fname_lower and "mongoose" in targets:
                     indicators["mongoose_in_task_code"] = True
 
-                if ('user' in fname_lower or 'auth' in fname_lower) and self._sql_import.search(content):
+                if ('user' in fname_lower or 'auth' in fname_lower) and (self._SQL_IMPORT_TARGETS & targets):
                     indicators["sql_in_user_auth_code"] = True
 
         adapters_path = os.path.join(src_path, "adapters")
@@ -446,10 +523,10 @@ class AuthImplementationChecker:
     def __init__(self, target_path: str):
         self.target_path = target_path
 
-    _jwt_import = re.compile(r'from\s+[\'"](jsonwebtoken|jose|@nestjs/jwt|passport-jwt)[\'"]')
-    _auth_mutation = re.compile(r'(?:register|login|signup|signin)\s*[:(,\(]', re.IGNORECASE)
+    _JWT_IMPORT_TARGETS = {"jsonwebtoken", "jose", "@nestjs/jwt", "passport-jwt"}
+    _auth_mutation = re.compile(r'\b(?:register|login|signup|signin)\b\s*(?::|\()', re.IGNORECASE)
     _auth_guard = re.compile(r'(isAuthenticated|authGuard|AuthGuard|verifyToken|checkAuth|@Authorized|authenticate\b)', re.IGNORECASE)
-    _hash_import = re.compile(r'from\s+[\'"](bcrypt|bcryptjs|argon2)[\'"]')
+    _HASH_IMPORT_TARGETS = {"bcrypt", "bcryptjs", "argon2"}
 
     def check(self) -> Dict[str, Any]:
         indicators = {
@@ -481,16 +558,16 @@ class AuthImplementationChecker:
                         continue
                     file_path = os.path.join(root, file)
                     try:
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            content = f.read()
-                        if self._jwt_import.search(content):
-                            indicators["jwt_library_present"] = True
-                        if self._auth_mutation.search(content):
-                            indicators["auth_mutations_present"] = True
-                        if self._auth_guard.search(content):
-                            indicators["auth_guard_present"] = True
-                        if self._hash_import.search(content):
-                            indicators["password_hashing_present"] = True
+                            content = strip_ts_comments(read_text_file(file_path))
+                            targets = set(extract_ts_import_targets(content))
+                            if self._JWT_IMPORT_TARGETS & targets:
+                                indicators["jwt_library_present"] = True
+                            if self._auth_mutation.search(content):
+                                indicators["auth_mutations_present"] = True
+                            if self._auth_guard.search(content):
+                                indicators["auth_guard_present"] = True
+                            if self._HASH_IMPORT_TARGETS & targets:
+                                indicators["password_hashing_present"] = True
                     except (UnicodeDecodeError, OSError):
                         pass
 
@@ -510,9 +587,7 @@ class CodeQualityChecker:
     _any_pattern = re.compile(r'(?::\s*any\b|\bas\s+any\b|[<,]\s*any\s*[>,])')
 
     def _strip_comments(self, code: str) -> str:
-        code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
-        code = re.sub(r'//.*', '', code)
-        return code
+        return strip_ts_comments(code)
 
     def check_any_usage(self) -> Dict[str, Any]:
         any_count = 0

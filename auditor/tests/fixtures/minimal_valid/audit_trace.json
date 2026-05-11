@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "model": "gpt-test"
+  },
+  "summary": {
+    "total_turns": 6,
+    "total_tool_calls": 20,
+    "total_wall_time_seconds": 600
+  },
+  "phases": [
+    {
+      "start_time": "2026-05-11T10:00:00Z",
+      "end_time": "2026-05-11T10:03:20Z",
+      "turns_in_phase": 2,
+      "tool_calls_in_phase": 8
+    },
+    {
+      "start_time": "2026-05-11T10:03:20Z",
+      "end_time": "2026-05-11T10:06:40Z",
+      "turns_in_phase": 2,
+      "tool_calls_in_phase": 6
+    },
+    {
+      "start_time": "2026-05-11T10:06:40Z",
+      "end_time": "2026-05-11T10:10:00Z",
+      "turns_in_phase": 2,
+      "tool_calls_in_phase": 6
+    }
+  ]
+}

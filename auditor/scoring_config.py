@@ -1,3 +1,35 @@
+BASE_SCORE_BUCKETS = {
+    "operationality": {
+        "label": "Operationnalite",
+        "weight": 50,
+        "selectors": [{"phase": 1}],
+    },
+    "architecture": {
+        "label": "Architecture",
+        "weight": 25,
+        "selectors": [{"phase": 2, "steps": [1, 4, 5, 6]}],
+    },
+    "quality": {
+        "label": "Qualite logicielle",
+        "weight": 15,
+        "selectors": [{"phase": 2, "steps": [2, 3]}],
+    },
+    "traceability": {
+        "label": "Discipline et tracabilite",
+        "weight": 10,
+        "selectors": [{"phase": 3}],
+    },
+}
+
+
+BONUS_MALUS_SCORE_CONFIG = {
+    "phase_number": 4,
+    "phase_label": "Bonus / Malus",
+    "bonus_cap": 5,
+    "malus_cap": -10,
+}
+
+
 TRACE_SCORING_CONFIG = {
     "total_turns": {
         "phase_number": 3,

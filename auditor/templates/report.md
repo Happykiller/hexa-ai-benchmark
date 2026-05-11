@@ -13,8 +13,27 @@
 | Points positifs possibles | {{ audit_data.summary.positive_points_possible|md_cell }} |
 | Malus cumulés | {{ audit_data.summary.negative_points|md_cell }} |
 | Score brut (Net) | {{ audit_data.summary.raw_total_score|md_cell }} |
-| Pourcentage du score net obtenu | {{ audit_data.summary.percentage_net|md_cell }}% |
+| Score normalisé de base | {{ audit_data.summary.normalized_base_score|md_cell }}/{{ audit_data.summary.normalized_base_weight_total|md_cell }} |
+| Ajustement bonus/malus appliqué | {{ audit_data.summary.bonus_malus_adjustment.capped_adjustment|md_cell }} |
+| Pourcentage brut du score net | {{ audit_data.summary.raw_percentage_net|md_cell }}% |
+| Pourcentage final du score net | {{ audit_data.summary.percentage_net|md_cell }}% |
 | Nombre total d'indicateurs | {{ audit_data.summary.indicators_count|md_cell }} |
+
+### Score par pilier
+| Pilier | Score | Poids | Ratio brut |
+|--------|-------|-------|------------|
+{%- for bucket_name, bucket in audit_data.summary.bucket_scores.items() %}
+| {{ bucket.label|md_cell }} | {{ bucket.normalized_score|md_cell }} | {{ bucket.weight|md_cell }} | {{ bucket.ratio|md_cell }} |
+{%- endfor %}
+
+{% if audit_data.summary.score_caps %}
+### Caps éliminatoires
+| Cap | Maximum | Raison |
+|-----|---------|--------|
+{%- for cap in audit_data.summary.score_caps %}
+| {{ cap.id|md_cell }} | {{ cap.max_percentage|md_cell }}% | {{ cap.reason|md_cell }} |
+{%- endfor %}
+{% endif %}
 
 ---
 
@@ -99,8 +118,7 @@ Scénario E2E non exécuté.
 | Nombre total d'échanges (turns) | {{ audit_data.artifacts.trace_metrics.total_turns|md_cell }} |
 | Nombre total d'appels d'outils | {{ audit_data.artifacts.trace_metrics.total_tool_calls|md_cell }} |
 | Temps réel total (secondes) | {{ audit_data.artifacts.trace_metrics.total_wall_time_seconds|md_cell }} |
-| Consommation max de contexte (%) | {{ audit_data.artifacts.trace_metrics.max_context_usage_percent|md_cell }} |
-| Consommation moyenne de contexte (%) | {{ audit_data.artifacts.trace_metrics.average_context_usage_percent|md_cell }} |
+| Nombre d'erreurs de trace | {{ audit_data.artifacts.trace_metrics.trace_errors_count|md_cell }} |
 | Erreur | {{ audit_data.artifacts.traceability.error|md_cell }} |
 
 ### Bonus et malus détectés
