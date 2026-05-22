@@ -8,3 +8,4 @@ venv/
 CLAUDE.md
 CODEX.md
 GEMINI.md
+node_modules/

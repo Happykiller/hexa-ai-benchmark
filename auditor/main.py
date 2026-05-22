@@ -1268,7 +1268,8 @@ def analyze(path: str, skip_dynamic: bool) -> None:
 
     report_content = template.render(audit_data=audit_db, stats=stats)
 
-    output_dir = "cr_audits"
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    output_dir = os.path.join(repo_root, "cr_audits")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -1283,7 +1284,8 @@ def analyze(path: str, skip_dynamic: bool) -> None:
         f.write(report_content)
     with open(report_json_path, "w", encoding="utf-8") as f:
         json.dump(audit_db, f, indent=2, ensure_ascii=False)
-    with open(os.path.join(path, "audit_report.md"), "w", encoding="utf-8") as f:
+    report_copy_path = os.path.join(path, f"audit_report_{timestamp_str}.md")
+    with open(report_copy_path, "w", encoding="utf-8") as f:
         f.write(report_content)
 
     summary = audit_db["summary"]

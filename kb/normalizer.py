@@ -1,0 +1,279 @@
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from .constants import ADMISSION_THRESHOLD, SCAN_DIRS
+from .markdown_parser import extract_report_markdown, md_files_by_stem
+from .render import build_sections
+
+DOCKER_NOISE_RE = re.compile(
+    r'^\s*[a-f0-9]+\s+(Downloading|Extracting|Pull complete|Pushed|Waiting|'
+    r'Pulling fs layer|Download complete|Already exists|Layer already exists)\b',
+    re.IGNORECASE,
+)
+
+
+def clean_output(text: str, max_lines: int = 20) -> str:
+    lines = [line for line in (text or "").split("\n") if line.strip() and not DOCKER_NOISE_RE.match(line)]
+    return "\n".join(lines[-max_lines:]).strip()
+
+
+def agent_from_path(target_path: str) -> str:
+    basename = Path(target_path.rstrip("/")).name
+    match = re.match(r"^\d{8}_\d{4}_(.+)$", basename)
+    return match.group(1) if match else basename
+
+
+def session_from_path(target_path: str) -> Optional[str]:
+    basename = Path(target_path.rstrip("/")).name
+    match = re.match(r"^(\d{8}_\d{4})_", basename)
+    return match.group(1) if match else None
+
+
+def normalize_old(data: Dict[str, Any], source_file: str, report_markdown: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    meta = data.get("meta", {})
+    summary = data.get("summary", {})
+    target = meta.get("target_path", "")
+    score_breakdown = summary.get("score_breakdown", {})
+
+    bucket_scores = {
+        "operationality": {"normalized_score": score_breakdown.get("operational", 0), "weight": score_breakdown.get("operational_max", 50)},
+        "architecture": {"normalized_score": score_breakdown.get("architecture", 0), "weight": score_breakdown.get("architecture_max", 25)},
+        "quality": {"normalized_score": score_breakdown.get("quality", 0), "weight": score_breakdown.get("quality_max", 15)},
+        "traceability": {"normalized_score": score_breakdown.get("traceability", 0), "weight": score_breakdown.get("traceability_max", 10)},
+    }
+    if not score_breakdown:
+        labels_map = {
+            "operationnalite": "operationality",
+            "architecture": "architecture",
+            "qualite": "quality",
+            "tracabilite": "traceability",
+        }
+        for point in data.get("points", []):
+            key = next((value for label, value in labels_map.items() if label in point.get("label", "").lower()), None)
+            if key:
+                bucket_scores[key] = {"normalized_score": point.get("score", 0), "weight": point.get("max_score", 0)}
+
+    score_pct = float(summary.get("global_score", 0))
+    return {
+        "id": Path(source_file).stem,
+        "source_file": source_file,
+        "agent": agent_from_path(target),
+        "session_id": session_from_path(target),
+        "audit_started_at": meta.get("audit_started_at", ""),
+        "audit_finished_at": meta.get("audit_finished_at", ""),
+        "scoring_model": "legacy",
+        "score_percentage": score_pct,
+        "admission_status": summary.get("admission_status", "ADMIS" if score_pct >= ADMISSION_THRESHOLD else "ECHEC"),
+        "score_capped": False,
+        "score_caps": [],
+        "skip_dynamic": meta.get("skip_dynamic", False),
+        "bucket_scores": bucket_scores,
+        "target_path": target,
+        "stats": None,
+        "make_targets": None,
+        "docker": None,
+        "hexagonal": None,
+        "auth_static": None,
+        "injection": None,
+        "dual_persistence": None,
+        "trace_metrics": None,
+        "bonuses": None,
+        "maluses": None,
+        "e2e_steps": None,
+        "auth_e2e_steps": None,
+        "performance": None,
+        "report_markdown": report_markdown,
+    }
+
+
+def extract_tooltips(artifacts: Dict[str, Any], data: Dict[str, Any]) -> Dict[str, Any]:
+    tooltips: Dict[str, Any] = {}
+
+    make: Dict[str, str] = {}
+    for target, result in artifacts.get("make_targets", {}).items():
+        if result.get("status") != "OK":
+            parts = []
+            exit_code = result.get("exit_code")
+            if exit_code is not None:
+                parts.append(f"exit_code={exit_code}")
+            error = clean_output(str(result.get("error") or result.get("output") or ""))
+            if error:
+                parts.append(error)
+            if parts:
+                make[target] = "\n".join(parts)
+    docker_start = artifacts.get("docker_start", {})
+    if docker_start.get("status") not in ("OK", "SKIPPED", None):
+        error = clean_output(str(docker_start.get("error") or docker_start.get("output") or ""))
+        if error:
+            make["docker"] = error
+    tooltips["make"] = make
+
+    e2e_errors: Dict[str, str] = {}
+    for result in artifacts.get("e2e_results", []) + artifacts.get("auth_e2e_results", []):
+        if not result.get("success") and result.get("error"):
+            e2e_errors[result["step"]] = str(result["error"])
+    tooltips["e2e"] = e2e_errors
+
+    hexa_violations = artifacts.get("hexagonal", {}).get("violations", [])
+    if hexa_violations:
+        lines = [f"{violation.get('file','')} — {violation.get('reason','')} (import: {violation.get('pattern','')})" for violation in hexa_violations[:10]]
+        if len(hexa_violations) > 10:
+            lines.append(f"… +{len(hexa_violations)-10} autres")
+        tooltips["hexa_violations"] = "\n".join(lines)
+
+    injection_violations = artifacts.get("injection", {}).get("violations", [])
+    if injection_violations:
+        tooltips["inj_violations"] = "\n".join(
+            [f"{violation.get('file','')} : {violation.get('pattern','')}" for violation in injection_violations[:5]]
+        )
+
+    traceability = artifacts.get("traceability", {})
+    if traceability.get("errors"):
+        tooltips["trace_errors"] = "\n".join(traceability["errors"])
+
+    summary = data.get("summary", {})
+    score_caps = summary.get("score_caps", [])
+    if score_caps:
+        tooltips["score_caps"] = "\n".join(cap.get("reason", "") for cap in score_caps)
+
+    performance = artifacts.get("performance", {})
+    if performance and performance.get("avg_latency_ms"):
+        tooltips["perf"] = (
+            f"avg={round(performance.get('avg_latency_ms', 0), 1)}ms  "
+            f"p95={round(performance.get('p95_ms', 0), 1)}ms  "
+            f"err_rate={round(performance.get('error_rate', 0), 1)}%"
+        )
+
+    return tooltips
+
+
+def normalize_new(data: Dict[str, Any], source_file: str, report_markdown: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    meta = data.get("meta", {})
+    summary = data.get("summary", {})
+    artifacts = data.get("artifacts", {})
+    stats = data.get("stats", {})
+    target = meta.get("target_path", "")
+
+    score_pct = float(summary.get("percentage_net", 0))
+    bucket_scores = {
+        key: {"normalized_score": value.get("normalized_score", 0), "weight": value.get("weight", 0)}
+        for key, value in summary.get("bucket_scores", {}).items()
+    }
+
+    docker_start = artifacts.get("docker_start", {})
+    trace_metrics = artifacts.get("trace_metrics", {})
+    hexagonal = artifacts.get("hexagonal", {})
+    smells = artifacts.get("smells", {})
+
+    return {
+        "id": Path(source_file).stem,
+        "source_file": source_file,
+        "agent": agent_from_path(target),
+        "session_id": session_from_path(target),
+        "audit_started_at": meta.get("audit_started_at", ""),
+        "audit_finished_at": meta.get("audit_finished_at", ""),
+        "scoring_model": meta.get("scoring_model", "indicator_fibonacci_v1"),
+        "score_percentage": score_pct,
+        "admission_status": "ADMIS" if score_pct >= ADMISSION_THRESHOLD else "ECHEC",
+        "score_capped": bool(summary.get("score_capped")),
+        "score_caps": [cap.get("reason", "") for cap in summary.get("score_caps", [])],
+        "skip_dynamic": meta.get("skip_dynamic", False),
+        "bucket_scores": bucket_scores,
+        "target_path": target,
+        "stats": {
+            "files": stats.get("total_files"),
+            "ts_files": stats.get("total_ts_files"),
+            "lines": stats.get("total_lines"),
+            "test_files": stats.get("total_tests"),
+            "tests_pass": stats.get("execution_test_passed"),
+            "tests_fail": stats.get("execution_test_failed"),
+            "coverage": stats.get("coverage_pct"),
+        },
+        "make_targets": {key: value.get("status") for key, value in artifacts.get("make_targets", {}).items()},
+        "docker": {"status": docker_start.get("status"), "waited_s": docker_start.get("waited_seconds")},
+        "hexagonal": {
+            "status": hexagonal.get("status"),
+            "violations": len(hexagonal.get("violations", [])),
+            "rules_ok": sum(1 for rule in hexagonal.get("rules", []) if rule.get("status") == "OK"),
+            "rules_total": len(hexagonal.get("rules", [])),
+        },
+        "auth_static": {
+            key: bool(artifacts.get("auth_static", {}).get("indicators", {}).get(value))
+            for key, value in [
+                ("jwt", "jwt_library_present"),
+                ("mutations", "auth_mutations_present"),
+                ("guard", "auth_guard_present"),
+                ("hashing", "password_hashing_present"),
+            ]
+        },
+        "injection": {
+            key: bool(artifacts.get("injection", {}).get("indicators", {}).get(value))
+            for key, value in [
+                ("no_direct", "no_direct_instantiation_in_core"),
+                ("injectable", "injectable_decorator_used"),
+                ("inject", "inject_on_constructor_params"),
+                ("ctor_deps", "constructors_receive_dependencies"),
+            ]
+        },
+        "dual_persistence": {
+            key: bool(artifacts.get("dual_persistence", {}).get("indicators", {}).get(value))
+            for key, value in [
+                ("mongoose", "mongoose_installed"),
+                ("sql_orm", "sql_orm_installed"),
+                ("mongoose_tasks", "mongoose_in_task_code"),
+                ("sql_users", "sql_in_user_auth_code"),
+                ("adapters", "separate_db_adapters"),
+            ]
+        },
+        "trace_metrics": {
+            "phases": trace_metrics.get("phases_count"),
+            "turns": trace_metrics.get("total_turns"),
+            "tools": trace_metrics.get("total_tool_calls"),
+            "wall_s": trace_metrics.get("total_wall_time_seconds"),
+            "errors": trace_metrics.get("trace_errors_count", 0),
+        },
+        "bonuses": [{"reason": bonus.get("reason", ""), "ok": bonus.get("status") == "OK"} for bonus in smells.get("all_bonuses", [])],
+        "maluses": [{"reason": malus.get("reason", ""), "detected": malus.get("status") == "DETECTE"} for malus in smells.get("all_maluses", [])],
+        "e2e_steps": {result["step"]: bool(result.get("success")) for result in artifacts.get("e2e_results", [])},
+        "auth_e2e_steps": {result["step"]: bool(result.get("success")) for result in artifacts.get("auth_e2e_results", [])},
+        "performance": artifacts.get("performance"),
+        "report_markdown": report_markdown,
+        "_tooltips": extract_tooltips(artifacts, data),
+    }
+
+
+def normalize(data: Dict[str, Any], source_file: str, report_markdown: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    entry = normalize_new(data, source_file, report_markdown) if data.get("meta", {}).get("scoring_model") else normalize_old(data, source_file, report_markdown)
+    entry["sections"] = build_sections(entry)
+    return entry
+
+
+def is_test_artifact(entry: Dict[str, Any]) -> bool:
+    target_path = entry.get("target_path", "")
+    return target_path.startswith("/tmp/") or "pytest" in target_path
+
+
+def load_all() -> List[Dict[str, Any]]:
+    entries: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+    md_files = md_files_by_stem()
+    for scan_dir in SCAN_DIRS:
+        if not scan_dir.exists():
+            continue
+        for path in sorted(scan_dir.glob("*.json")):
+            if path.stem in seen:
+                continue
+            seen.add(path.stem)
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                report_markdown = extract_report_markdown(md_files.get(path.stem))
+                entry = normalize(data, str(path), report_markdown)
+                if not is_test_artifact(entry):
+                    entries.append(entry)
+            except Exception as exc:
+                print(f"[WARN] skipping {path.name}: {exc}", file=sys.stderr)
+    entries.sort(key=lambda entry: entry.get("audit_started_at", ""), reverse=True)
+    return entries

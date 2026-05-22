@@ -1,0 +1,21 @@
+{
+  "name": "hexa-ai-benchmark-kb",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "dev:kb": "python3 scripts/build_kb.py && vite --host",
+    "build:kb:data": "python3 scripts/build_kb.py",
+    "build:kb:web": "vite build",
+    "build:kb": "npm run build:kb:data && npm run build:kb:web"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.10"
+  }
+}

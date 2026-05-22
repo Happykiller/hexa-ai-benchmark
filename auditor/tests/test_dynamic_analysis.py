@@ -24,6 +24,20 @@ def test_docker_orchestrator_times_out_make_start(tmp_path: Path) -> None:
     assert "timed out" in result["error"]
 
 
+def test_docker_orchestrator_exposes_stderr_on_nonzero_exit(tmp_path: Path) -> None:
+    orchestrator = DockerOrchestrator(str(tmp_path))
+    fake_result = subprocess.CompletedProcess(
+        args=["make", "start"], returncode=1, stdout="", stderr="Error: port already in use"
+    )
+
+    with patch("modules.dynamic_analysis.subprocess.run", return_value=fake_result):
+        result = orchestrator.start()
+
+    assert result["status"] == "KO"
+    assert result["exit_code"] == 1
+    assert "port already in use" in result["stderr"]
+
+
 def test_e2e_rejects_unrelated_graphql_errors() -> None:
     tester = E2EFunctionalTester("http://example.test/graphql")
     responses = iter(
@@ -61,8 +75,8 @@ def test_main_marks_e2e_as_skipped_when_dynamic_phase_is_disabled(tmp_path: Path
         get_template.return_value.render.return_value = "report"
         analyze.callback(str(project), True)
 
-    report_path = project / "audit_report.md"
-    assert report_path.exists()
+    report_files = list(project.glob("audit_report_*.md"))
+    assert report_files, "no audit_report_<timestamp>.md found in project"
 
 
 def test_compute_score_caps_limits_score_to_40_when_cap_is_lower() -> None:

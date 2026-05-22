@@ -32,30 +32,37 @@ class DockerOrchestrator:
             result = subprocess.run(
                 ["make", "start"],
                 cwd=self.target_path,
-                check=True,
+                check=False,
                 capture_output=True,
                 text=True,
                 timeout=120,
             )
-            
+            if result.returncode != 0:
+                return {
+                    "status": "KO",
+                    "error": f"make start exited with code {result.returncode}",
+                    "output": result.stdout,
+                    "stderr": result.stderr,
+                    "exit_code": result.returncode,
+                }
+
             # Polling for health
             max_retries = 30
             retry_interval = 2
             for i in range(max_retries):
                 try:
-                    # Simple introspection query to check if GraphQL is alive
                     r = requests.post(self.endpoint, json={"query": "{ __schema { types { name } } }"}, timeout=2)
                     if r.status_code == 200:
                         return {
                             "status": "OK",
                             "waited_seconds": i * retry_interval,
                             "output": result.stdout,
-                            "error": result.stderr,
+                            "stderr": result.stderr,
                         }
                 except requests.exceptions.RequestException:
                     pass
                 time.sleep(retry_interval)
-            
+
             return {
                 "status": "KO",
                 "error": "GraphQL endpoint did not become healthy within 60s",
