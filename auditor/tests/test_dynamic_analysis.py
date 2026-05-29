@@ -73,10 +73,31 @@ def test_main_marks_e2e_as_skipped_when_dynamic_phase_is_disabled(tmp_path: Path
         patch("main.CodeSmellAnalyzer.analyze", return_value={"total_bonus": 0, "total_malus": 0, "bonuses": [], "maluses": [], "all_bonuses": [], "all_maluses": []}), \
         patch("main.Environment.get_template") as get_template:
         get_template.return_value.render.return_value = "report"
-        analyze.callback(str(project), True)
+        analyze.callback(str(project), True, False, False)
 
     report_files = list(project.glob("audit_report_*.md"))
     assert report_files, "no audit_report_<timestamp>.md found in project"
+
+
+def test_main_force_dynamic_runs_docker_even_when_build_fails(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+
+    def fake_run_target(target: str):
+        status = "KO" if target == "build" else "OK"
+        return {"status": status, "output": "", "error": "", "exit_code": 1 if status == "KO" else 0}
+
+    with patch("main.MakefileRunner.run_target", side_effect=fake_run_target), \
+        patch("main.DockerOrchestrator.start", return_value={"status": "KO", "error": "runtime failed"}) as start, \
+        patch("main.HexagonalComplianceChecker.check", return_value={"status": "OK", "score": 100, "rules": []}), \
+        patch("main.CodeQualityChecker.check_any_usage", return_value={"status": "OK", "score": 100, "any_count": 0, "ts_files": 0}), \
+        patch("main.ProjectStatsAnalyzer.analyze", return_value={"total_files": 0, "total_ts_files": 0, "total_lines": 0, "total_size_kb": 0, "total_tests": 0}), \
+        patch("main.CodeSmellAnalyzer.analyze", return_value={"total_bonus": 0, "total_malus": 0, "bonuses": [], "maluses": [], "all_bonuses": [], "all_maluses": []}), \
+        patch("main.Environment.get_template") as get_template:
+        get_template.return_value.render.return_value = "report"
+        analyze.callback(str(project), False, True, True)
+
+    start.assert_called_once_with(fresh=True)
 
 
 def test_compute_score_caps_limits_score_to_40_when_cap_is_lower() -> None:

@@ -17,6 +17,10 @@ from modules.static_analysis import AuthImplementationChecker, CodeQualityChecke
 console = Console()
 
 
+def _log(message: str) -> None:
+    console.print(f"[dim]{datetime.now().strftime('%H:%M:%S')}[/dim] {message}")
+
+
 def _md_cell(value: Any, max_len: int = 800) -> str:
     """Sanitize values for safe markdown table cell rendering."""
     if value is None:
@@ -614,14 +618,24 @@ class TraceabilityValidator:
                 return {"status": "KO", "error": "audit_trace.json root must be an object", "phases_count": 0}
 
             errors: List[str] = []
+            wall_time_consistency: Dict[str, Any] = {
+                "status": "SKIPPED",
+                "summary_total_wall_time_seconds": None,
+                "phases_total_wall_time_seconds": None,
+                "delta_ratio": None,
+                "remarks": "not enough valid timing data",
+            }
             phases = data.get("phases", [])
             summary = data.get("summary")
             meta = data.get("meta")
 
             if not isinstance(meta, dict):
                 errors.append("meta must be an object")
-            elif not _first_non_empty(meta.get("model")):
-                errors.append("meta.model is required")
+            else:
+                if not _first_non_empty(meta.get("prompt_version")):
+                    errors.append("meta.prompt_version is required")
+                if not _first_non_empty(meta.get("model")):
+                    errors.append("meta.model is required")
 
             if not isinstance(summary, dict):
                 errors.append("summary must be an object")
@@ -667,7 +681,6 @@ class TraceabilityValidator:
                 consistency_checks = [
                     ("summary.total_turns", _to_float(summary.get("total_turns")), phase_turns_total),
                     ("summary.total_tool_calls", _to_float(summary.get("total_tool_calls")), phase_tools_total),
-                    ("summary.total_wall_time_seconds", _to_float(summary.get("total_wall_time_seconds")), phase_wall_time_total),
                 ]
                 for label, summary_value, phase_total in consistency_checks:
                     if summary_value is None:
@@ -681,6 +694,32 @@ class TraceabilityValidator:
                             f"(summary={_format_number(summary_value)}, phases={_format_number(phase_total)})"
                         )
 
+                summary_wall_time = _to_float(summary.get("total_wall_time_seconds"))
+                wall_time_consistency = {
+                    "status": "SKIPPED",
+                    "summary_total_wall_time_seconds": summary_wall_time,
+                    "phases_total_wall_time_seconds": phase_wall_time_total,
+                    "delta_ratio": None,
+                    "remarks": "not enough valid timing data",
+                }
+                if summary_wall_time is not None and phase_wall_time_total > 0:
+                    delta_ratio = abs(summary_wall_time - phase_wall_time_total) / phase_wall_time_total
+                    ok = delta_ratio <= 0.10
+                    wall_time_consistency = {
+                        "status": "OK" if ok else "KO",
+                        "summary_total_wall_time_seconds": summary_wall_time,
+                        "phases_total_wall_time_seconds": phase_wall_time_total,
+                        "delta_ratio": delta_ratio,
+                        "remarks": (
+                            "summary.total_wall_time_seconds coherent with summed phases"
+                            if ok
+                            else (
+                                "summary.total_wall_time_seconds differs from summed phases by more than 10% "
+                                f"(summary={_format_number(summary_wall_time)}, phases={_format_number(phase_wall_time_total)})"
+                            )
+                        ),
+                    }
+
             if errors:
                 return {
                     "status": "KO",
@@ -688,9 +727,16 @@ class TraceabilityValidator:
                     "errors": errors,
                     "phases_count": len(phases),
                     "data": data,
+                    "wall_time_consistency": wall_time_consistency,
                 }
 
-            return {"status": "OK", "phases_count": len(phases), "data": data, "errors": []}
+            return {
+                "status": "OK",
+                "phases_count": len(phases),
+                "data": data,
+                "errors": [],
+                "wall_time_consistency": wall_time_consistency,
+            }
         except Exception as e:
             return {"status": "KO", "error": str(e), "phases_count": 0}
 
@@ -703,9 +749,14 @@ def cli() -> None:
 @cli.command()
 @click.argument("path", type=click.Path(exists=True))
 @click.option("--skip-dynamic", is_flag=True, help="Skip docker and dynamic tests")
-def analyze(path: str, skip_dynamic: bool) -> None:
+@click.option("--force-dynamic", is_flag=True, help="Run make test, Docker, E2E and perf even if make build fails")
+@click.option("--fresh-docker", is_flag=True, help="Run docker compose down -v before make start")
+def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bool) -> None:
     """Analyze a deliverable at the given PATH"""
-    console.print(f"[bold blue]Starting Full Audit for:[/bold blue] {path}")
+    if skip_dynamic and force_dynamic:
+        raise click.UsageError("--skip-dynamic and --force-dynamic cannot be used together")
+
+    _log(f"[bold blue]Starting Full Audit for:[/bold blue] {path}")
     audit_started_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     audit_db: Dict[str, Any] = {
         "meta": {
@@ -713,6 +764,8 @@ def analyze(path: str, skip_dynamic: bool) -> None:
             "audit_started_at": audit_started_at,
             "audit_finished_at": None,
             "skip_dynamic": skip_dynamic,
+            "force_dynamic": force_dynamic,
+            "fresh_docker": fresh_docker,
             "scoring_model": "indicator_fibonacci_v1",
         },
         "summary": {},
@@ -744,7 +797,7 @@ def analyze(path: str, skip_dynamic: bool) -> None:
     }
 
     # 1. Setup
-    console.print("Running make setup...")
+    _log("Running make setup...")
     op_results["setup"] = make.run_target("setup")
     _append_indicator(
         audit_db, 1, "Opérationnalité", 1, "Exécution des cibles make & Docker", "make setup",
@@ -757,7 +810,7 @@ def analyze(path: str, skip_dynamic: bool) -> None:
     docker_start = {"status": "SKIPPED", "details": "dynamic phase not started"}
     exposed_containers = {"containers": [], "status": "SKIPPED"}
 
-    console.print("Running make lint...")
+    _log("Running make lint...")
     op_results["lint"] = make.run_target("lint")
     _append_indicator(
         audit_db, 1, "Opérationnalité", 1, "Exécution des cibles make & Docker", "make lint",
@@ -765,7 +818,7 @@ def analyze(path: str, skip_dynamic: bool) -> None:
         details=op_results["lint"], weight=5
     )
 
-    console.print("Running make build...")
+    _log("Running make build...")
     op_results["build"] = make.run_target("build")
     _append_indicator(
         audit_db, 1, "Opérationnalité", 1, "Exécution des cibles make & Docker", "make build",
@@ -774,9 +827,13 @@ def analyze(path: str, skip_dynamic: bool) -> None:
     )
 
     is_operational = op_results["build"]["status"] == "OK"
+    should_run_dynamic = not skip_dynamic and (is_operational or force_dynamic)
 
-    if is_operational:
-        console.print("Running make test...")
+    if is_operational or force_dynamic:
+        if force_dynamic and not is_operational:
+            _log("make build failed; --force-dynamic is set, continuing with make test...")
+        else:
+            _log("Running make test...")
         op_results["test"] = make.run_target("test")
     else:
         op_results["test"] = {
@@ -790,9 +847,14 @@ def analyze(path: str, skip_dynamic: bool) -> None:
         details=op_results["test"], weight=10
     )
 
-    if not skip_dynamic and is_operational:
-        console.print("Starting Docker infrastructure (make start)...")
-        docker_start = orchestrator.start()
+    if should_run_dynamic:
+        if force_dynamic and not is_operational:
+            _log("make build failed; --force-dynamic is set, starting Docker infrastructure anyway...")
+        else:
+            _log("Starting Docker infrastructure (make start)...")
+        if fresh_docker:
+            _log("Fresh Docker mode enabled: running docker compose down -v before make start...")
+        docker_start = orchestrator.start(fresh=fresh_docker)
     elif skip_dynamic:
         docker_start = {"status": "SKIPPED", "details": "dynamic phase skipped"}
     else:
@@ -806,6 +868,7 @@ def analyze(path: str, skip_dynamic: bool) -> None:
     )
 
     if docker_start["status"] == "OK":
+        _log("Inspecting active Docker containers...")
         exposed_containers = orchestrator.inspect_exposed_containers()
         containers_list = exposed_containers.get("containers", [])
         if not containers_list:
@@ -868,7 +931,7 @@ def analyze(path: str, skip_dynamic: bool) -> None:
     if docker_start["status"] == "OK":
         endpoint = "http://localhost:4000/graphql"
         try:
-            console.print("Running Auth scenario...")
+            _log("Running Auth scenario...")
             auth_tester = AuthTester(endpoint)
             auth_e2e_results = auth_tester.run_scenario()
             auth_token = auth_tester.token
@@ -876,7 +939,7 @@ def analyze(path: str, skip_dynamic: bool) -> None:
             e2e = E2EFunctionalTester(endpoint, token=auth_token)
             perf = PerformanceBenchmarker(endpoint, token=auth_token)
 
-            console.print("Running E2E Scenario...")
+            _log("Running E2E Scenario...")
             e2e_results = e2e.run_scenario()
             executed_steps = [r["step"] for r in e2e_results]
             for e2e_step in e2e_results:
@@ -906,7 +969,7 @@ def analyze(path: str, skip_dynamic: bool) -> None:
                         status="SKIPPED", weight=5
                     )
 
-            console.print("Running Performance Benchmark...")
+            _log("Running Performance Benchmark...")
             performance = perf.run_benchmark("{ tasks { id } }", {}, iterations=50)
             perf_success = (
                 performance.get("avg_latency_ms", 0) > 0 and performance.get("error_rate", 100) <= 5
@@ -950,7 +1013,7 @@ def analyze(path: str, skip_dynamic: bool) -> None:
         reason = docker_start.get("error", "runtime not started")
         if skip_dynamic:
             reason = "dynamic phase skipped"
-        elif not is_operational:
+        elif not is_operational and not force_dynamic:
             reason = "make build failed; dynamic phase not executed"
 
         for step_name in expected_e2e_steps:
@@ -1153,17 +1216,17 @@ def analyze(path: str, skip_dynamic: bool) -> None:
             }
         )
 
-    trace_file_present = traceability["status"] == "OK"
+    trace_valid = traceability["status"] == "OK"
     _append_indicator(
         audit_db,
         3,
         "Traçabilité",
         1,
         "Validation audit_trace.json",
-        "Fichier audit_trace.json",
-        trace_file_present,
+        "Validation audit_trace.json",
+        trace_valid,
         _first_non_empty(
-            f"phases_count={traceability.get('phases_count', 0)}" if trace_file_present else None,
+            f"phases_count={traceability.get('phases_count', 0)}" if trace_valid else None,
             traceability.get("error"),
             traceability.get("status"),
         ),
@@ -1178,15 +1241,29 @@ def analyze(path: str, skip_dynamic: bool) -> None:
         "Nombre de phases tracées >= 1",
         traceability.get("phases_count", 0) >= 1,
         f"phases_count={traceability.get('phases_count', 0)}",
-        status="SKIPPED" if not trace_file_present else None,
         details=traceability, weight=2
+    )
+    wall_time_consistency = traceability.get("wall_time_consistency", {})
+    wall_time_status = wall_time_consistency.get("status")
+    _append_indicator(
+        audit_db,
+        3,
+        "Traçabilité",
+        1,
+        "Validation audit_trace.json",
+        "Cohérence wall time",
+        wall_time_status == "OK",
+        wall_time_consistency.get("remarks", "not enough valid timing data"),
+        status="SKIPPED" if wall_time_status == "SKIPPED" else None,
+        details=wall_time_consistency,
+        weight=2,
     )
     for metric_key, config in TRACE_SCORING_CONFIG.items():
         _append_scored_indicator_from_config(
             audit_db,
             config,
             trace_metrics.get(metric_key),
-            trace_or_stats_present=trace_file_present,
+            trace_or_stats_present=trace_metrics.get(metric_key) is not None,
         )
 
     for bonus in smells.get("all_bonuses", []):

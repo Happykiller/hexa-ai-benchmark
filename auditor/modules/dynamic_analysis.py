@@ -2,33 +2,61 @@ import subprocess
 import time
 import requests
 import json
+from datetime import datetime
 from typing import Dict, Any, List, Optional
+
+
+def _now_iso() -> str:
+    return datetime.now().astimezone().isoformat(timespec="seconds")
 
 class MakefileRunner:
     def __init__(self, target_path: str):
         self.target_path = target_path
 
     def run_target(self, target: str) -> Dict[str, Any]:
+        started_at = _now_iso()
+        monotonic_started_at = time.monotonic()
         try:
             result = subprocess.run(["make", target], cwd=self.target_path, capture_output=True, text=True, timeout=300)
             return {
                 "status": "OK" if result.returncode == 0 else "KO",
                 "output": result.stdout,
                 "error": result.stderr,
-                "exit_code": result.returncode
+                "exit_code": result.returncode,
+                "started_at": started_at,
+                "finished_at": _now_iso(),
+                "duration_seconds": round(time.monotonic() - monotonic_started_at, 3),
             }
         except subprocess.TimeoutExpired:
-            return {"status": "KO", "error": f"Target 'make {target}' timed out after 5 minutes"}
+            return {
+                "status": "KO",
+                "error": f"Target 'make {target}' timed out after 5 minutes",
+                "started_at": started_at,
+                "finished_at": _now_iso(),
+                "duration_seconds": round(time.monotonic() - monotonic_started_at, 3),
+            }
         except Exception as e:
-            return {"status": "KO", "error": str(e)}
+            return {
+                "status": "KO",
+                "error": str(e),
+                "started_at": started_at,
+                "finished_at": _now_iso(),
+                "duration_seconds": round(time.monotonic() - monotonic_started_at, 3),
+            }
 
 class DockerOrchestrator:
     def __init__(self, target_path: str, endpoint: str = "http://localhost:4000/graphql"):
         self.target_path = target_path
         self.endpoint = endpoint
 
-    def start(self) -> Dict[str, Any]:
+    def start(self, fresh: bool = False) -> Dict[str, Any]:
+        started_at = _now_iso()
+        monotonic_started_at = time.monotonic()
+        fresh_result: Optional[Dict[str, Any]] = None
         try:
+            if fresh:
+                fresh_result = self.stop()
+
             result = subprocess.run(
                 ["make", "start"],
                 cwd=self.target_path,
@@ -44,6 +72,11 @@ class DockerOrchestrator:
                     "output": result.stdout,
                     "stderr": result.stderr,
                     "exit_code": result.returncode,
+                    "fresh_docker": fresh,
+                    "fresh_result": fresh_result,
+                    "started_at": started_at,
+                    "finished_at": _now_iso(),
+                    "duration_seconds": round(time.monotonic() - monotonic_started_at, 3),
                 }
 
             # Polling for health
@@ -58,27 +91,103 @@ class DockerOrchestrator:
                             "waited_seconds": i * retry_interval,
                             "output": result.stdout,
                             "stderr": result.stderr,
+                            "fresh_docker": fresh,
+                            "fresh_result": fresh_result,
+                            "started_at": started_at,
+                            "finished_at": _now_iso(),
+                            "duration_seconds": round(time.monotonic() - monotonic_started_at, 3),
                         }
                 except requests.exceptions.RequestException:
                     pass
                 time.sleep(retry_interval)
+
+            try:
+                logs_result = subprocess.run(
+                    ["docker", "compose", "logs", "--tail=60"],
+                    cwd=self.target_path,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                container_logs = logs_result.stdout or logs_result.stderr or ""
+            except Exception:
+                container_logs = ""
 
             return {
                 "status": "KO",
                 "error": "GraphQL endpoint did not become healthy within 60s",
                 "output": result.stdout,
                 "stderr": result.stderr,
+                "container_logs": container_logs,
+                "fresh_docker": fresh,
+                "fresh_result": fresh_result,
+                "started_at": started_at,
+                "finished_at": _now_iso(),
+                "duration_seconds": round(time.monotonic() - monotonic_started_at, 3),
             }
         except subprocess.TimeoutExpired:
-            return {"status": "KO", "error": "Target 'make start' timed out after 2 minutes"}
+            return {
+                "status": "KO",
+                "error": "Target 'make start' timed out after 2 minutes",
+                "fresh_docker": fresh,
+                "fresh_result": fresh_result,
+                "started_at": started_at,
+                "finished_at": _now_iso(),
+                "duration_seconds": round(time.monotonic() - monotonic_started_at, 3),
+            }
         except Exception as e:
-            return {"status": "KO", "error": str(e)}
+            return {
+                "status": "KO",
+                "error": str(e),
+                "fresh_docker": fresh,
+                "fresh_result": fresh_result,
+                "started_at": started_at,
+                "finished_at": _now_iso(),
+                "duration_seconds": round(time.monotonic() - monotonic_started_at, 3),
+            }
 
-    def stop(self):
+    def stop(self) -> Dict[str, Any]:
+        started_at = _now_iso()
+        monotonic_started_at = time.monotonic()
         try:
-            subprocess.run(["docker", "compose", "down", "-v"], cwd=self.target_path, capture_output=True, timeout=60)
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            subprocess.run(["docker-compose", "down", "-v"], cwd=self.target_path, capture_output=True, timeout=60)
+            result = subprocess.run(["docker", "compose", "down", "-v"], cwd=self.target_path, capture_output=True, text=True, timeout=60)
+            return {
+                "status": "OK" if result.returncode == 0 else "KO",
+                "output": result.stdout,
+                "error": result.stderr,
+                "exit_code": result.returncode,
+                "started_at": started_at,
+                "finished_at": _now_iso(),
+                "duration_seconds": round(time.monotonic() - monotonic_started_at, 3),
+            }
+        except FileNotFoundError:
+            try:
+                result = subprocess.run(["docker-compose", "down", "-v"], cwd=self.target_path, capture_output=True, text=True, timeout=60)
+                return {
+                    "status": "OK" if result.returncode == 0 else "KO",
+                    "output": result.stdout,
+                    "error": result.stderr,
+                    "exit_code": result.returncode,
+                    "started_at": started_at,
+                    "finished_at": _now_iso(),
+                    "duration_seconds": round(time.monotonic() - monotonic_started_at, 3),
+                }
+            except subprocess.TimeoutExpired:
+                return {
+                    "status": "KO",
+                    "error": "docker-compose down -v timed out after 60s",
+                    "started_at": started_at,
+                    "finished_at": _now_iso(),
+                    "duration_seconds": round(time.monotonic() - monotonic_started_at, 3),
+                }
+        except subprocess.TimeoutExpired:
+            return {
+                "status": "KO",
+                "error": "docker compose down -v timed out after 60s",
+                "started_at": started_at,
+                "finished_at": _now_iso(),
+                "duration_seconds": round(time.monotonic() - monotonic_started_at, 3),
+            }
 
     def inspect_exposed_containers(self) -> Dict[str, Any]:
         """Collect running containers and exposed ports for the current compose project."""

@@ -152,7 +152,10 @@ L'agent doit fournir un fichier `audit_trace.json` à la racine de son livrable 
 
 ```json
 {
-  "meta": { "model": "claude-sonnet-4-6" },
+  "meta": {
+    "prompt_version": "2605291055",
+    "model": "claude-sonnet-4-6"
+  },
   "summary": {
     "total_turns": 12,
     "total_tool_calls": 45,

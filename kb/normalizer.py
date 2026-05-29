@@ -14,10 +14,48 @@ DOCKER_NOISE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# MongoDB/MySQL structured JSON log lines — not useful for crash diagnosis
+DB_JSON_LOG_RE = re.compile(
+    r'^\s*(?:[a-zA-Z0-9_-]*(?:mongo|mysql|postgres|redis|mariadb)[a-zA-Z0-9_-]*)\s+\|\s*\{',
+    re.IGNORECASE,
+)
+
+# Container service prefix: "api-1  | " or "todo_api-1  | "
+CONTAINER_PREFIX_RE = re.compile(r'^\s*([a-zA-Z0-9_.-]+)\s+\|\s?', re.IGNORECASE)
+API_SERVICE_RE = re.compile(r'\bapi\b', re.IGNORECASE)
+
 
 def clean_output(text: str, max_lines: int = 20) -> str:
     lines = [line for line in (text or "").split("\n") if line.strip() and not DOCKER_NOISE_RE.match(line)]
     return "\n".join(lines[-max_lines:]).strip()
+
+
+def clean_container_logs(text: str, max_lines: int = 40) -> str:
+    """Extract the most useful lines from container logs.
+
+    Prioritises api-service lines (crash happens at startup, so we take
+    the first lines, not the last). Falls back to generic filtering when
+    no api service is found, removing structured DB JSON logs that bury
+    the real error.
+    """
+    all_lines = [line for line in (text or "").split("\n") if line.strip()]
+
+    # Try to isolate api-service lines (where the Node crash lives)
+    api_lines = []
+    for line in all_lines:
+        m = CONTAINER_PREFIX_RE.match(line)
+        if m and API_SERVICE_RE.search(m.group(1)):
+            api_lines.append(line)
+
+    if api_lines:
+        return "\n".join(api_lines[:max_lines]).strip()
+
+    # Fallback: strip DB JSON logs and docker layer noise, keep last N
+    filtered = [
+        line for line in all_lines
+        if not DOCKER_NOISE_RE.match(line) and not DB_JSON_LOG_RE.match(line)
+    ]
+    return "\n".join(filtered[-max_lines:]).strip()
 
 
 def agent_from_path(target_path: str) -> str:
@@ -30,6 +68,38 @@ def session_from_path(target_path: str) -> Optional[str]:
     basename = Path(target_path.rstrip("/")).name
     match = re.match(r"^(\d{8}_\d{4})_", basename)
     return match.group(1) if match else None
+
+
+def trace_meta_from_artifacts(artifacts: Dict[str, Any]) -> Dict[str, Any]:
+    traceability = artifacts.get("traceability", {})
+    data = traceability.get("data", {}) if isinstance(traceability, dict) else {}
+    meta = data.get("meta", {}) if isinstance(data, dict) else {}
+    return meta if isinstance(meta, dict) else {}
+
+
+def extract_phase_indicators(data: Dict[str, Any], phase_code: str) -> List[Dict[str, Any]]:
+    indicators: List[Dict[str, Any]] = []
+    for phase in data.get("phases", []):
+        if str(phase.get("code")) != phase_code:
+            continue
+        for step in phase.get("steps", []):
+            for indicator in step.get("indicators", []):
+                details = indicator.get("details") or {}
+                safe_details = {key: value for key, value in details.items() if key != "data"}
+                indicators.append(
+                    {
+                        "code": indicator.get("code"),
+                        "name": indicator.get("name"),
+                        "status": indicator.get("status"),
+                        "score": indicator.get("score"),
+                        "max_score": indicator.get("max_score"),
+                        "measured_value": indicator.get("measured_value"),
+                        "remarks": indicator.get("remarks"),
+                        "step": step.get("label"),
+                        "details": safe_details,
+                    }
+                )
+    return indicators
 
 
 def normalize_old(data: Dict[str, Any], source_file: str, report_markdown: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -57,10 +127,14 @@ def normalize_old(data: Dict[str, Any], source_file: str, report_markdown: Optio
                 bucket_scores[key] = {"normalized_score": point.get("score", 0), "weight": point.get("max_score", 0)}
 
     score_pct = float(summary.get("global_score", 0))
+    agent = agent_from_path(target)
     return {
         "id": Path(source_file).stem,
         "source_file": source_file,
-        "agent": agent_from_path(target),
+        "agent": agent,
+        "model": str(meta.get("model") or agent),
+        "effort": str(meta.get("effort") or ""),
+        "prompt_version": str(meta.get("prompt_version") or ""),
         "session_id": session_from_path(target),
         "audit_started_at": meta.get("audit_started_at", ""),
         "audit_finished_at": meta.get("audit_finished_at", ""),
@@ -80,6 +154,8 @@ def normalize_old(data: Dict[str, Any], source_file: str, report_markdown: Optio
         "injection": None,
         "dual_persistence": None,
         "trace_metrics": None,
+        "traceability_indicators": [],
+        "duration_seconds": None,
         "bonuses": None,
         "maluses": None,
         "e2e_steps": None,
@@ -106,9 +182,18 @@ def extract_tooltips(artifacts: Dict[str, Any], data: Dict[str, Any]) -> Dict[st
                 make[target] = "\n".join(parts)
     docker_start = artifacts.get("docker_start", {})
     if docker_start.get("status") not in ("OK", "SKIPPED", None):
-        error = clean_output(str(docker_start.get("error") or docker_start.get("output") or ""))
-        if error:
-            make["docker"] = error
+        parts = []
+        err_msg = str(docker_start.get("error") or "").strip()
+        if err_msg:
+            parts.append(err_msg)
+        compose_out = clean_output(str(docker_start.get("stderr") or docker_start.get("output") or ""))
+        if compose_out:
+            parts.append(compose_out)
+        container_logs = clean_container_logs(str(docker_start.get("container_logs") or ""))
+        if container_logs:
+            parts.append("--- container logs ---\n" + container_logs)
+        if parts:
+            make["docker"] = "\n".join(parts)
     tooltips["make"] = make
 
     e2e_errors: Dict[str, str] = {}
@@ -165,13 +250,18 @@ def normalize_new(data: Dict[str, Any], source_file: str, report_markdown: Optio
 
     docker_start = artifacts.get("docker_start", {})
     trace_metrics = artifacts.get("trace_metrics", {})
+    trace_meta = trace_meta_from_artifacts(artifacts)
     hexagonal = artifacts.get("hexagonal", {})
     smells = artifacts.get("smells", {})
+    agent = agent_from_path(target)
 
     return {
         "id": Path(source_file).stem,
         "source_file": source_file,
-        "agent": agent_from_path(target),
+        "agent": agent,
+        "model": str(trace_meta.get("model") or agent),
+        "effort": str(trace_meta.get("effort") or ""),
+        "prompt_version": str(trace_meta.get("prompt_version") or ""),
         "session_id": session_from_path(target),
         "audit_started_at": meta.get("audit_started_at", ""),
         "audit_finished_at": meta.get("audit_finished_at", ""),
@@ -235,6 +325,8 @@ def normalize_new(data: Dict[str, Any], source_file: str, report_markdown: Optio
             "wall_s": trace_metrics.get("total_wall_time_seconds"),
             "errors": trace_metrics.get("trace_errors_count", 0),
         },
+        "traceability_indicators": extract_phase_indicators(data, "3"),
+        "duration_seconds": trace_metrics.get("total_wall_time_seconds"),
         "bonuses": [{"reason": bonus.get("reason", ""), "ok": bonus.get("status") == "OK"} for bonus in smells.get("all_bonuses", [])],
         "maluses": [{"reason": malus.get("reason", ""), "detected": malus.get("status") == "DETECTE"} for malus in smells.get("all_maluses", [])],
         "e2e_steps": {result["step"]: bool(result.get("success")) for result in artifacts.get("e2e_results", [])},

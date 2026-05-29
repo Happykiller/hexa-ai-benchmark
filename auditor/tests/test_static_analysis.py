@@ -40,14 +40,35 @@ def test_quality_checker_counts_any_in_tsx_files(tmp_path: Path) -> None:
     assert result["any_count"] == 1
 
 
-def test_traceability_validator_rejects_inconsistent_summary(tmp_path: Path) -> None:
+def test_traceability_validator_reports_wall_time_consistency_separately(tmp_path: Path) -> None:
     project = tmp_path / "deliverable"
     project.mkdir()
     (project / "audit_trace.json").write_text(
         (
             "{"
-            '"meta":{"model":"gpt-test"},'
-            '"summary":{"total_turns":20,"total_tool_calls":40,"total_wall_time_seconds":1200},'
+            '"meta":{"prompt_version":"2605291055","model":"gpt-test"},'
+            '"summary":{"total_turns":2,"total_tool_calls":4,"total_wall_time_seconds":1200},'
+            '"phases":[{"start_time":"2026-05-11T10:00:00Z","end_time":"2026-05-11T10:05:00Z","turns_in_phase":2,"tool_calls_in_phase":4}]'
+            "}"
+        ),
+        encoding="utf-8",
+    )
+
+    result = TraceabilityValidator(str(project)).validate()
+
+    assert result["status"] == "OK"
+    assert result["wall_time_consistency"]["status"] == "KO"
+    assert "differs from summed phases by more than 10%" in result["wall_time_consistency"]["remarks"]
+
+
+def test_traceability_validator_rejects_inconsistent_turn_summary(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+    (project / "audit_trace.json").write_text(
+        (
+            "{"
+            '"meta":{"prompt_version":"2605291055","model":"gpt-test"},'
+            '"summary":{"total_turns":20,"total_tool_calls":4,"total_wall_time_seconds":300},'
             '"phases":[{"start_time":"2026-05-11T10:00:00Z","end_time":"2026-05-11T10:05:00Z","turns_in_phase":2,"tool_calls_in_phase":4}]'
             "}"
         ),
@@ -57,7 +78,27 @@ def test_traceability_validator_rejects_inconsistent_summary(tmp_path: Path) -> 
     result = TraceabilityValidator(str(project)).validate()
 
     assert result["status"] == "KO"
-    assert "differs from summed phases by more than 10%" in result["error"]
+    assert "summary.total_turns differs from summed phases by more than 10%" in result["error"]
+
+
+def test_traceability_validator_requires_prompt_version(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+    (project / "audit_trace.json").write_text(
+        (
+            "{"
+            '"meta":{"model":"gpt-test"},'
+            '"summary":{"total_turns":1,"total_tool_calls":1,"total_wall_time_seconds":60},'
+            '"phases":[{"start_time":"2026-05-11T10:00:00Z","end_time":"2026-05-11T10:01:00Z","turns_in_phase":1,"tool_calls_in_phase":1}]'
+            "}"
+        ),
+        encoding="utf-8",
+    )
+
+    result = TraceabilityValidator(str(project)).validate()
+
+    assert result["status"] == "KO"
+    assert "meta.prompt_version is required" in result["error"]
 
 
 def test_hexagonal_checker_ignores_forbidden_imports_inside_comments(tmp_path: Path) -> None:

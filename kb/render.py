@@ -49,6 +49,103 @@ def section_scores(entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return section("Score détaillé", items)
 
 
+def first_trace_finding(entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    report = entry.get("report_markdown") or {}
+    for finding in report.get("top_findings") or []:
+        code = str(finding.get("code") or "")
+        phase = str(finding.get("phase") or "").lower()
+        if code.startswith("3-") or "traçabilité" in phase or "traceability" in phase:
+            return finding
+    return None
+
+
+def fmt_score(value: Any) -> str:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return "0"
+    return str(int(numeric)) if numeric.is_integer() else f"{numeric:.1f}"
+
+
+def trace_indicator_tooltip(indicator: Dict[str, Any]) -> str:
+    lines = [
+        str(indicator.get("step") or ""),
+        f"Code: {indicator.get('code') or ''}",
+        f"Statut: {indicator.get('status') or '?'}",
+        f"Score: {fmt_score(indicator.get('score'))}/{fmt_score(indicator.get('max_score'))}",
+    ]
+    if indicator.get("measured_value") is not None:
+        lines.append(f"Valeur mesurée: {indicator.get('measured_value')}")
+    if indicator.get("remarks"):
+        lines.append(f"Remarques: {indicator.get('remarks')}")
+
+    details = indicator.get("details") or {}
+    if details:
+        detail_lines = []
+        for key, value in details.items():
+            if isinstance(value, list):
+                value = ", ".join(str(item) for item in value)
+            if isinstance(value, dict):
+                value = json.dumps(value, ensure_ascii=False)
+            detail_lines.append(f"{key}: {value}")
+        if detail_lines:
+            lines.append("Détails:")
+            lines.extend(detail_lines)
+
+    return "\n".join(line for line in lines if line)
+
+
+def trace_indicator_label(indicator: Dict[str, Any]) -> str:
+    code = str(indicator.get("code") or "")
+    name = str(indicator.get("name") or "")
+    if code == "3-1-1" and name == "Fichier audit_trace.json":
+        name = "Validation audit_trace.json"
+    return f"{code} {name}".strip()
+
+
+def section_trace_diagnostic(entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    bucket = (entry.get("bucket_scores") or {}).get("traceability", {})
+    trace_metrics = entry.get("trace_metrics") or {}
+    trace_indicators = entry.get("traceability_indicators") or []
+    has_bucket = bool(bucket)
+    has_metrics = any(value is not None for value in trace_metrics.values())
+    if not has_bucket and not has_metrics and not trace_indicators:
+        return None
+
+    norm = float(bucket.get("normalized_score", 0) or 0)
+    weight = float(bucket.get("weight", 0) or 0)
+    pct = round(norm / weight * 100) if weight else 0
+    cls = "ok" if pct >= 70 else "warn" if pct >= 40 else "ko"
+
+    items = [item("Score trace", f"{norm:.1f} / {weight:.1f} ({pct}%)" if weight else f"{norm:.1f}", cls)]
+
+    for indicator in trace_indicators:
+        status = str(indicator.get("status") or "?")
+        status_cls = {"OK": "ok", "KO": "ko", "SKIPPED": "skip", "FAILED": "ko", "PARTIEL": "warn"}.get(status, "na")
+        score = f"{fmt_score(indicator.get('score'))}/{fmt_score(indicator.get('max_score'))}"
+        label = trace_indicator_label(indicator)
+        items.append(item(truncate(label, 52), f"{status} · {score}", status_cls, trace_indicator_tooltip(indicator)))
+
+    if not trace_indicators:
+        trace_error = (entry.get("_tooltips") or {}).get("trace_errors")
+        trace_finding = first_trace_finding(entry)
+        if trace_error:
+            first_error = trace_error.splitlines()[0]
+            items.append(item("Trace", truncate(first_error, 72), "ko", trace_error))
+        elif trace_finding:
+            remarks = trace_finding.get("remarks") or trace_finding.get("status") or "à vérifier"
+            items.append(
+                item(
+                    "Trace",
+                    truncate(str(remarks), 72),
+                    "ko" if trace_finding.get("kind") == "failed" else "warn",
+                    trace_finding.get("tooltip"),
+                )
+            )
+
+    return section("Détail traçabilité", items)
+
+
 def section_pipeline(entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     make_targets = entry.get("make_targets")
     if not make_targets:
@@ -136,13 +233,22 @@ def section_checks(entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 
 def section_e2e(entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    tooltips = (entry.get("_tooltips") or {}).get("e2e", {})
     if entry.get("skip_dynamic"):
         return section("E2E", [item("Phase dynamique", "ignorée (--skip-dynamic)", "skip")])
+
     e2e_steps = entry.get("e2e_steps") or {}
     auth_e2e_steps = entry.get("auth_e2e_steps") or {}
     if not e2e_steps and not auth_e2e_steps:
-        return None
-    tooltips = (entry.get("_tooltips") or {}).get("e2e", {})
+        docker = entry.get("docker") or {}
+        make_tooltips = (entry.get("_tooltips") or {}).get("make", {})
+        docker_status = docker.get("status") or "NON_EXECUTE"
+        cls = "ok" if docker_status == "OK" else "ko" if docker_status == "KO" else "skip"
+        detail = make_tooltips.get("docker")
+        label = "Runtime GraphQL" if docker_status == "KO" else "Scénario E2E"
+        value = docker_status if docker_status != "NON_EXECUTE" else "non exécuté"
+        return section("E2E", [item(label, value, cls, detail)])
+
     items = [bool_item(step, ok, tooltips.get(step)) for step, ok in e2e_steps.items()]
     items.extend(
         [bool_item(step.replace("Auth: ", ""), ok, tooltips.get(step)) for step, ok in auth_e2e_steps.items()]
@@ -155,6 +261,10 @@ def section_trace(entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if not trace_metrics or trace_metrics.get("turns") is None:
         return None
     items = []
+    if entry.get("agent"):
+        items.append(item("Livrable", str(entry["agent"])))
+    if entry.get("prompt_version"):
+        items.append(item("Prompt version", str(entry["prompt_version"])))
     if trace_metrics.get("phases") is not None:
         items.append(item("Phases", str(trace_metrics["phases"])))
     turns = trace_metrics.get("turns")
@@ -199,7 +309,8 @@ def section_report(entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
     items = []
     if report.get("source_file"):
-        items.append(item("Rapport MD", report["source_file"].split("/")[-1]))
+        report_name = report["source_file"].split("/")[-1]
+        items.append(item("Rapport MD", "rapport", tooltip=report_name))
     final_score = summary.get("Pourcentage final du score net")
     if final_score:
         items.append(item("Score rapport", final_score))
@@ -218,6 +329,7 @@ def section_report(entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 SECTION_EXTRACTORS = [
     section_scores,
+    section_trace_diagnostic,
     section_pipeline,
     section_stats,
     section_checks,
@@ -332,25 +444,7 @@ td{padding:.6rem .75rem;font-size:.85rem;border-top:1px solid var(--border);vert
 <div id="tt-panel"></div>
 <div class="wrap">
   <div class="cards" id="summary-cards"></div>
-  <div class="toolbar">
-    <div class="dropdown" id="dd-agent">
-      <button class="dropdown-btn" onclick="toggleDD(event,'dd-agent')" id="dd-agent-btn">Tous les agents</button>
-      <div class="dropdown-menu" id="dd-agent-menu">
-        <label><input type="checkbox" id="f-agent-all" checked onchange="toggleAllAgents(this)"> <em>Tous</em></label>
-        <div class="sep"></div>
-        <div id="f-agent-list"></div>
-      </div>
-    </div>
-    <select id="f-status" onchange="applyFilter()">
-      <option value="">Tous les statuts</option>
-      <option value="ADMIS">ADMIS</option>
-      <option value="ECHEC">ÉCHEC</option>
-    </select>
-    <input type="range" id="f-score" min="0" max="100" value="0" oninput="syncR();applyFilter()">
-    <span id="rlbl" class="rlbl">Score ≥ 0%</span>
-    <button onclick="resetF()">Réinitialiser</button>
-    <span id="count"></span>
-  </div>
+  <div class="toolbar"><span id="count"></span></div>
   <table>
     <thead><tr id="thead-row"></tr></thead>
     <tbody id="tbody"></tbody>
@@ -364,6 +458,7 @@ function esc(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function sc(pct){ return pct>=70?'ok':pct>=40?'warn':'ko'; }
+function fmtDuration(seconds){var n=parseFloat(seconds); if(!isFinite(n)||n<=0) return '—'; return (Math.round((n/60)*10)/10)+' min';}
 function bucketHtml(e){
   var labels={operationality:'Opé',architecture:'Archi',quality:'Qual',traceability:'Traca'};
   var out='';
@@ -401,38 +496,21 @@ function renderSections(sections){
     return '<div class="dcol"><div class="dcard"><div class="dcard-title">'+esc(sec.title)+'</div>'+items+'</div></div>';
   }).join('');
 }
-var COLS=[{label:'Agent',sort:true,field:'agent'},{label:'Session',sort:true,field:'session_id'},{label:'Date',sort:true,field:'audit_started_at'},{label:'Score %',sort:true,field:'score_percentage'},{label:'Buckets',sort:false,field:null},{label:'Statut',sort:false,field:null},{label:'Scoring',sort:false,field:null}];
+var COLS=[{label:'Modèle',sort:true,field:'model'},{label:'Effort',sort:true,field:'effort'},{label:'Session',sort:true,field:'session_id'},{label:'Date',sort:true,field:'audit_started_at'},{label:'Duration',sort:true,field:'duration_seconds'},{label:'Score %',sort:true,field:'score_percentage'},{label:'Buckets',sort:false,field:null}];
 var _dir={};
 function buildTable(){
   var thead=document.getElementById('thead-row');
   thead.innerHTML=COLS.map(function(c,i){return c.sort?'<th onclick="sortT('+i+')">'+c.label+' <span style="opacity:.4">↕</span></th>':'<th>'+c.label+'</th>';}).join('');
   var tb=document.getElementById('tbody');
   tb.innerHTML=ENTRIES.map(function(e,i){
-    var score=e.score_percentage; var date=(e.audit_started_at||'').slice(0,16)||'—'; var model=(e.scoring_model||'').replace('indicator_fibonacci_v1','fib_v1');
-    var summary='<tr class="sr" data-idx="'+i+'" data-agent="'+esc(e.agent)+'" data-status="'+esc(e.admission_status)+'" data-score="'+score+'" onclick="toggle('+i+')"><td><strong>'+esc(e.agent)+'</strong></td><td class="mono">'+(e.session_id||'—')+'</td><td class="mono">'+date+'</td><td class="score '+sc(score)+'">'+score+'%</td><td class="buckets">'+bucketHtml(e)+'</td><td>'+badgesHtml(e)+'</td><td class="mono muted">'+esc(model)+'</td></tr>';
+    var score=e.score_percentage; var date=(e.audit_started_at||'').slice(0,16)||'—'; var model=e.model||e.agent||'—'; var effort=e.effort||'—';
+    var summary='<tr class="sr" data-idx="'+i+'" data-agent="'+esc(model)+'" data-status="'+esc(e.admission_status)+'" data-score="'+score+'" onclick="toggle('+i+')"><td><strong>'+esc(model)+'</strong></td><td class="mono">'+esc(effort)+'</td><td class="mono">'+(e.session_id||'—')+'</td><td class="mono">'+date+'</td><td class="mono">'+fmtDuration(e.duration_seconds)+'</td><td class="score '+sc(score)+'">'+score+'%</td><td class="buckets">'+bucketHtml(e)+'</td></tr>';
     var detail='<tr class="dr" id="dr-'+i+'" style="display:none"><td colspan="7"><div class="detail-grid">'+renderSections(e.sections)+'</div></td></tr>';
     return summary+detail;
   }).join('');
 }
 function toggle(i){var dr=document.getElementById('dr-'+i); var open=dr.style.display===''; dr.style.display=open?'none':''; var sr=dr.previousElementSibling; if(sr) sr.classList.toggle('open',!open);}
-function toggleDD(e,id){e.stopPropagation(); document.getElementById(id+'-menu').classList.toggle('open');}
-document.addEventListener('click',function(e){document.querySelectorAll('.dropdown-menu.open').forEach(function(m){if(!m.parentElement.contains(e.target)) m.classList.remove('open');});});
-function selectedAgents(){return Array.from(document.querySelectorAll('#f-agent-list input[type=checkbox]:checked')).map(function(c){return c.value;});}
-function toggleAllAgents(cb){document.querySelectorAll('#f-agent-list input[type=checkbox]').forEach(function(c){c.checked=cb.checked;}); syncAgentBtn(); applyFilter();}
-function syncAgentBtn(){
-  var all=document.querySelectorAll('#f-agent-list input[type=checkbox]'); var checked=document.querySelectorAll('#f-agent-list input[type=checkbox]:checked'); var allCb=document.getElementById('f-agent-all');
-  allCb.checked=checked.length===all.length; allCb.indeterminate=checked.length>0&&checked.length<all.length;
-  var btn=document.getElementById('dd-agent-btn');
-  if(checked.length===0||checked.length===all.length){btn.textContent='Tous les agents';} else if(checked.length===1){btn.textContent=checked[0].value;} else {btn.textContent=checked.length+' agents';}
-  btn.insertAdjacentHTML('beforeend',' <span style="opacity:.5;float:right">▾</span>');
-}
-function applyFilter(){
-  var ag=selectedAgents(); var allSelected=ag.length===document.querySelectorAll('#f-agent-list input[type=checkbox]').length; var st=document.getElementById('f-status').value; var ms=parseFloat(document.getElementById('f-score').value); var srs=document.querySelectorAll('#tbody .sr'); var n=0;
-  srs.forEach(function(r){var agOk=allSelected||ag.indexOf(r.dataset.agent)!==-1; var ok=agOk&&(!st||r.dataset.status===st)&&parseFloat(r.dataset.score)>=ms; r.style.display=ok?'':'none'; var dr=document.getElementById('dr-'+r.dataset.idx); if(dr&&!ok) dr.style.display='none'; if(ok) n++;});
-  document.getElementById('count').textContent=n+' résultat(s)';
-}
-function syncR(){document.getElementById('rlbl').textContent='Score ≥ '+document.getElementById('f-score').value+'%';}
-function resetF(){document.querySelectorAll('#f-agent-list input[type=checkbox]').forEach(function(c){c.checked=true;}); document.getElementById('f-agent-all').checked=true; document.getElementById('f-status').value=''; document.getElementById('f-score').value=0; syncAgentBtn(); syncR(); applyFilter();}
+function updateCount(){document.getElementById('count').textContent=ENTRIES.length+' résultat(s)';}
 function sortT(col){
   var field=COLS[col].field; if(!field) return; var tb=document.getElementById('tbody'); var pairs=[]; Array.from(tb.querySelectorAll('.sr')).forEach(function(sr){pairs.push({sr:sr,dr:document.getElementById('dr-'+sr.dataset.idx)});});
   var dir=(_dir[col]===1)?-1:1; _dir[col]=dir;
@@ -440,13 +518,12 @@ function sortT(col){
   pairs.forEach(function(p){tb.appendChild(p.sr); if(p.dr) tb.appendChild(p.dr);});
 }
 function buildSummaryCards(){
-  var total=ENTRIES.length; var agents=[...new Set(ENTRIES.map(function(e){return e.agent;}))]; var admis=ENTRIES.filter(function(e){return e.admission_status==='ADMIS';}).length;
+  var total=ENTRIES.length; var agents=[...new Set(ENTRIES.map(function(e){return e.model||e.agent;}))]; var admis=ENTRIES.filter(function(e){return e.admission_status==='ADMIS';}).length;
   var avg=total?Math.round(ENTRIES.reduce(function(s,e){return s+e.score_percentage;},0)/total*10)/10:0; var best=total?Math.max.apply(null,ENTRIES.map(function(e){return e.score_percentage;})):0;
-  document.getElementById('summary-cards').innerHTML=[{val:total,lbl:'Audits'},{val:agents.length,lbl:'Agents'},{val:'<span style="color:var(--ok)">'+admis+'</span>',lbl:'Admis ≥ 60%'},{val:avg+'%',lbl:'Score moyen'},{val:'<span style="color:var(--ok)">'+best+'%</span>',lbl:'Meilleur score'}].map(function(c){return '<div class="card"><div class="val">'+c.val+'</div><div class="lbl">'+c.lbl+'</div></div>';}).join('');
-  var list=document.getElementById('f-agent-list'); agents.sort().forEach(function(a){var lbl=document.createElement('label'); var cb=document.createElement('input'); cb.type='checkbox'; cb.value=a; cb.checked=true; cb.onchange=function(){syncAgentBtn();applyFilter();}; lbl.appendChild(cb); lbl.appendChild(document.createTextNode(' '+a)); list.appendChild(lbl);});
-  var now=new Date().toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}); document.getElementById('hdr-sub').textContent='Générée le '+now+' · '+total+' audit(s) · '+agents.length+' agent(s)';
+  document.getElementById('summary-cards').innerHTML=[{val:total,lbl:'Audits'},{val:agents.length,lbl:'Modèles'},{val:'<span style="color:var(--ok)">'+admis+'</span>',lbl:'Admis ≥ 60%'},{val:avg+'%',lbl:'Score moyen'},{val:'<span style="color:var(--ok)">'+best+'%</span>',lbl:'Meilleur score'}].map(function(c){return '<div class="card"><div class="val">'+c.val+'</div><div class="lbl">'+c.lbl+'</div></div>';}).join('');
+  var now=new Date().toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}); document.getElementById('hdr-sub').textContent='Générée le '+now+' · '+total+' audit(s) · '+agents.length+' modèle(s)';
 }
-buildSummaryCards(); buildTable(); applyFilter();
+buildSummaryCards(); buildTable(); updateCount();
 </script>
 </body>
 </html>

@@ -29,7 +29,23 @@ def safe_float(value: str) -> Optional[float]:
         return None
 
 
-def is_interesting_finding(score: Optional[float], max_score: Optional[float], remarks: str) -> bool:
+def is_benign_negative_indicator(indicator: str, score: Optional[float], remarks: str) -> bool:
+    indicator_lc = (indicator or "").lower()
+    remarks_lc = (remarks or "").lower()
+    if score != 0:
+        return False
+    if "tests fail" in indicator_lc and re.search(r"\bcount\s*=\s*0\b", remarks_lc):
+        return True
+    if "nombre de phases tracées" in indicator_lc:
+        match = re.search(r"\bphases_count\s*=\s*(\d+)\b", remarks_lc)
+        if match and int(match.group(1)) >= 1:
+            return True
+    return False
+
+
+def is_interesting_finding(indicator: str, score: Optional[float], max_score: Optional[float], remarks: str) -> bool:
+    if is_benign_negative_indicator(indicator, score, remarks):
+        return False
     remarks_lc = (remarks or "").lower()
     if score is not None and max_score is not None and score < max_score:
         return True
@@ -56,6 +72,7 @@ def extract_report_markdown(md_path: Optional[Path]) -> Optional[Dict[str, Any]]
     current_h4 = ""
     summary_metrics: Dict[str, str] = {}
     findings: List[Dict[str, Any]] = []
+    trace_file_invalid = False
 
     for raw_line in text.splitlines():
         line = raw_line.strip()
@@ -88,7 +105,17 @@ def extract_report_markdown(md_path: Optional[Path]) -> Optional[Dict[str, Any]]
         code, indicator, _, score_raw, max_raw, remarks = cells[:6]
         score = safe_float(score_raw)
         max_score = safe_float(max_raw)
-        if not is_interesting_finding(score, max_score, remarks):
+        if (
+            code == "3-1-1"
+            and "audit_trace" in indicator.lower()
+            and score is not None
+            and max_score is not None
+            and score < max_score
+        ):
+            trace_file_invalid = True
+        if trace_file_invalid and code.startswith("3-") and code != "3-1-1":
+            continue
+        if not is_interesting_finding(indicator, score, max_score, remarks):
             continue
 
         kind = "failed"

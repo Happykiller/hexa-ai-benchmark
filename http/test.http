@@ -1,6 +1,28 @@
 ### AI Agent Deliverable - Manual API Testing
 @endpoint = http://localhost:4000/graphql
 
+### 0. Auditor GraphQL healthcheck (introspection)
+POST {{endpoint}}
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+query {
+  __schema {
+    types {
+      name
+    }
+  }
+}
+
+### 0. Optional explicit health query (bonus if implemented)
+POST {{endpoint}}
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+query {
+  health
+}
+
 ### 0a. Register User
 # @name registerUser
 POST {{endpoint}}
