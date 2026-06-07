@@ -89,7 +89,38 @@ def read_text_file(path: str) -> str:
 def markdown_has_heading(content: str, heading_pattern: str) -> bool:
     return re.search(rf'^\s{{0,3}}#{{1,6}}\s+{heading_pattern}\s*$', content, re.IGNORECASE | re.MULTILINE) is not None
 
+
+def markdown_section_word_count(content: str, heading_pattern: str) -> int:
+    """Count words under the first heading matching ``heading_pattern``, including its
+    sub-sections, up to the next heading of the same-or-higher level. Fenced code
+    blocks (``` / ~~~) are body content, and ``#`` shell comments inside them are NOT
+    treated as headings. Used to reject empty/placeholder sections."""
+    match = re.search(rf'^\s{{0,3}}(#{{1,6}})\s+{heading_pattern}\s*$', content, re.IGNORECASE | re.MULTILINE)
+    if not match:
+        return 0
+    level = len(match.group(1))
+    body_lines: List[str] = []
+    in_fence = False
+    for line in content[match.end():].split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("```") or stripped.startswith("~~~"):
+            in_fence = not in_fence
+            body_lines.append(line)
+            continue
+        if not in_fence:
+            heading = re.match(r'^\s{0,3}(#{1,6})\s+\S', line)
+            if heading and len(heading.group(1)) <= level:
+                break  # next section at same or higher level
+        body_lines.append(line)
+    return len(re.findall(r'\b\w+\b', "\n".join(body_lines)))
+
 class ProjectStatsAnalyzer:
+    # Real assertions (Jest/Chai/node:assert) — tells genuine tests from padding.
+    _ASSERTION_RE = re.compile(
+        r'\bexpect\s*\(|\bassert\b|\.toBe\b|\.toEqual\b|\.toThrow\b|\.toHaveBeen|'
+        r'\.toContain\b|\.toMatch\b|\.rejects\b|\.resolves\b|\.toStrictEqual\b'
+    )
+
     def __init__(self, target_path: str):
         self.target_path = target_path
 
@@ -99,6 +130,7 @@ class ProjectStatsAnalyzer:
         total_size_bytes = 0
         total_lines = 0
         total_tests = 0
+        test_files_with_assertions = 0
         
         for root, dirs, files in os.walk(self.target_path):
             dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
@@ -117,9 +149,10 @@ class ProjectStatsAnalyzer:
 
                 if file.endswith(('.ts', '.tsx')):
                     total_ts_files += 1
-                    
+
                     # Test file detection
-                    if is_test_dir or file.endswith(('.test.ts', '.spec.ts', '.test.tsx', '.spec.tsx')):
+                    is_test_file = is_test_dir or file.endswith(('.test.ts', '.spec.ts', '.test.tsx', '.spec.tsx'))
+                    if is_test_file:
                         total_tests += 1
 
                     try:
@@ -127,13 +160,23 @@ class ProjectStatsAnalyzer:
                             total_lines += sum(1 for _ in f)
                     except (UnicodeDecodeError, OSError):
                         pass
+
+                    # Anti-gaming: a test file only counts as "real" if it asserts something.
+                    if is_test_file:
+                        try:
+                            if self._ASSERTION_RE.search(read_text_file(file_path)):
+                                test_files_with_assertions += 1
+                        except (UnicodeDecodeError, OSError):
+                            pass
         
         return {
             "total_files": total_files,
             "total_ts_files": total_ts_files,
             "total_size_kb": round(total_size_bytes / 1024, 2),
             "total_lines": total_lines,
-            "total_tests": total_tests
+            "total_tests": total_tests,
+            "test_files_with_assertions": test_files_with_assertions,
+            "assertion_ratio": round(test_files_with_assertions / total_tests, 3) if total_tests else 0.0,
         }
 
 class CodeSmellAnalyzer:
@@ -163,6 +206,7 @@ class CodeSmellAnalyzer:
         
         abstract_factory_count = 0
         tiny_files_count = 0
+        empty_files_count = 0
         total_ts_files = 0
 
         # Patterns for bonuses
@@ -190,6 +234,9 @@ class CodeSmellAnalyzer:
                         code_lines = [l for l in lines if l.strip() and not l.strip().startswith('import')]
                         if len(code_lines) < 10:
                             tiny_files_count += 1
+                        # Empty/placeholder: nothing but imports/comments/blank lines.
+                        if not code_lines:
+                            empty_files_count += 1
 
                         if err_pattern.search(content): flags["custom_errors"] = True
                         if env_pattern.search(content): flags["env_validation"] = True
@@ -222,6 +269,18 @@ class CodeSmellAnalyzer:
             "count": tiny_files_count,
             "ratio": round(tiny_file_ratio * 100, 2),
             "detail": f"tiny_files_count={tiny_files_count}, total_ts_files={total_ts_files}, ratio_pct={round(tiny_file_ratio * 100, 2)}",
+        })
+
+        # Empty/placeholder source files are pure padding (never legitimate).
+        empty_files_detected = empty_files_count >= 2
+        if empty_files_detected:
+            detected_maluses.append({"reason": f"Empty/placeholder source files ({empty_files_count})", "points": -5})
+        all_maluses.append({
+            "id": "empty_source_files",
+            "reason": "Fichiers source vides / placeholder (padding)",
+            "status": "DETECTE" if empty_files_detected else "NON_DETECTE",
+            "count": empty_files_count,
+            "detail": f"empty_files_count={empty_files_count}",
         })
 
         # Process all bonuses with status
@@ -334,18 +393,21 @@ class ReadmeChecker:
         except Exception:
             return {"status": "KO", "found": True, "error": "Could not read README.md", "score": 0, "indicators": {}}
 
+        # Anti-gaming: a section counts only if its heading is present AND it carries a
+        # minimum amount of real content beneath it (empty headings do not score).
+        min_words = 12
+
+        def section_ok(patterns: List[str]) -> bool:
+            return any(
+                markdown_has_heading(content, p) and markdown_section_word_count(content, p) >= min_words
+                for p in patterns
+            )
+
         indicators = {
-            "has_architecture_section": markdown_has_heading(content, r"architecture"),
-            "has_installation_section": (
-                markdown_has_heading(content, r"installation")
-                or markdown_has_heading(content, r"setup")
-                or markdown_has_heading(content, r"d[eé]marrage")
-            ),
-            "has_api_documentation": (
-                markdown_has_heading(content, r"api(?:\s+graphql)?")
-                or markdown_has_heading(content, r"graphql")
-            ),
-            "has_docker_info": markdown_has_heading(content, r"docker"),
+            "has_architecture_section": section_ok([r"architecture"]),
+            "has_installation_section": section_ok([r"installation", r"setup", r"d[eé]marrage"]),
+            "has_api_documentation": section_ok([r"api(?:\s+graphql)?", r"graphql"]),
+            "has_docker_info": section_ok([r"docker"]),
         }
         
         score = sum(1 for v in indicators.values() if v)

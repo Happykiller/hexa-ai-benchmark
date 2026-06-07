@@ -45,7 +45,7 @@ def section_scores(entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         caps = ", ".join(entry.get("score_caps") or [])
         tt_caps = (entry.get("_tooltips") or {}).get("score_caps")
         items.append(item("Cap appliqué", caps, "warn", tt_caps))
-    items.append(item("Modèle scoring", entry["scoring_model"].replace("indicator_fibonacci_v1", "fib_v1")))
+    items.append(item("Modèle scoring", entry["scoring_model"].replace("indicator_fibonacci_", "fib_")))
     return section("Score détaillé", items)
 
 

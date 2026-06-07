@@ -12,7 +12,7 @@ BASE_SCORE_BUCKETS = {
     "quality": {
         "label": "Qualite logicielle",
         "weight": 15,
-        "selectors": [{"phase": 2, "steps": [2, 3]}],
+        "selectors": [{"phase": 2, "steps": [2, 3, 7]}],
     },
     "traceability": {
         "label": "Discipline et tracabilite",

@@ -39,9 +39,11 @@ hexa-ai-benchmark/
 ├── auditor/              # Moteur d'audit Python
 │   ├── main.py           # CLI principal (commande analyze)
 │   ├── scoring_config.py # Poids, bandes de score, caps
+│   ├── challenges.py     # Profil de défi + registre déclaratif de checkers statiques
 │   ├── modules/
 │   │   ├── static_analysis.py   # Checkers hexagonal, auth, DI, double persistance
-│   │   └── dynamic_analysis.py  # Docker, E2E GraphQL, auth E2E, perf
+│   │   ├── dynamic_analysis.py  # Docker, E2E GraphQL, auth E2E sécurité, perf
+│   │   └── supply_chain.py      # DevEx, scan de secrets, npm audit
 │   └── tests/
 ├── scripts/
 │   └── build_kb.py       # Wrapper CLI du builder de knowledge base
@@ -106,7 +108,7 @@ Le builder Python agrège les artefacts `cr_audits/*.json` et leurs rapports jum
 
 ---
 
-## Modèle de scoring (`indicator_fibonacci_v1`)
+## Modèle de scoring (`indicator_fibonacci_v2`)
 
 Chaque vérification produit un **indicateur** pondéré selon la séquence de Fibonacci (position dans l'étape). Les indicateurs sont agrégés en buckets normalisés sur 100 points.
 
@@ -125,15 +127,18 @@ Chaque vérification produit un **indicateur** pondéré selon la séquence de F
 - Démarrage Docker via `make start` avec health-check GraphQL
 - Scénario E2E : création de tâches liées, blocage par dépendances, fermeture en cascade
 - Scénario auth E2E : accès non-authentifié bloqué, register/login JWT, token falsifié rejeté
+- Sécurité E2E approfondie : `alg:none` rejeté, signature étrangère rejetée, isolation inter-utilisateurs, code `UNAUTHENTICATED` exact, mot de passe faible refusé
+- Tâche sans dépendance fermable (anti-triche « always-block »)
 - Benchmark de latence (50 requêtes, P95)
 
 **Phase 2 — Architecture & Qualité**
 - Conformité hexagonale : pas d'import `adapters/infrastructure/entrypoints` depuis `core`
 - Qualité de typage : occurrences de `any` dans les fichiers `.ts/.tsx`
-- README : sections architecture, installation, API GraphQL, Docker
+- README : sections architecture, installation, API GraphQL, Docker (présence **et contenu réel**)
 - Auth statique : bibliothèque JWT, mutations register/login, guard, hachage de mot de passe
 - Injection de dépendances : `@injectable`, `@inject`, pas d'instanciation directe dans Core
 - Double persistance : Mongoose (tasks) + ORM SQL (users/auth), adaptateurs séparés
+- DevEx & outillage : `tsconfig strict` réellement activé, ESLint, CI (`.github/workflows`), `.gitignore`
 
 **Phase 3 — Traçabilité**
 - Présence et validité du fichier `audit_trace.json` fourni par l'agent
@@ -142,7 +147,7 @@ Chaque vérification produit un **indicateur** pondéré selon la séquence de F
 
 **Phase 4 — Bonus / Malus**
 - Bonus : gestion d'erreurs centralisée, validation d'env (zod/envalid), healthcheck, pagination Relay, logger structuré
-- Malus : AbstractFactory (over-abstraction), fragmentation extrême (>30% de fichiers < 10 lignes), attribut `version` Docker obsolète
+- Malus : AbstractFactory (over-abstraction), fragmentation extrême (>30% de fichiers < 10 lignes), attribut `version` Docker obsolète, fichiers vides/placeholder, tests sans assertion ou non exécutés, secrets/`.env` commités, vulnérabilités npm high/critical
 
 ---
 

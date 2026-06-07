@@ -1,7 +1,20 @@
 # Plan d'élargissement & consolidation de l'audit
 
-> Statut : proposition — non implémenté. Rédigé le 2026-05-18.
-> Objectif : élargir le périmètre de l'auditeur (vertical + horizontal) et consolider l'infrastructure de rapports, sans casser les audits existants.
+> Statut : **partiellement implémenté (2026-06-07)**. Document historique rédigé le 2026-05-18.
+>
+> **Implémenté depuis :** fondation (registre déclaratif `auditor/challenges.py` + `ChallengeProfile`),
+> sécurité E2E réelle (`alg:none`, signature étrangère, isolation inter-utilisateurs, code `UNAUTHENTICATED` exact,
+> mot de passe faible), anti-triche du scoring (assertions des tests, contenu README, fichiers vides, padding),
+> supply-chain & DevEx (`auditor/modules/supply_chain.py` : `DevExChecker`, `SecretsScanner`, `NpmAuditChecker`).
+> Modèle de score passé à `indicator_fibonacci_v2`.
+>
+> **Non encore implémenté :** coverage par couche, hexagonal pondéré, diff inter-runs dans la KB,
+> runner automatisé, multi-défis effectif.
+>
+> **Caduc :** plusieurs « dettes » listées plus bas n'existent plus (AuthTester existait déjà ;
+> `auditor/cr_audits/` dédupliqué ; `output_dir` utilise déjà `repo_root`).
+>
+> Objectif initial : élargir le périmètre de l'auditeur (vertical + horizontal) et consolider l'infrastructure de rapports, sans casser les audits existants.
 
 ---
 

@@ -1,13 +1,41 @@
+import base64
+import hashlib
+import hmac
+import json
 import subprocess
 import time
+import uuid
 import requests
-import json
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 
 def _now_iso() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def _b64url(data: bytes) -> str:
+    """Base64url without padding (JWT segment encoding)."""
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def _mint_jwt(payload: Dict[str, Any], alg: str = "HS256", secret: str = "auditor-foreign-secret") -> str:
+    """Forge a JWT for negative security tests (stdlib only, no PyJWT).
+
+    alg="none" produces an unsigned token (empty signature) to probe the classic
+    alg-confusion bypass. alg="HS256" signs with a secret the audited server does
+    NOT know, so a correct implementation must reject it on signature mismatch.
+    """
+    header = {"alg": alg, "typ": "JWT"}
+    signing_input = (
+        _b64url(json.dumps(header, separators=(",", ":")).encode())
+        + "."
+        + _b64url(json.dumps(payload, separators=(",", ":")).encode())
+    )
+    if alg == "none":
+        return signing_input + "."
+    signature = hmac.new(secret.encode(), signing_input.encode(), hashlib.sha256).digest()
+    return signing_input + "." + _b64url(signature)
 
 class MakefileRunner:
     def __init__(self, target_path: str):
@@ -337,9 +365,24 @@ class E2EFunctionalTester:
         success_b = status_b == "COMPLETED"
         results.append({"step": "Close B (Now Success)", "success": success_b, "error": self._extract_graphql_error_message(resp_close_b_final)})
 
-        # 8. Delete Tasks (Cleanup / Test Delete if implemented)
-        # Note: Delete is not strictly in the prompt but good for E2E. 
-        # If not implemented, it will just show as failed/not reached.
+        # 8. Independent task (no dependencies) must close successfully.
+        # Guards against "always-block" gaming where updateTaskStatus throws a
+        # dependency error unconditionally just to pass "Close B (Should Fail)".
+        indep_resp = self._post(
+            'mutation { createTask(input: {title: "Independent", description: "no deps"}) { id status } }'
+        )
+        indep_id = self._extract_path(indep_resp, ["data", "createTask", "id"])
+        indep_ok = False
+        indep_err = self._extract_graphql_error_message(indep_resp)
+        if indep_id:
+            close_indep = self._post(
+                f'mutation {{ updateTaskStatus(id: "{indep_id}", status: "COMPLETED") {{ id status }} }}'
+            )
+            indep_status = self._extract_path(close_indep, ["data", "updateTaskStatus", "status"])
+            indep_ok = indep_status == "COMPLETED"
+            indep_err = None if indep_ok else self._extract_graphql_error_message(close_indep)
+        results.append({"step": "Close Independent Task (No Deps)", "success": indep_ok, "error": indep_err})
+
         return results
 
     def _post(self, query: str) -> Dict[str, Any]:
@@ -416,9 +459,9 @@ class AuthTester:
     _TEST_PASSWORD = "AuditPass1!"
 
     def __init__(self, endpoint: str):
-        import uuid
         self.endpoint = endpoint
         self.token: Optional[str] = None
+        self._u1_task_id: Optional[str] = None
         self._TEST_EMAIL = f"audit_agent_{uuid.uuid4().hex[:8]}@test.com"
 
     def obtain_token(self) -> Optional[str]:
@@ -464,6 +507,7 @@ class AuthTester:
         if self.token:
             resp_auth = self._post('mutation { createTask(input: {title: "Auth Task"}) { id status } }', token=self.token)
             task_id = self._extract_path(resp_auth, ["data", "createTask", "id"])
+            self._u1_task_id = task_id
             results.append({"step": "Auth: Opération authentifiée autorisée", "success": task_id is not None, "error": self._extract_graphql_error_message(resp_auth)})
 
         # 5. Tampered token must be rejected
@@ -476,6 +520,70 @@ class AuthTester:
                 "success": tampered_err is not None or self._has_auth_error_code(resp_tampered),
                 "error": tampered_err,
             })
+
+        # --- Real security depth (black-box, no knowledge of the server secret) ---
+        fake_uid = "00000000-0000-0000-0000-000000000000"
+        forged_payload = {
+            "sub": fake_uid, "userId": fake_uid, "id": fake_uid,
+            "email": self._TEST_EMAIL,
+            "iat": int(time.time()), "exp": int(time.time()) + 3600,
+        }
+        auth_probe = "{ tasks { id } }"  # requires authentication per the spec
+
+        # 6. alg:none token must be rejected (alg-confusion bypass)
+        none_token = _mint_jwt(forged_payload, alg="none")
+        resp_none = self._post(auth_probe, token=none_token)
+        none_rejected = self._extract_path(resp_none, ["data", "tasks"]) is None
+        results.append({
+            "step": "Auth: Token alg=none rejeté",
+            "success": none_rejected,
+            "error": None if none_rejected else "Token alg=none accepté (faille critique)",
+        })
+
+        # 7. Token signed with a foreign secret must be rejected (signature check)
+        foreign_token = _mint_jwt(forged_payload, alg="HS256", secret="auditor-not-the-real-secret-" + uuid.uuid4().hex)
+        resp_foreign = self._post(auth_probe, token=foreign_token)
+        foreign_rejected = self._extract_path(resp_foreign, ["data", "tasks"]) is None
+        results.append({
+            "step": "Auth: Signature étrangère rejetée",
+            "success": foreign_rejected,
+            "error": None if foreign_rejected else "Token signé avec un secret étranger accepté",
+        })
+
+        # 8. Unauthenticated error must carry extensions.code == "UNAUTHENTICATED"
+        resp_code = self._post(probe_q)
+        code_ok = self._has_exact_code(resp_code, "UNAUTHENTICATED")
+        results.append({
+            "step": "Auth: Code UNAUTHENTICATED exact",
+            "success": code_ok,
+            "error": None if code_ok else "extensions.code != UNAUTHENTICATED sur accès non authentifié",
+        })
+
+        # 9. Weak password must be rejected at registration
+        weak_email = f"audit_weak_{uuid.uuid4().hex[:8]}@test.com"
+        resp_weak = self._post(f'mutation {{ register(email: "{weak_email}", password: "123") {{ token }} }}')
+        weak_token = self._extract_path(resp_weak, ["data", "register", "token"])
+        results.append({
+            "step": "Auth: Mot de passe faible refusé",
+            "success": weak_token is None,
+            "error": "Mot de passe faible accepté" if weak_token is not None else self._extract_graphql_error_message(resp_weak),
+        })
+
+        # 10. Per-user isolation: a second user must not see the first user's task
+        intruder_email = f"audit_intruder_{uuid.uuid4().hex[:8]}@test.com"
+        reg2 = self._post(f'mutation {{ register(email: "{intruder_email}", password: "{self._TEST_PASSWORD}") {{ token }} }}')
+        u2_token = self._extract_path(reg2, ["data", "register", "token"])
+        if not u2_token:
+            login2 = self._post(f'mutation {{ login(email: "{intruder_email}", password: "{self._TEST_PASSWORD}") {{ token }} }}')
+            u2_token = self._extract_path(login2, ["data", "login", "token"])
+        u2_tasks = self._extract_path(self._post(auth_probe, token=u2_token), ["data", "tasks"]) if u2_token else None
+        u2_ids = {t.get("id") for t in u2_tasks if isinstance(t, dict)} if isinstance(u2_tasks, list) else set()
+        isolation_ok = bool(self._u1_task_id) and u2_token is not None and self._u1_task_id not in u2_ids
+        results.append({
+            "step": "Auth: Isolation inter-utilisateurs",
+            "success": isolation_ok,
+            "error": None if isolation_ok else "Tâche d'un autre utilisateur visible ou setup incomplet",
+        })
 
         return results
 
@@ -495,6 +603,14 @@ class AuthTester:
             if isinstance(err, dict):
                 code = (err.get("extensions") or {}).get("code", "")
                 if isinstance(code, str) and code.upper() in ("UNAUTHENTICATED", "UNAUTHORIZED", "FORBIDDEN"):
+                    return True
+        return False
+
+    def _has_exact_code(self, response: Dict[str, Any], expected: str) -> bool:
+        for err in response.get("errors") or []:
+            if isinstance(err, dict):
+                code = (err.get("extensions") or {}).get("code", "")
+                if isinstance(code, str) and code.upper() == expected.upper():
                     return True
         return False
 

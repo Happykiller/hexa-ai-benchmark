@@ -1,4 +1,5 @@
 import click
+import functools
 import json
 import os
 import re
@@ -11,8 +12,10 @@ from rich.console import Console
 from rich.table import Table
 
 from scoring_config import BASE_SCORE_BUCKETS, BONUS_MALUS_SCORE_CONFIG, TECHNICAL_STATS_SCORING_CONFIG, TRACE_SCORING_CONFIG
+from challenges import DEFAULT_PROFILE
 from modules.dynamic_analysis import AuthTester, DockerOrchestrator, E2EFunctionalTester, MakefileRunner, PerformanceBenchmarker
 from modules.static_analysis import AuthImplementationChecker, CodeQualityChecker, CodeSmellAnalyzer, DualPersistenceChecker, HexagonalComplianceChecker, ProjectStatsAnalyzer, ReadmeChecker, UseCaseInjectionChecker
+from modules.supply_chain import NpmAuditChecker, SecretsScanner
 
 console = Console()
 
@@ -351,6 +354,7 @@ def _append_scored_indicator_from_config(
     config: Dict[str, Any],
     measured_value: Any,
     trace_or_stats_present: bool = True,
+    as_measured: bool = False,
 ) -> None:
     band_result = _score_from_bands(measured_value, config["bands"])
     
@@ -368,7 +372,8 @@ def _append_scored_indicator_from_config(
         band_result["score_ratio"] > 0,
         remarks,
         polarity=config.get("polarity", "positive"),
-        status=band_result["status"] if trace_or_stats_present else "SKIPPED",
+        status="MESURE" if as_measured else (band_result["status"] if trace_or_stats_present else "SKIPPED"),
+        kind="measured" if as_measured else "scored",
         details={
             "measured_value": measured_value,
             "bands": config["bands_label"],
@@ -766,7 +771,7 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
             "skip_dynamic": skip_dynamic,
             "force_dynamic": force_dynamic,
             "fresh_docker": fresh_docker,
-            "scoring_model": "indicator_fibonacci_v1",
+            "scoring_model": "indicator_fibonacci_v2",
         },
         "summary": {},
         "phases": [],
@@ -775,26 +780,12 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
     }
     audit_db["meta"]["score_cap_reasons"] = []
 
+    profile = DEFAULT_PROFILE
     make = MakefileRunner(path)
     op_results: Dict[str, Dict[str, Any]] = {}
 
-    expected_e2e_steps = [
-        "List Tasks (Initial)",
-        "Create Task A",
-        "Get Task A",
-        "Create Task B (Dependent on A)",
-        "Close B (Should Fail)",
-        "Close A (Success)",
-        "Close B (Now Success)"
-    ]
-
-    auth_step_weights: Dict[str, int] = {
-        "Auth: Accès non-authentifié bloqué": 10,
-        "Auth: Inscription (register)": 5,
-        "Auth: Connexion (login)": 5,
-        "Auth: Opération authentifiée autorisée": 5,
-        "Auth: Token falsifié rejeté": 10,
-    }
+    expected_e2e_steps = list(profile.e2e_step_names)
+    auth_step_weights: Dict[str, int] = dict(profile.auth_step_weights)
 
     # 1. Setup
     _log("Running make setup...")
@@ -806,7 +797,7 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
     )
 
     # 2. Lint, Build, Test
-    orchestrator = DockerOrchestrator(path)
+    orchestrator = DockerOrchestrator(path, endpoint=profile.graphql_endpoint)
     docker_start = {"status": "SKIPPED", "details": "dynamic phase not started"}
     exposed_containers = {"containers": [], "status": "SKIPPED"}
 
@@ -892,15 +883,11 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
         version_obsolete_count += len(obsolete_pattern.findall(out))
 
     traceability = TraceabilityValidator(path).validate()
-    hexagonal = HexagonalComplianceChecker(path).check()
-    readme = ReadmeChecker(path).check()
-    quality = CodeQualityChecker(path).check_any_usage()
     stats = ProjectStatsAnalyzer(path).analyze()
     smells = CodeSmellAnalyzer(path).analyze()
-    auth_static = AuthImplementationChecker(path).check()
-    dual_persistence = DualPersistenceChecker(path).check()
-    injection = UseCaseInjectionChecker(path).check()
     trace_metrics = _build_trace_metrics(traceability)
+    # hexagonal / quality / readme / auth_static / injection / dual_persistence are
+    # run and scored via the declarative registry (profile.static_checkers) below.
 
     # Parse test execution results early
     test_out = ""
@@ -922,6 +909,44 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
         "detail": f"obsolete_detected_count={version_obsolete_count}",
     })
 
+    # Anti-gaming maluses derived from test quality vs declared test files.
+    _assertion_ratio = stats.get("assertion_ratio", 0.0)
+    _test_files = stats.get("total_tests", 0)
+    _exec_cases = stats.get("execution_test_total", 0)
+    smells["all_maluses"].append({
+        "id": "tests_without_assertions",
+        "reason": "Fichiers de test sans assertion réelle",
+        "status": "DETECTE" if (_test_files >= 5 and _assertion_ratio < 0.5) else "NON_DETECTE",
+        "count": _test_files,
+        "detail": f"assertion_ratio={_assertion_ratio}, test_files={_test_files}",
+    })
+    smells["all_maluses"].append({
+        "id": "tests_declared_not_executed",
+        "reason": "Plus de fichiers de test que de cas réellement exécutés (padding)",
+        "status": "DETECTE" if (_test_files >= 8 and 0 < _exec_cases < _test_files) else "NON_DETECTE",
+        "count": _test_files,
+        "detail": f"executed_cases={_exec_cases}, test_files={_test_files}",
+    })
+
+    # Supply-chain / secrets maluses (Phase D). Secrets scan is static (always run);
+    # npm audit needs the network, so it is skipped with --skip-dynamic.
+    secrets_res = SecretsScanner(path).scan()
+    smells["all_maluses"].append({
+        "id": "committed_secrets",
+        "reason": "Secrets / clés / .env commités dans le dépôt",
+        "status": secrets_res.get("status", "NON_DETECTE"),
+        "count": secrets_res.get("count", 0),
+        "detail": secrets_res.get("detail", ""),
+    })
+    npm_res = {"status": "SKIPPED", "detail": "--skip-dynamic"} if skip_dynamic else NpmAuditChecker(path).audit()
+    smells["all_maluses"].append({
+        "id": "npm_vulnerabilities",
+        "reason": "Vulnérabilités npm (high/critical)",
+        "status": npm_res.get("status", "SKIPPED"),
+        "count": npm_res.get("critical", 0) + npm_res.get("high", 0),
+        "detail": npm_res.get("detail", ""),
+    })
+
     performance = {"avg_latency_ms": 0, "p95_ms": 0, "error_rate": 0}
     e2e_results: List[Dict[str, Any]] = []
     auth_e2e_results: List[Dict[str, Any]] = []
@@ -929,7 +954,7 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
 
     # Step 1-2: Validation fonctionnelle E2E
     if docker_start["status"] == "OK":
-        endpoint = "http://localhost:4000/graphql"
+        endpoint = profile.graphql_endpoint
         try:
             _log("Running Auth scenario...")
             auth_tester = AuthTester(endpoint)
@@ -1058,9 +1083,19 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
     elif passed_count >= 2: passed_ratio = 0.14
     elif passed_count >= 0: passed_ratio = 0.05
 
+    # Anti-gaming: passing tests only count fully when test files actually assert
+    # something. Tests stuffed without assertions are heavily discounted.
+    assertion_ratio = stats.get("assertion_ratio", 0.0)
+    if assertion_ratio >= 0.6: assertion_quality = 1.0
+    elif assertion_ratio >= 0.3: assertion_quality = 0.6
+    else: assertion_quality = 0.3
+    passed_ratio = round(passed_ratio * assertion_quality, 4)
+
     _append_indicator(
         audit_db, 1, "Opérationnalité", 3, "Résultats des tests unitaires", "Tests PASS",
-        passed_count > 0, f"count={passed_count}", score_ratio=passed_ratio, weight=21
+        passed_count > 0,
+        f"count={passed_count}, assertion_ratio={assertion_ratio}, quality_factor={assertion_quality}",
+        score_ratio=passed_ratio, weight=21
     )
 
     # Scoring logic for Failed Tests (Malus up to -21 points)
@@ -1088,116 +1123,15 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
         score_ratio=cov_ratio, weight=15,
     )
 
-    if hexagonal.get("rules"):
-        for rule in hexagonal.get("rules", []):
-            _append_indicator(
-                audit_db,
-                2,
-                "Architecture & Qualité",
-                1,
-                "Conformité hexagonale",
-                rule.get("rule", "Unknown rule"),
-                rule.get("status") == "OK",
-                f"violations_count={rule.get('violations_count', 0)}",
-                details=rule, weight=15
-            )
-    else:
-        _append_indicator(
-            audit_db,
-            2,
-            "Architecture & Qualité",
-            1,
-            "Conformité hexagonale",
-            "Analyse hexagonale",
-            hexagonal.get("status") == "OK",
-            _first_non_empty(hexagonal.get("error"), hexagonal.get("status")),
-            details=hexagonal, weight=15
-        )
-
-    _append_indicator(
-        audit_db,
-        2,
-        "Architecture & Qualité",
-        2,
-        "Qualité de typage",
-        "Occurrences de any",
-        quality.get("status") == "OK",
-        f"any_count={quality.get('any_count', 0)}, ts_files={quality.get('ts_files', 0)}",
-        status=quality.get("status"),
-        details=quality, weight=8
-    )
-
-    _append_indicator(
-        audit_db,
-        2,
-        "Architecture & Qualité",
-        3,
-        "Documentation du projet",
-        "Présence du README.md",
-        readme.get("found", False),
-        "Fichier README.md trouvé à la racine" if readme.get("found") else "Fichier README.md manquant",
-        details=readme, weight=2
-    )
-
-    if readme.get("found"):
-        for key, val in readme.get("indicators", {}).items():
-            _append_indicator(
-                audit_db,
-                2,
-                "Architecture & Qualité",
-                3,
-                "Documentation du projet",
-                f"Contenu : {key}",
-                val,
-                "Présent" if val else "Manquant",
-                details=readme, weight=1
-            )
-
-    # Phase 2, Step 4: Auth static analysis
-    for key, label, w in [
-        ("jwt_library_present",      "Bibliothèque JWT (jsonwebtoken / jose)", 3),
-        ("auth_mutations_present",   "Mutations register / login présentes",   5),
-        ("auth_guard_present",       "Middleware / Guard d'authentification",   5),
-        ("password_hashing_present", "Hachage de mot de passe (bcrypt/argon2)", 3),
-    ]:
-        _append_indicator(
-            audit_db, 2, "Architecture & Qualité", 4, "Sécurité & Authentification",
-            label,
-            bool(auth_static.get("indicators", {}).get(key, False)),
-            f"detected={'yes' if auth_static.get('indicators', {}).get(key) else 'no'}",
-            details=auth_static, weight=w,
-        )
-
-    # Phase 2, Step 5: Use case injection (constructor DI)
-    for key, label, w in [
-        ("no_direct_instantiation_in_core",  "Pas d'instanciation directe dans Core",       10),
-        ("injectable_decorator_used",         "@injectable() sur les use cases",              5),
-        ("inject_on_constructor_params",      "@inject() sur les paramètres constructeur",    5),
-        ("constructors_receive_dependencies", "Constructeurs avec dépendances injectées",     8),
-    ]:
-        val = bool(injection.get("indicators", {}).get(key, False))
-        violations = injection.get("violations", [])
-        detail = f"violations={len(violations)}" if key == "no_direct_instantiation_in_core" and violations else f"detected={'yes' if val else 'no'}"
-        _append_indicator(
-            audit_db, 2, "Architecture & Qualité", 5, "Injection de Dépendances (Use Cases)",
-            label, val, detail, details=injection, weight=w,
-        )
-
-    # Phase 2, Step 6: Dual persistence static analysis
-    for key, label, w in [
-        ("mongoose_installed",      "Mongoose installé (MongoDB / tasks)",               5),
-        ("sql_orm_installed",       "ORM SQL installé (TypeORM/Sequelize/mysql2)",        5),
-        ("mongoose_in_task_code",   "Mongoose utilisé dans les fichiers Task",            8),
-        ("sql_in_user_auth_code",   "ORM SQL utilisé dans les fichiers User/Auth",        8),
-        ("separate_db_adapters",    "Adaptateurs séparés dans src/adapters/ (mongo+sql)", 5),
-    ]:
-        _append_indicator(
-            audit_db, 2, "Architecture & Qualité", 6, "Double Persistance (MySQL+MongoDB)",
-            label,
-            bool(dual_persistence.get("indicators", {}).get(key, False)),
-            f"detected={'yes' if dual_persistence.get('indicators', {}).get(key) else 'no'}",
-            details=dual_persistence, weight=w,
-        )
+    # Static checkers run + scored via the declarative registry (challenges.py).
+    # Order is defined by profile.static_checkers and reproduces indicator codes
+    # 2-1-x .. 2-6-x exactly. Results are kept for the artifacts section below.
+    static_results: Dict[str, Any] = {}
+    append_indicator = functools.partial(_append_indicator, audit_db)
+    for spec in profile.static_checkers:
+        result = spec.analyze(path)
+        static_results[spec.id] = result
+        spec.emit(result, append_indicator)
 
     if not is_operational:
         audit_db["meta"]["score_cap_reasons"].append(
@@ -1299,10 +1233,13 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
         )
 
     for metric_key, config in TECHNICAL_STATS_SCORING_CONFIG.items():
+        # Volume metrics are informational only — never scored, so file / test / LOC
+        # padding cannot earn points (anti-gaming).
         _append_scored_indicator_from_config(
             audit_db,
             config,
             stats.get(metric_key),
+            as_measured=True,
         )
 
     _finalize_audit_db(audit_db)
@@ -1327,11 +1264,12 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
         "auth_e2e_results": auth_e2e_results,
         "auth_token_obtained": auth_token is not None,
         "performance": performance,
-        "hexagonal": hexagonal,
-        "quality": quality,
-        "auth_static": auth_static,
-        "dual_persistence": dual_persistence,
-        "injection": injection,
+        "hexagonal": static_results.get("hexagonal", {}),
+        "quality": static_results.get("quality", {}),
+        "auth_static": static_results.get("auth_static", {}),
+        "dual_persistence": static_results.get("dual_persistence", {}),
+        "injection": static_results.get("injection", {}),
+        "devex": static_results.get("devex", {}),
         "coverage": coverage_data,
         "traceability": traceability,
         "trace_metrics": trace_metrics,

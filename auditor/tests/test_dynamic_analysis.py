@@ -1,3 +1,4 @@
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -8,7 +9,7 @@ if str(AUDITOR_DIR) not in sys.path:
     sys.path.insert(0, str(AUDITOR_DIR))
 
 from main import _compute_final_score_summary, _compute_score_caps, analyze
-from modules.dynamic_analysis import DockerOrchestrator, E2EFunctionalTester
+from modules.dynamic_analysis import AuthTester, DockerOrchestrator, E2EFunctionalTester, _mint_jwt
 
 
 def test_docker_orchestrator_times_out_make_start(tmp_path: Path) -> None:
@@ -48,6 +49,8 @@ def test_e2e_rejects_unrelated_graphql_errors() -> None:
             {"data": {"createTask": {"id": "B", "status": "OPEN"}}},
             {"errors": [{"message": "Authentication required"}]},
             {"data": {"updateTaskStatus": {"status": "COMPLETED"}}},
+            {"data": {"updateTaskStatus": {"status": "COMPLETED"}}},
+            {"data": {"createTask": {"id": "IND", "status": "OPEN"}}},
             {"data": {"updateTaskStatus": {"status": "COMPLETED"}}},
         ]
     )
@@ -161,3 +164,77 @@ def test_compute_final_score_summary_normalizes_buckets_and_caps_bonus_malus() -
     assert summary["bucket_scores"]["traceability"]["normalized_score"] == 5
     assert summary["bonus_malus"]["capped_adjustment"] == 5
     assert summary["final_percentage"] == 55
+
+
+def _make_fake_graphql_server(secure: bool):
+    """Stateful in-memory GraphQL server for AuthTester. ``secure`` toggles JWT
+    verification and per-user isolation so tests can assert discrimination."""
+    state = {"users": {}, "tasks": [], "n": 0}
+
+    def post(query, token=None):
+        if "register(" in query and 'password: "123"' in query:
+            if secure:
+                return {"errors": [{"message": "weak password", "extensions": {"code": "BAD_USER_INPUT"}}]}
+            state["n"] += 1
+            tok = f"t{state['n']}"
+            state["users"][tok] = "weak"
+            return {"data": {"register": {"token": tok}}}
+        if "register(" in query or "login(" in query:
+            match = re.search(r'email:\s*"([^"]+)"', query)
+            email = match.group(1) if match else "x"
+            state["n"] += 1
+            tok = f"t{state['n']}-{email}"
+            state["users"][tok] = email
+            key = "register" if "register(" in query else "login"
+            return {"data": {key: {"token": tok, "user": {"id": email, "email": email}}}}
+        authed = (token in state["users"]) if secure else (token is not None)
+        if not authed:
+            return {"errors": [{"message": "unauthenticated", "extensions": {"code": "UNAUTHENTICATED"}}]}
+        if "createTask" in query:
+            state["n"] += 1
+            tid = f"task{state['n']}"
+            state["tasks"].append({"id": tid, "owner": token})
+            return {"data": {"createTask": {"id": tid, "status": "OPEN"}}}
+        if "tasks" in query:
+            rows = [{"id": t["id"]} for t in state["tasks"] if (not secure or t["owner"] == token)]
+            return {"data": {"tasks": rows}}
+        return {"data": {}}
+
+    return post
+
+
+_SECURITY_STEPS = [
+    "Auth: Token alg=none rejeté",
+    "Auth: Signature étrangère rejetée",
+    "Auth: Isolation inter-utilisateurs",
+    "Auth: Mot de passe faible refusé",
+]
+
+
+def test_mint_jwt_alg_none_is_unsigned() -> None:
+    token = _mint_jwt({"sub": "x"}, alg="none")
+    assert token.count(".") == 2 and token.endswith(".")
+
+
+def test_mint_jwt_hs256_is_signed() -> None:
+    token = _mint_jwt({"sub": "x"}, alg="HS256", secret="k")
+    assert token.count(".") == 2 and token.split(".")[2] != ""
+
+
+def test_auth_tester_security_steps_pass_on_secure_server() -> None:
+    tester = AuthTester("http://example.test/graphql")
+    with patch.object(tester, "_post", side_effect=_make_fake_graphql_server(secure=True)):
+        results = {r["step"]: r["success"] for r in tester.run_scenario()}
+
+    assert len(results) == 10
+    for step in _SECURITY_STEPS + ["Auth: Code UNAUTHENTICATED exact"]:
+        assert results[step] is True, f"secure server should pass {step}"
+
+
+def test_auth_tester_security_steps_fail_on_insecure_server() -> None:
+    tester = AuthTester("http://example.test/graphql")
+    with patch.object(tester, "_post", side_effect=_make_fake_graphql_server(secure=False)):
+        results = {r["step"]: r["success"] for r in tester.run_scenario()}
+
+    for step in _SECURITY_STEPS:
+        assert results[step] is False, f"insecure server should fail {step}"

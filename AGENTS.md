@@ -68,13 +68,18 @@ Five checkers, each returning structured indicator lists:
 - **`CodeQualityChecker`** — counts TypeScript `any` usages; scores inversely (100 − count×2).
 - **`ProjectStatsAnalyzer`** — counts files, TS/TSX files, LOC, test files, project size in KB.
 - **`CodeSmellAnalyzer`** — detects bonuses (custom errors, env validation, healthcheck, Relay pagination, structured logging) and maluses (AbstractFactory over-abstraction, extreme file fragmentation >30% files <10 lines).
-- **`ReadmeChecker`** — validates README presence and required sections (Architecture, Installation, API, Docker).
+- **`ReadmeChecker`** — validates README presence and required sections (Architecture, Installation, API, Docker), each of which must carry real content, not just an empty heading.
+
+**Challenge profile & registry (`auditor/challenges.py`)** — `ChallengeProfile` holds everything Todo-specific (GraphQL endpoint, expected E2E/auth step names + weights, layer names) so the orchestrator is challenge-agnostic. `TODO_STATIC_CHECKERS` is a declarative registry: each static checker carries an `emit` mapper that reuses `_append_indicator`, so adding a static control = one registry entry, no `main.py` edit.
+
+**Supply-chain & DevEx (`auditor/modules/supply_chain.py`)** — `DevExChecker` (tsconfig `strict` actually enabled, ESLint config, CI workflows, sane `.gitignore`; scored in phase 2 / step 7, quality bucket), plus `SecretsScanner` and `NpmAuditChecker` (maluses).
 
 ### Dynamic Analysis (`auditor/modules/dynamic_analysis.py`)
 
 - **`MakefileRunner`** — runs a make target (5-min timeout), captures stdout/stderr and exit code.
 - **`DockerOrchestrator`** — starts the stack, polls `http://localhost:4000/graphql` health (max 30 retries × 2s), extracts container states via `docker compose ps --format json`.
-- **`E2EFunctionalTester`** — 8-step GraphQL scenario that validates task-dependency blocking logic. Critical: the "Close B while A is open" step must fail with an error containing `depend|blocked|prerequisite|precondition`.
+- **`E2EFunctionalTester`** — GraphQL scenario validating task-dependency blocking logic. Critical: the "Close B while A is open" step must fail with an error containing `depend|blocked|prerequisite|precondition`; an independent (no-dependency) task must still close successfully (anti "always-block" gaming).
+- **`AuthTester`** — auth + security E2E: unauth blocked, register/login, tampered token, plus real depth — `alg:none` rejected, foreign-signature rejected, per-user task isolation, exact `UNAUTHENTICATED` code, weak-password rejection (JWTs forged with the stdlib, no extra dependency).
 - **`PerformanceBenchmarker`** — 50 iterations of a GraphQL query; reports avg latency, P95, and error rate.
 
 ### Scoring System (`auditor/scoring_config.py`)

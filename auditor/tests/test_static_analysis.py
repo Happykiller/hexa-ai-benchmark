@@ -6,7 +6,14 @@ if str(AUDITOR_DIR) not in sys.path:
     sys.path.insert(0, str(AUDITOR_DIR))
 
 from main import TraceabilityValidator
-from modules.static_analysis import AuthImplementationChecker, CodeQualityChecker, HexagonalComplianceChecker, ReadmeChecker
+from modules.static_analysis import (
+    AuthImplementationChecker,
+    CodeQualityChecker,
+    CodeSmellAnalyzer,
+    HexagonalComplianceChecker,
+    ProjectStatsAnalyzer,
+    ReadmeChecker,
+)
 
 
 def test_hexagonal_checker_detects_forbidden_imports_in_string_literals(tmp_path: Path) -> None:
@@ -145,3 +152,66 @@ def test_auth_checker_ignores_auth_keywords_in_comments(tmp_path: Path) -> None:
 
     assert result["indicators"]["auth_mutations_present"] is False
     assert result["indicators"]["auth_guard_present"] is False
+
+
+def test_readme_rejects_empty_headings(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+    (project / "README.md").write_text(
+        "# Title\n## Architecture\n## Installation\n## API GraphQL\n## Docker\n",
+        encoding="utf-8",
+    )
+
+    result = ReadmeChecker(str(project)).check()
+
+    # Headings exist but carry no content → must not score.
+    assert result["indicators"]["has_architecture_section"] is False
+    assert result["indicators"]["has_docker_info"] is False
+
+
+def test_readme_accepts_real_content_with_subsections_and_code(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+    (project / "README.md").write_text(
+        "# Title\n## Installation\n"
+        "### Prerequisites\n"
+        "Node.js and Docker are required to build and run the full stack locally end to end.\n"
+        "```bash\n# install host tooling\nmake setup\n```\n"
+        "## Docker\nThe compose file orchestrates api, mongodb and mysql services together for you.\n",
+        encoding="utf-8",
+    )
+
+    result = ReadmeChecker(str(project)).check()
+
+    # Code-fence "# install" comment must NOT be treated as a heading, and the
+    # Installation body (incl. its subsection) must count.
+    assert result["indicators"]["has_installation_section"] is True
+    assert result["indicators"]["has_docker_info"] is True
+
+
+def test_project_stats_measures_assertion_ratio(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    tests_dir = project / "tests"
+    tests_dir.mkdir(parents=True)
+    (tests_dir / "real.test.ts").write_text("it('x', () => { expect(1).toBe(1); });", encoding="utf-8")
+    (tests_dir / "fake.test.ts").write_text("it('y', () => { /* no real assertion here */ });", encoding="utf-8")
+
+    stats = ProjectStatsAnalyzer(str(project)).analyze()
+
+    assert stats["total_tests"] == 2
+    assert stats["test_files_with_assertions"] == 1
+    assert stats["assertion_ratio"] == 0.5
+
+
+def test_codesmell_flags_empty_placeholder_files(tmp_path: Path) -> None:
+    src = tmp_path / "deliverable" / "src"
+    src.mkdir(parents=True)
+    (src / "comment_only.ts").write_text("// placeholder, nothing here\n", encoding="utf-8")
+    (src / "blank.ts").write_text("\n\n", encoding="utf-8")
+    (src / "real.ts").write_text("export const value = 42;\n", encoding="utf-8")
+
+    result = CodeSmellAnalyzer(str(tmp_path / "deliverable")).analyze()
+
+    empty = next(m for m in result["all_maluses"] if m["id"] == "empty_source_files")
+    assert empty["status"] == "DETECTE"
+    assert empty["count"] >= 2

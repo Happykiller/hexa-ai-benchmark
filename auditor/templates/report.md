@@ -97,6 +97,28 @@ Inspection conteneurs: {{ (audit_data.artifacts.exposed_containers.error or audi
 Scénario E2E non exécuté.
 {% endif %}
 
+### Résultats Auth E2E (sécurité)
+{% if audit_data.artifacts.auth_e2e_results %}
+| Étape | Succès | Message |
+|-------|--------|---------|
+{%- for step in audit_data.artifacts.auth_e2e_results %}
+| {{ step.step|md_cell }} | {{ step.success|md_cell }} | {{ (step.error or "validated")|md_cell }} |
+{%- endfor %}
+{% else %}
+Scénario Auth E2E non exécuté.
+{% endif %}
+
+### DevEx & Outillage
+{% if audit_data.artifacts.devex.indicators %}
+| Contrôle | Présent |
+|----------|---------|
+{%- for key, val in audit_data.artifacts.devex.indicators.items() %}
+| {{ key|md_cell }} | {{ val|md_cell }} |
+{%- endfor %}
+{% else %}
+DevEx non évalué.
+{% endif %}
+
 ### Architecture hexagonale
 | Règle | Résultat | Violations |
 |-------|----------|------------|
