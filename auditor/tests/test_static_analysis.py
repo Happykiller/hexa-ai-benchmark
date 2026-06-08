@@ -32,6 +32,36 @@ def test_hexagonal_checker_detects_forbidden_imports_in_string_literals(tmp_path
     assert result["violations"][0]["file"] == "src/core/usecase.ts"
 
 
+def test_hexagonal_core_purity_ratio(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    core_dir = project / "src" / "core"
+    core_dir.mkdir(parents=True)
+    # Pure: only relative imports.
+    (core_dir / "task.ts").write_text(
+        'import { Task } from "./entities/task";\nexport const x = Task;\n', encoding="utf-8"
+    )
+    # Pure despite a bare specifier: InversifyJS / reflect-metadata are allowed in core.
+    (core_dir / "usecase.ts").write_text(
+        'import "reflect-metadata";\nimport { injectable } from "inversify";\nexport class UC {}\n',
+        encoding="utf-8",
+    )
+    # Impure: pulls an infrastructure library into the domain.
+    (core_dir / "leaky.ts").write_text(
+        'import mongoose from "mongoose";\nexport const m = mongoose;\n', encoding="utf-8"
+    )
+    # Test files are excluded from the purity ratio.
+    (core_dir / "task.test.ts").write_text(
+        'import axios from "axios";\nit("x", () => {});\n', encoding="utf-8"
+    )
+
+    result = HexagonalComplianceChecker(str(project)).check()
+
+    assert result["core_files"] == 3
+    assert result["pure_core_files"] == 2
+    assert result["core_purity_ratio"] == round(2 / 3, 4)
+    assert any("leaky.ts" in f["file"] for f in result["impure_core_files"])
+
+
 def test_quality_checker_counts_any_in_tsx_files(tmp_path: Path) -> None:
     project = tmp_path / "deliverable"
     src_dir = project / "src"

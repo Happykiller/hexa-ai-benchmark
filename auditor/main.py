@@ -11,11 +11,26 @@ from jinja2 import Environment, FileSystemLoader
 from rich.console import Console
 from rich.table import Table
 
-from scoring_config import BASE_SCORE_BUCKETS, BONUS_MALUS_SCORE_CONFIG, TECHNICAL_STATS_SCORING_CONFIG, TRACE_SCORING_CONFIG
+from scoring_config import (
+    BASE_SCORE_BUCKETS,
+    BASE_SCORE_BUCKETS_BY_VERSION,
+    BONUS_HEADROOM_FRACTION,
+    BONUS_MALUS_SCORE_CONFIG,
+    COST_SCORE_PHASE,
+    COST_SCORE_PHASE_LABEL,
+    COST_SCORE_STEP_LABEL,
+    COST_USD_BANDS,
+    MODEL_PRICING,
+    PRICING_UPDATED,
+    SCORING_DEFAULT_VERSION,
+    TECHNICAL_STATS_SCORING_CONFIG,
+    TOTAL_TOKENS_BANDS,
+    TRACE_SCORING_CONFIG,
+)
 from challenges import DEFAULT_PROFILE
 from modules.dynamic_analysis import AuthTester, DockerOrchestrator, E2EFunctionalTester, MakefileRunner, PerformanceBenchmarker
 from modules.static_analysis import AuthImplementationChecker, CodeQualityChecker, CodeSmellAnalyzer, DualPersistenceChecker, HexagonalComplianceChecker, ProjectStatsAnalyzer, ReadmeChecker, UseCaseInjectionChecker
-from modules.supply_chain import NpmAuditChecker, SecretsScanner
+from modules.supply_chain import ComposePortsChecker, MakefileTeardownChecker, NpmAuditChecker, SecretsScanner
 
 console = Console()
 
@@ -137,22 +152,68 @@ def _parse_coverage_results(output: str) -> Dict[str, Any]:
     return {"coverage_pct": None, "source": "not_found"}
 
 
+def _parse_coverage_by_layer(target_path: str) -> Dict[str, Any]:
+    """Aggregate Istanbul line coverage per hexagonal layer from
+    coverage/coverage-summary.json (the json-summary reporter). Returns per-layer pct,
+    or an empty map with a ``source`` reason when the file is absent/unreadable — the
+    caller then records the per-layer indicators as informational (no penalty)."""
+    summary_path = os.path.join(target_path, "coverage", "coverage-summary.json")
+    if not os.path.isfile(summary_path):
+        return {"source": "absent", "layers": {}}
+    try:
+        with open(summary_path, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        return {"source": "unreadable", "layers": {}}
+    if not isinstance(data, dict):
+        return {"source": "unreadable", "layers": {}}
+
+    agg = {"core": [0, 0], "adapters": [0, 0], "entrypoints": [0, 0]}  # [covered, total]
+    for key, metrics in data.items():
+        if key == "total" or not isinstance(metrics, dict):
+            continue
+        norm = key.replace("\\", "/")
+        for layer, bucket in agg.items():
+            if f"/{layer}/" in norm:
+                lines = metrics.get("lines", {}) if isinstance(metrics.get("lines"), dict) else {}
+                bucket[0] += int(lines.get("covered", 0) or 0)
+                bucket[1] += int(lines.get("total", 0) or 0)
+                break
+
+    layers = {
+        layer: (round(covered / total * 100, 2) if total else None)
+        for layer, (covered, total) in agg.items()
+    }
+    return {"source": "json-summary", "layers": layers}
+
+
 def _build_trace_metrics(traceability: Dict[str, Any]) -> Dict[str, Any]:
     metrics = {
         "phases_count": traceability.get("phases_count", 0),
         "total_turns": None,
         "total_tool_calls": None,
         "total_wall_time_seconds": None,
+        "total_input_tokens": None,
+        "total_output_tokens": None,
+        "total_cached_input_tokens": None,
+        "model": None,
         "trace_errors_count": len(traceability.get("errors", [])),
     }
     data = traceability.get("data", {})
     summary = data.get("summary", {})
     phases = data.get("phases", [])
+    meta = data.get("meta", {})
+
+    if isinstance(meta, dict):
+        metrics["model"] = _first_non_empty(meta.get("model")) or None
 
     if summary:
         metrics["total_turns"] = _to_float(summary.get("total_turns"))
         metrics["total_tool_calls"] = _to_float(summary.get("total_tool_calls"))
         metrics["total_wall_time_seconds"] = _to_float(summary.get("total_wall_time_seconds"))
+        metrics["total_input_tokens"] = _to_float(summary.get("total_input_tokens"))
+        metrics["total_output_tokens"] = _to_float(summary.get("total_output_tokens"))
+        metrics["total_cached_input_tokens"] = _to_float(summary.get("total_cached_input_tokens"))
 
     if not isinstance(phases, list) or not phases:
         return metrics
@@ -187,6 +248,64 @@ def _build_trace_metrics(traceability: Dict[str, Any]) -> Dict[str, Any]:
         metrics["total_wall_time_seconds"] = sum(durations)
         
     return metrics
+
+
+def _normalize_model_id(model_id: Optional[str]) -> Optional[str]:
+    """Map a free-form meta.model string to a MODEL_PRICING key (best-effort)."""
+    if not model_id:
+        return None
+    s = str(model_id).lower()
+    if "opus" in s:
+        return "claude-opus"
+    if "sonnet" in s:
+        return "claude-sonnet"
+    if "haiku" in s:
+        return "claude-haiku"
+    if "gpt" in s and "5.5" in s:
+        return "gpt-5.5"
+    if ("gpt" in s and "5" in s) or "codex" in s:  # Codex CLI is GPT-5-based
+        return "gpt-5"
+    if "gemini" in s and "pro" in s:
+        return "gemini-pro"
+    if "gemini" in s:
+        return "gemini-flash"
+    return None
+
+
+def _compute_session_cost(trace_metrics: Dict[str, Any], model_id: Optional[str]) -> Dict[str, Any]:
+    """Compute session cost from agent-reported tokens × the per-model price table.
+    Returns cost_usd=None when the model isn't priced or no tokens were reported."""
+    inp = trace_metrics.get("total_input_tokens")
+    out = trace_metrics.get("total_output_tokens")
+    cached = trace_metrics.get("total_cached_input_tokens") or 0
+    total_tokens = None
+    if inp is not None or out is not None:
+        total_tokens = (inp or 0) + (out or 0)
+
+    key = _normalize_model_id(model_id)
+    pricing = MODEL_PRICING.get(key) if key else None
+    cost_usd = None
+    if pricing and total_tokens is not None:
+        # Cached input tokens are a *subset* of total input, billed at the cheaper
+        # cached rate; the rest of the input is billed at the full rate.
+        non_cached_input = max(0.0, (inp or 0) - cached)
+        cost_usd = round(
+            non_cached_input / 1e6 * pricing["input"]
+            + cached / 1e6 * pricing.get("cached_input", 0)
+            + (out or 0) / 1e6 * pricing["output"],
+            4,
+        )
+    return {
+        "model_id": model_id,
+        "model_key": key,
+        "priced": pricing is not None,
+        "pricing_updated": PRICING_UPDATED,
+        "input_tokens": inp,
+        "output_tokens": out,
+        "cached_input_tokens": cached,
+        "total_tokens": total_tokens,
+        "cost_usd": cost_usd,
+    }
 
 
 def _functional_e2e_failed(e2e_results: List[Dict[str, Any]]) -> bool:
@@ -261,30 +380,45 @@ def _compute_bucket_score(
 
 def _compute_bonus_malus_adjustment(audit_db: Dict[str, Any]) -> Dict[str, Any]:
     phase_number = BONUS_MALUS_SCORE_CONFIG["phase_number"]
-    adjustment = 0.0
+    bonus_cap = BONUS_MALUS_SCORE_CONFIG["bonus_cap"]
+    malus_cap = BONUS_MALUS_SCORE_CONFIG["malus_cap"]
+
+    bonus_raw = 0.0
+    malus_raw = 0.0
+    net_raw = 0.0
     for phase in audit_db["phases"]:
         if phase["number"] == phase_number:
-            adjustment = float(phase.get("raw_total", 0) or 0)
+            bonus_raw = float(phase.get("positive_points_earned", 0) or 0)  # >= 0
+            malus_raw = float(phase.get("negative_points", 0) or 0)         # <= 0
+            net_raw = float(phase.get("raw_total", bonus_raw + malus_raw) or 0)
             break
 
-    capped_adjustment = max(
-        BONUS_MALUS_SCORE_CONFIG["malus_cap"],
-        min(BONUS_MALUS_SCORE_CONFIG["bonus_cap"], adjustment),
-    )
+    # v1 clamps the *net* adjustment to [malus_cap, bonus_cap]; kept for reproducibility.
+    capped_adjustment = max(malus_cap, min(bonus_cap, net_raw))
+    # v2 caps bonus and malus independently so the ceiling rule can apply them apart.
+    capped_bonus = max(0.0, min(bonus_cap, bonus_raw))   # 0 .. +bonus_cap
+    capped_malus = max(malus_cap, min(0.0, malus_raw))   # malus_cap .. 0
     return {
-        "raw_adjustment": round(adjustment, 2),
+        "raw_adjustment": round(net_raw, 2),
         "capped_adjustment": round(capped_adjustment, 2),
-        "bonus_cap": BONUS_MALUS_SCORE_CONFIG["bonus_cap"],
-        "malus_cap": BONUS_MALUS_SCORE_CONFIG["malus_cap"],
+        "bonus_raw": round(bonus_raw, 2),
+        "malus_raw": round(malus_raw, 2),
+        "capped_bonus": round(capped_bonus, 2),
+        "capped_malus": round(capped_malus, 2),
+        "bonus_cap": bonus_cap,
+        "malus_cap": malus_cap,
     }
 
 
-def _compute_final_score_summary(audit_db: Dict[str, Any]) -> Dict[str, Any]:
+def _compute_final_score_summary(
+    audit_db: Dict[str, Any], scoring_version: str = SCORING_DEFAULT_VERSION
+) -> Dict[str, Any]:
     bucket_scores: Dict[str, Dict[str, Any]] = {}
     base_score = 0.0
     base_weight_total = 0.0
 
-    for key, config in BASE_SCORE_BUCKETS.items():
+    buckets = BASE_SCORE_BUCKETS_BY_VERSION.get(scoring_version, BASE_SCORE_BUCKETS)
+    for key, config in buckets.items():
         bucket_score = _compute_bucket_score(
             audit_db["indicators"],
             config["weight"],
@@ -296,13 +430,30 @@ def _compute_final_score_summary(audit_db: Dict[str, Any]) -> Dict[str, Any]:
         base_weight_total += config["weight"]
 
     adjustment = _compute_bonus_malus_adjustment(audit_db)
-    raw_percentage = round(max(0.0, min(100.0, base_score + adjustment["capped_adjustment"])), 2)
+
+    if scoring_version == "v1":
+        # Legacy: net bonus/malus added to the base, then clamped. Bonus can complete
+        # an imperfect base to 100% (saturation).
+        effective_bonus = None
+        raw_percentage = round(max(0.0, min(100.0, base_score + adjustment["capped_adjustment"])), 2)
+    else:
+        # v2 reserved ceiling: maluses apply fully; the bonus may only fill a fraction
+        # of the remaining gap to 100, so 100% is unreachable unless the base is flawless.
+        after_malus = base_score + adjustment["capped_malus"]
+        headroom = max(0.0, 100.0 - after_malus)
+        effective_bonus = round(min(adjustment["capped_bonus"], headroom * BONUS_HEADROOM_FRACTION), 2)
+        raw_percentage = round(max(0.0, min(100.0, after_malus + effective_bonus)), 2)
+
+    adjustment["scoring_version"] = scoring_version
+    adjustment["effective_bonus"] = effective_bonus
+
     caps_result = _compute_score_caps(
         raw_percentage,
         audit_db["meta"].get("score_cap_reasons", []),
     )
 
     return {
+        "scoring_version": scoring_version,
         "base_score": round(base_score, 2),
         "base_weight_total": round(base_weight_total, 2),
         "bonus_malus": adjustment,
@@ -503,7 +654,7 @@ def _append_indicator(
     return indicator
 
 
-def _finalize_audit_db(audit_db: Dict[str, Any]) -> None:
+def _finalize_audit_db(audit_db: Dict[str, Any], scoring_version: str = SCORING_DEFAULT_VERSION) -> None:
     for phase in audit_db["phases"]:
         phase_statuses: List[str] = []
         phase_positive_earned = 0
@@ -572,7 +723,17 @@ def _finalize_audit_db(audit_db: Dict[str, Any]) -> None:
         if positive_points_possible
         else 0.0
     )
-    final_score = _compute_final_score_summary(audit_db)
+    final_score = _compute_final_score_summary(audit_db, scoring_version)
+
+    # Value metric: quality points per dollar (decision-relevant, informational only —
+    # not scored, to avoid circularity with the cost bucket).
+    cost_info = audit_db.get("meta", {}).get("cost", {})
+    cost_usd = cost_info.get("cost_usd")
+    cost_efficiency = (
+        round(final_score["final_percentage"] / cost_usd, 2)
+        if isinstance(cost_usd, (int, float)) and cost_usd > 0
+        else None
+    )
 
     audit_db["summary"] = {
         "raw_total_score": raw_total,
@@ -580,6 +741,10 @@ def _finalize_audit_db(audit_db: Dict[str, Any]) -> None:
         "positive_points_possible": positive_points_possible,
         "negative_points": negative_points,
         "legacy_percentage_net": percentage_net,
+        "scoring_version": final_score["scoring_version"],
+        "cost_usd": cost_usd,
+        "total_tokens": cost_info.get("total_tokens"),
+        "cost_efficiency_pct_per_usd": cost_efficiency,
         "normalized_base_score": final_score["base_score"],
         "normalized_base_weight_total": final_score["base_weight_total"],
         "bonus_malus_adjustment": final_score["bonus_malus"],
@@ -756,7 +921,17 @@ def cli() -> None:
 @click.option("--skip-dynamic", is_flag=True, help="Skip docker and dynamic tests")
 @click.option("--force-dynamic", is_flag=True, help="Run make test, Docker, E2E and perf even if make build fails")
 @click.option("--fresh-docker", is_flag=True, help="Run docker compose down -v before make start")
-def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bool) -> None:
+@click.option(
+    "--scoring",
+    type=click.Choice(["v1", "v2"]),
+    default=SCORING_DEFAULT_VERSION,
+    show_default=True,
+    help="Final-score ceiling rule: v2 reserves 100%% for a flawless base; v1 reproduces legacy scores",
+)
+def analyze(
+    path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bool,
+    scoring: str = SCORING_DEFAULT_VERSION,
+) -> None:
     """Analyze a deliverable at the given PATH"""
     if skip_dynamic and force_dynamic:
         raise click.UsageError("--skip-dynamic and --force-dynamic cannot be used together")
@@ -772,6 +947,7 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
             "force_dynamic": force_dynamic,
             "fresh_docker": fresh_docker,
             "scoring_model": "indicator_fibonacci_v2",
+            "scoring_version": scoring,
         },
         "summary": {},
         "phases": [],
@@ -786,6 +962,7 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
 
     expected_e2e_steps = list(profile.e2e_step_names)
     auth_step_weights: Dict[str, int] = dict(profile.auth_step_weights)
+    adversarial_step_weights: Dict[str, int] = dict(profile.adversarial_step_weights)
 
     # 1. Setup
     _log("Running make setup...")
@@ -895,6 +1072,7 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
         test_out = str(op_results["test"].get("output", "")) + str(op_results["test"].get("error", ""))
     test_results = _parse_test_results(test_out)
     coverage_data = _parse_coverage_results(test_out)
+    coverage_by_layer = _parse_coverage_by_layer(path)
     stats["execution_test_passed"] = test_results.get("passed", 0)
     stats["execution_test_failed"] = test_results.get("failed", 0)
     stats["execution_test_total"] = test_results.get("total", 0)
@@ -1031,9 +1209,37 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
                         step_name, False, "Step not reached",
                         status="SKIPPED", weight=w,
                     )
+
+            # Step 1-5: Adversarial business-logic robustness (de-saturation). Kept
+            # separate from the functional E2E so an edge-case miss never caps at 40%.
+            _log("Running Adversarial Scenario...")
+            adversarial_results = e2e.run_adversarial_scenario()
+            executed_adv_steps = [r["step"] for r in adversarial_results]
+            for adv_step in adversarial_results:
+                _append_indicator(
+                    audit_db, 1, "Opérationnalité", 5, "Robustesse métier (E2E adversarial)",
+                    adv_step["step"],
+                    bool(adv_step.get("success")),
+                    _first_non_empty(adv_step.get("error"), "validated"),
+                    details=adv_step,
+                    weight=adversarial_step_weights.get(adv_step["step"], 5),
+                )
+            for step_name, w in adversarial_step_weights.items():
+                if step_name not in executed_adv_steps:
+                    _append_indicator(
+                        audit_db, 1, "Opérationnalité", 5, "Robustesse métier (E2E adversarial)",
+                        step_name, False, "Step not reached",
+                        status="SKIPPED", weight=w,
+                    )
         finally:
             orchestrator.stop()
     else:
+        # A failed `make start` may still have left partial containers up — always tear
+        # them down so the audit never leaks a running stack (clean environment).
+        if docker_start["status"] == "KO":
+            _log("make start failed; tearing down any partial containers...")
+            orchestrator.stop()
+
         # Fallback for failed/skipped docker start
         reason = docker_start.get("error", "runtime not started")
         if skip_dynamic:
@@ -1068,6 +1274,11 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
         for step_name, w in auth_step_weights.items():
             _append_indicator(
                 audit_db, 1, "Opérationnalité", 4, "Validation sécurité E2E",
+                step_name, False, reason, status="SKIPPED", weight=w,
+            )
+        for step_name, w in adversarial_step_weights.items():
+            _append_indicator(
+                audit_db, 1, "Opérationnalité", 5, "Robustesse métier (E2E adversarial)",
                 step_name, False, reason, status="SKIPPED", weight=w,
             )
 
@@ -1121,6 +1332,50 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
         cov_pct is not None and cov_pct >= 60.0,
         f"coverage={cov_pct}% (source={coverage_data.get('source')})" if cov_pct is not None else "non détectée — --coverage manquant ?",
         score_ratio=cov_ratio, weight=15,
+    )
+
+    # Coverage by layer (continuous): core must be tested harder than entrypoints. When
+    # the json-summary reporter is absent the indicator is informational (kind=measured),
+    # so a missing report never penalises — it only adds resolution when present.
+    cov_layers = coverage_by_layer.get("layers", {})
+    for _layer, _target, _w in (("core", 85.0, 10), ("adapters", 60.0, 5), ("entrypoints", 40.0, 3)):
+        _pct = cov_layers.get(_layer)
+        _name = f"Couverture {_layer}/ (cible ≥{int(_target)}%)"
+        if _pct is None:
+            _append_indicator(
+                audit_db, 1, "Opérationnalité", 3, "Résultats des tests unitaires", _name,
+                False,
+                f"coverage-summary.json {coverage_by_layer.get('source')} — couche non mesurée",
+                kind="measured", measured_value=None, details=coverage_by_layer,
+            )
+        else:
+            _append_indicator(
+                audit_db, 1, "Opérationnalité", 3, "Résultats des tests unitaires", _name,
+                _pct >= _target,
+                f"coverage_{_layer}={_pct}% (cible {int(_target)}%)",
+                score_ratio=round(min(1.0, _pct / _target), 4), weight=_w, details=coverage_by_layer,
+            )
+
+    # docker-compose / Makefile deployment contract (static, always run, no Docker
+    # needed): mongo/mysql published on the mandated NON-STANDARD host ports (no host
+    # collision) and a Makefile teardown target (clean environment after the work).
+    _compose_step = "Contrat docker-compose (ports & teardown)"
+    if profile.db_port_contract:
+        ports_res = ComposePortsChecker(path, profile.db_port_contract).check()
+        audit_db.setdefault("artifacts", {})["compose_ports"] = ports_res
+        for label, info in ports_res["services"].items():
+            _append_indicator(
+                audit_db, 1, "Opérationnalité", 6, _compose_step,
+                f"{label} exposé sur le port hôte {info['expected_host']}",
+                info["compliant"], info["detail"], weight=3, details=info,
+            )
+    teardown_res = MakefileTeardownChecker(path).check()
+    audit_db.setdefault("artifacts", {})["makefile_teardown"] = teardown_res
+    _append_indicator(
+        audit_db, 1, "Opérationnalité", 6, _compose_step,
+        "Cible Makefile de teardown (docker compose down)",
+        teardown_res.get("has_teardown", False), teardown_res.get("detail", ""),
+        weight=3, details=teardown_res,
     )
 
     # Static checkers run + scored via the declarative registry (challenges.py).
@@ -1200,6 +1455,44 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
             trace_or_stats_present=trace_metrics.get(metric_key) is not None,
         )
 
+    # Phase 6 — Cost pillar (scoring v2). Cost is computed from agent-reported tokens ×
+    # the price table. Scored on $ when the model is priced; on raw tokens as a
+    # model-agnostic fallback otherwise; SKIPPED (0) only when no tokens were reported.
+    cost_info = _compute_session_cost(trace_metrics, trace_metrics.get("model"))
+    audit_db["meta"]["cost"] = cost_info
+    if cost_info["cost_usd"] is not None:
+        band = _score_from_bands(cost_info["cost_usd"], COST_USD_BANDS)
+        _append_indicator(
+            audit_db, COST_SCORE_PHASE, COST_SCORE_PHASE_LABEL, 1, COST_SCORE_STEP_LABEL,
+            "Coût total de la session ($)",
+            band["score_ratio"] >= 1.0,
+            f"cost_usd={cost_info['cost_usd']} (modèle={cost_info['model_key']}, prix {PRICING_UPDATED}); {band['remarks']}",
+            score_ratio=band["score_ratio"], status=band["status"], weight=10, details=cost_info,
+        )
+    elif cost_info["total_tokens"] is not None:
+        band = _score_from_bands(cost_info["total_tokens"], TOTAL_TOKENS_BANDS)
+        _append_indicator(
+            audit_db, COST_SCORE_PHASE, COST_SCORE_PHASE_LABEL, 1, COST_SCORE_STEP_LABEL,
+            "Frugalité en tokens (modèle non tarifé)",
+            band["score_ratio"] >= 1.0,
+            f"total_tokens={cost_info['total_tokens']}; modèle '{cost_info['model_id']}' absent de la table de prix; {band['remarks']}",
+            score_ratio=band["score_ratio"], status=band["status"], weight=10, details=cost_info,
+        )
+    else:
+        _append_indicator(
+            audit_db, COST_SCORE_PHASE, COST_SCORE_PHASE_LABEL, 1, COST_SCORE_STEP_LABEL,
+            "Coût total de la session ($)",
+            False,
+            "tokens absents de audit_trace.json (summary.total_input_tokens / total_output_tokens requis)",
+            status="SKIPPED", weight=10, details=cost_info,
+        )
+    # Informational measures (not scored): total tokens and computed cost.
+    _append_indicator(
+        audit_db, COST_SCORE_PHASE, COST_SCORE_PHASE_LABEL, 1, COST_SCORE_STEP_LABEL,
+        "Tokens totaux (in+out)", False, str(cost_info["total_tokens"]),
+        kind="measured", measured_value=cost_info["total_tokens"], details=cost_info,
+    )
+
     for bonus in smells.get("all_bonuses", []):
         _append_indicator(
             audit_db,
@@ -1242,7 +1535,7 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
             as_measured=True,
         )
 
-    _finalize_audit_db(audit_db)
+    _finalize_audit_db(audit_db, scoring)
     audit_db["meta"]["audit_finished_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     audit_db["stats"] = stats
 
@@ -1304,10 +1597,27 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
         f.write(report_content)
 
     summary = audit_db["summary"]
+    bm = summary["bonus_malus_adjustment"]
+    _eff_bonus = bm.get("effective_bonus")
+    _bonus_shown = _eff_bonus if _eff_bonus is not None else bm.get("capped_adjustment", 0)
     console.print(
-        f"[bold green]Audit Complete! Score Net: {summary['raw_total_score']}/"
-        f"{summary['positive_points_possible']} ({summary['percentage_net']}%)[/bold green]"
+        f"[bold green]Audit Complete! Final: {summary['percentage_net']}%[/bold green] "
+        f"[dim](base {summary['normalized_base_score']}/100 · "
+        f"malus {bm.get('capped_malus', 0)} · bonus +{_bonus_shown} · "
+        f"scoring {summary.get('scoring_version', SCORING_DEFAULT_VERSION)})[/dim]"
     )
+    _cost_usd = summary.get("cost_usd")
+    _eff = summary.get("cost_efficiency_pct_per_usd")
+    _tokens = summary.get("total_tokens")
+    if _cost_usd is not None:
+        console.print(
+            f"[bold cyan]Coût: ${_cost_usd}[/bold cyan] "
+            f"[dim]({_tokens} tokens · valeur {_eff} pts/$ · prix {PRICING_UPDATED})[/dim]"
+        )
+    elif _tokens is not None:
+        console.print(f"[dim]Coût non calculé (modèle non tarifé) · {_tokens} tokens[/dim]")
+    else:
+        console.print("[yellow]Coût non calculé : tokens absents de audit_trace.json[/yellow]")
     console.print(f"Detailed report saved to: [cyan]{report_path}[/cyan]")
     console.print(f"Audit data JSON saved to: [cyan]{report_json_path}[/cyan]")
 
@@ -1322,6 +1632,11 @@ def analyze(path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bo
         )
     
     table.add_section()
+    table.add_row(
+        "Base → Final",
+        f"{summary['normalized_base_score']}/100 → {summary['percentage_net']}% "
+        f"(scoring {summary.get('scoring_version', SCORING_DEFAULT_VERSION)})",
+    )
     table.add_row(
         "Conclusion",
         f"Positive Net: {summary['raw_total_score']}/{summary['positive_points_possible']} ({summary['percentage_net']}%)",

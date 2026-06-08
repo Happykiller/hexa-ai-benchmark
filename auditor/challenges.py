@@ -91,6 +91,18 @@ def emit_hexagonal(result: Dict[str, Any], append: Append) -> None:
             details=result, weight=15,
         )
 
+    # Continuous purity signal (de-saturation): rewards a domain that imports no infra
+    # library, not just one that avoids the binary cross-layer leaks above.
+    purity = result.get("core_purity_ratio")
+    if purity is not None:
+        append(
+            2, "Architecture & Qualité", 1, "Conformité hexagonale",
+            "Pureté du domaine (core sans lib d'infra)",
+            purity >= 0.9,
+            f"core_purity_ratio={purity} ({result.get('pure_core_files')}/{result.get('core_files')} fichiers purs)",
+            score_ratio=round(purity, 4), weight=10, details=result,
+        )
+
 
 def emit_quality(result: Dict[str, Any], append: Append) -> None:
     append(
@@ -214,6 +226,10 @@ class ChallengeProfile:
     expected_layers: Tuple[str, ...]
     e2e_step_names: Tuple[str, ...]
     auth_step_weights: Dict[str, int]
+    adversarial_step_weights: Dict[str, int] = field(default_factory=dict)
+    # {service_label: (host_port, container_port)} — mandated NON-STANDARD host ports
+    # so DB services never collide with instances already running on the audit host.
+    db_port_contract: Dict[str, Tuple[int, int]] = field(default_factory=dict)
     static_checkers: List[StaticCheckerSpec] = field(default_factory=list)
     e2e_scenario: Callable[..., Any] = E2EFunctionalTester
     auth_scenario: Callable[..., Any] = AuthTester
@@ -222,7 +238,7 @@ class ChallengeProfile:
 TODO_HEXAGONAL = ChallengeProfile(
     id="todo_hexagonal",
     label="Todo List Hexagonale Multi-Base",
-    prompt_version="2605291055",
+    prompt_version="2606082200",
     graphql_endpoint="http://localhost:4000/graphql",
     expected_layers=("core", "adapters", "infrastructure", "entrypoints"),
     e2e_step_names=(
@@ -248,6 +264,14 @@ TODO_HEXAGONAL = ChallengeProfile(
         "Auth: Code UNAUTHENTICATED exact": 5,
         "Auth: Mot de passe faible refusé": 3,
     },
+    adversarial_step_weights={
+        # Phase ③ — harder business-logic edge cases (de-saturation)
+        "Adversarial: Dépendances multiples (toutes requises)": 8,
+        "Adversarial: Chaîne de dépendances profonde": 5,
+        "Adversarial: Dépendance inexistante rejetée": 5,
+        "Adversarial: Statut invalide rejeté": 5,
+    },
+    db_port_contract={"MongoDB": (47017, 27017), "MySQL": (43306, 3306)},
     static_checkers=TODO_STATIC_CHECKERS,
     e2e_scenario=E2EFunctionalTester,
     auth_scenario=AuthTester,

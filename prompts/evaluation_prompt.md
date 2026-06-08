@@ -1,6 +1,6 @@
 # Spécifications Techniques : API Todo Hexagonale Multi-Base
 
-**Version du prompt : `2605291055`**
+**Version du prompt : `2606082200`**
 
 ---
 
@@ -43,8 +43,9 @@ L'intégralité du cycle de vie du projet doit être pilotable via un `Makefile`
 | `make lint` | Exécute les vérifications de style et de typage à l'intérieur du conteneur. |
 | `make build` | Compile le projet TypeScript à l'intérieur du conteneur. |
 | `make test` | Lance les tests unitaires et d'intégration à l'intérieur du conteneur **avec rapport de couverture** (`--coverage`). |
+| `make down` | **Arrête et supprime** les conteneurs et réseaux de la stack (`docker compose down`). Doit garantir un environnement propre après le travail. |
 
-**Ordre d'exécution par l'auditeur :** les cibles sont appelées dans cet ordre strict : `make setup`, `make lint`, `make build`, `make test`, puis `make start`.
+**Ordre d'exécution par l'auditeur :** les cibles sont appelées dans cet ordre strict : `make setup`, `make lint`, `make build`, `make test`, puis `make start` ; l'auditeur termine en supprimant les conteneurs qu'il a lancés. Le livrable **doit** fournir `make down` (cible de teardown vérifiée).
 
 Conséquence : `make lint`, `make build` et `make test` doivent être exécutables avant que `make start` ait démarré la stack. Ces cibles ne doivent donc pas dépendre d'un conteneur déjà actif via `docker compose exec`. Utilisez `docker compose run --rm api ...`, `docker build`, ou une commande Docker équivalente capable de fonctionner depuis un état froid.
 
@@ -79,7 +80,9 @@ input CreateTaskInput {
 
 **Règles de validation (E2E) :**
 - **Statuts :** Une tâche créée est par défaut `OPEN`.
-- **Règle de dépendance :** La mutation `updateTaskStatus(status: "COMPLETED")` doit échouer si au moins une des tâches présentes dans `dependsOn` n'est pas elle-même au statut `COMPLETED`.
+- **Règle de dépendance :** La mutation `updateTaskStatus(status: "COMPLETED")` doit échouer tant qu'**au moins une** des tâches présentes dans `dependsOn` n'est pas elle-même au statut `COMPLETED` (toutes les dépendances sont requises, à n'importe quelle profondeur de chaîne).
+- **Statut invalide :** `updateTaskStatus` doit **rejeter** toute valeur de statut autre que `OPEN` ou `COMPLETED` (pas de statut arbitraire accepté).
+- **Dépendance inexistante :** `createTask` doit **rejeter** un `dependsOn` qui référence un identifiant de tâche inexistant.
 - **Format d'erreur :** En cas d'échec de la règle de dépendance, l'erreur retournée dans la réponse GraphQL doit contenir au moins un de ces mots-clés : `blocked`, `depend`, `prerequisite`, ou `precondition`.
 
 ### 2.3 Conteneurisation et Double Persistance
@@ -92,6 +95,16 @@ L'API utilise **simultanément** les deux bases de données, chacune affectée �
 | **MongoDB** | `Task` (id, title, status, dependsOn, userId) | Mongoose |
 
 **Docker Compose :** Doit orchestrer trois services : `api`, `mongodb`, et `mysql`. Les deux connexions sont initialisées au démarrage — **aucun commutateur** : les deux adaptateurs sont actifs en permanence.
+
+**Ports hôte (obligatoires).** Pour éviter toute collision avec des bases déjà présentes sur la machine d'audit, publiez les services sur ces ports hôte **exacts** (le port conteneur reste standard) :
+
+| Service | Mapping `ports:` (hôte:conteneur) |
+| :--- | :--- |
+| `api` | `4000:4000` |
+| `mongodb` | `47017:27017` |
+| `mysql` | `43306:3306` |
+
+L'API communique avec les bases via les **noms de service compose** (`mongodb:27017`, `mysql:3306`) sur le réseau interne — **jamais via `localhost`**. Les ports hôte ci-dessus ne servent qu'à l'inspection externe et sont vérifiés automatiquement.
 
 **Variables d'environnement attendues :**
 - `MONGO_URI` (ex : `mongodb://mongodb:27017/tasks`)
@@ -137,9 +150,11 @@ type Mutation {
 - Les tâches sont cloisonnées par utilisateur : `tasks` ne retourne que les tâches appartenant à l'utilisateur authentifié.
 
 **Contraintes de sécurité :**
+- **Longueur minimale du mot de passe : 8 caractères.** Toute tentative de `register` avec un mot de passe plus court doit être rejetée par une erreur GraphQL, sans création de compte.
 - Mot de passe haché en base (bcrypt ou argon2, coût ≥ 10).
 - Secret JWT isolé dans la variable d'environnement `JWT_SECRET`.
 - Durée d'expiration configurable via `JWT_EXPIRES_IN` (défaut : `7d`).
+- **Validation stricte du token** : un token non signé (`alg: none`) ou signé avec un secret étranger doit être rejeté (`UNAUTHENTICATED`). N'acceptez jamais d'algorithme arbitraire côté serveur — fixez explicitement l'algorithme de vérification.
 
 ## 3. Exigences Architecturales
 
@@ -191,6 +206,14 @@ Les interfaces `ITaskRepository` et `IUserRepository` définies dans `core/` son
 - TypeScript en mode `strict: true`. Toute utilisation du type `any` est détectée et pénalisée.
 - Utilisation obligatoire d'**InversifyJS** pour l'injection des repositories et des services.
 
+### 3.5 Outillage, Qualité statique & Intégration Continue
+
+Les éléments suivants sont **attendus à la racine du livrable** et vérifiés automatiquement par l'auditeur :
+
+- **Configuration ESLint** : un fichier de configuration ESLint (`.eslintrc*` ou `eslint.config.*`) présent à la racine et utilisé par la cible `make lint`.
+- **Pipeline d'intégration continue** : au moins un workflow GitHub Actions dans `.github/workflows/*.yml` enchaînant au minimum `lint`, `build` et `test`.
+- **`.gitignore`** : présent à la racine et couvrant au minimum `node_modules/` et les fichiers `.env`.
+
 ## 4. Organisation et Traçabilité
 
 ### 4.1 Structure du Livrable
@@ -200,10 +223,15 @@ Le livrable **doit respecter exactement** l'arborescence suivante. Les noms de d
 ```
 ./YYYYMMDD_HHMM_[MODEL]_[TEMP]/
 ├── audit_trace.json         # Traçabilité de session (voir §4.3)
-├── Makefile                 # Cibles : setup / lint / build / test / start
+├── Makefile                 # Cibles : setup / lint / build / test / start / down
 ├── docker-compose.yml       # Services : api, mongodb, mysql (sans champ version:)
 ├── package.json
 ├── tsconfig.json            # strict: true obligatoire
+├── .eslintrc.json           # Configuration ESLint (ou eslint.config.*)
+├── .gitignore               # Couvre au minimum node_modules/ et .env
+├── .github/
+│   └── workflows/
+│       └── ci.yml           # Pipeline CI : lint + build + test
 ├── src/
 │   ├── core/                # Domaine pur — ports, entités, use cases
 │   ├── adapters/            # Implémentations concrètes des ports (repositories)
@@ -233,7 +261,7 @@ Fichier de suivi **obligatoire** à la racine du livrable. Il mesure l'efficacit
 
 | Champ | Type | Définition |
 | :--- | :--- | :--- |
-| `meta.prompt_version` | `string` | Version exacte du présent prompt, à recopier telle quelle : `"2605291055"` |
+| `meta.prompt_version` | `string` | Version exacte du présent prompt, à recopier telle quelle : `"2606082200"` |
 | `meta.model` | `string` | Le nom exact du modèle d'IA utilisé (ex: "gpt-4o", "claude-3-7-sonnet", "gemini-1.5-pro") |
 | `meta.temperature` | `number` | La température configurée pour la génération |
 | `meta.effort` | `string` | Le niveau d'effort ou de raisonnement (reasoning effort) configuré |
@@ -241,6 +269,9 @@ Fichier de suivi **obligatoire** à la racine du livrable. Il mesure l'efficacit
 | `summary.total_turns` | `number` | Nombre total d'échanges User ↔ Agent sur l'ensemble de la session |
 | `summary.total_tool_calls` | `number` | Nombre total d'appels d'outils (shell, lecture/écriture fichiers, recherche…) |
 | `summary.total_wall_time_seconds` | `number` | Durée totale réelle de la session en secondes (horloge murale, pas CPU) |
+| `summary.total_input_tokens` | `number` | **Total des tokens d'entrée (prompt) sur la session, cache inclus.** Sert au calcul du coût (pilier scoré). |
+| `summary.total_output_tokens` | `number` | **Total des tokens de sortie (génération) sur la session.** Sert au calcul du coût. |
+| `summary.total_cached_input_tokens` | `number` | *(optionnel)* Parmi `total_input_tokens`, le **sous-ensemble** servi depuis le cache (facturé moins cher). |
 | `phases[].phase` | `number` | Numéro de la phase (1, 2, 3) correspondant aux phases de développement §5 |
 | `phases[].label` | `string` | Nom court de la phase |
 | `phases[].start_time` | `string` | Début de la phase — ISO-8601 UTC, ex : `"2024-06-01T09:00:00Z"` |
@@ -250,12 +281,14 @@ Fichier de suivi **obligatoire** à la racine du livrable. Il mesure l'efficacit
 
 > `total_wall_time_seconds` peut être lu depuis le chronomètre de la plateforme **ou** calculé comme la somme des durées de phases (`end_time − start_time`). Les deux méthodes sont acceptées.
 
+> **Coût (pilier scoré) :** le coût en dollars est un **pilier de notation à part entière**. L'auditeur le calcule lui-même à partir de `total_input_tokens` / `total_output_tokens` et d'une table de prix par modèle — l'agent rapporte donc les **tokens**, pas le prix. Reportez des compteurs réels (la plupart des plateformes les exposent : Claude `/cost`, usage API). **Des tokens absents ⇒ 0 sur le pilier Coût.**
+
 **Exemple complet avec valeurs réalistes :**
 
 ```json
 {
   "meta": {
-    "prompt_version": "2605291055",
+    "prompt_version": "2606082200",
     "model": "claude-3-7-sonnet-20250219",
     "temperature": 0.2,
     "effort": "high",
@@ -267,7 +300,10 @@ Fichier de suivi **obligatoire** à la racine du livrable. Il mesure l'efficacit
   "summary": {
     "total_turns": 42,
     "total_tool_calls": 187,
-    "total_wall_time_seconds": 3240
+    "total_wall_time_seconds": 3240,
+    "total_input_tokens": 480000,
+    "total_output_tokens": 95000,
+    "total_cached_input_tokens": 120000
   },
   "phases": [
     {
@@ -304,7 +340,17 @@ Fichier de suivi **obligatoire** à la racine du livrable. Il mesure l'efficacit
 
 Les fichiers de tests doivent utiliser la convention Jest (`.test.ts` ou `.spec.ts`, ou placés dans un dossier `tests/` ou `__tests__/`). Viser un minimum de **15 fichiers de tests** couvrant les use cases du domaine et les adaptateurs.
 
-La configuration Jest **doit activer le rapport de couverture** (`--coverage` ou `collectCoverage: true` dans `jest.config.js`). La cible est **≥ 80 % de couverture de lignes** — la couverture est mesurée automatiquement à partir de la sortie de `make test`.
+La configuration Jest **doit activer le rapport de couverture** (`--coverage` ou `collectCoverage: true` dans `jest.config.js`) **et émettre le reporter `json-summary`** (`coverageReporters: ["text", "json-summary"]`), qui produit `coverage/coverage-summary.json`. L'auditeur en dérive la couverture **par couche**.
+
+Cibles de couverture de lignes — le domaine est testé plus strictement que les bords :
+
+| Couche | Cible |
+| :--- | :--- |
+| `core/` | ≥ 85 % |
+| `adapters/` | ≥ 60 % |
+| `entrypoints/` | ≥ 40 % |
+
+La couverture globale reste mesurée (cible **≥ 80 %**) à partir de la sortie de `make test`. Si `coverage-summary.json` est absent, la couverture par couche est simplement non comptée (sans pénalité).
 
 ## 5. Phases de Développement
 - **Phase 1 :** Setup, Architecture Hexagonale, CRUD simple, Docker Compose et Makefile.

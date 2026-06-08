@@ -8,7 +8,15 @@ AUDITOR_DIR = Path(__file__).resolve().parents[1]
 if str(AUDITOR_DIR) not in sys.path:
     sys.path.insert(0, str(AUDITOR_DIR))
 
-from modules.supply_chain import DevExChecker, NpmAuditChecker, SecretsScanner
+from modules.supply_chain import (
+    ComposePortsChecker,
+    DevExChecker,
+    MakefileTeardownChecker,
+    NpmAuditChecker,
+    SecretsScanner,
+)
+
+_PORT_CONTRACT = {"MongoDB": (47017, 27017), "MySQL": (43306, 3306)}
 
 
 def test_devex_detects_strict_with_comments_and_extends(tmp_path: Path) -> None:
@@ -90,6 +98,112 @@ def test_secrets_scanner_clean_project(tmp_path: Path) -> None:
 
     assert result["status"] == "NON_DETECTE"
     assert result["count"] == 0
+
+
+def test_secrets_scanner_skips_test_files(tmp_path: Path) -> None:
+    # Co-located *.test.ts files legitimately contain fixture passwords and tokens —
+    # they must never trigger a committed_secrets malus.
+    project = tmp_path / "deliverable" / "src" / "core" / "use-cases"
+    project.mkdir(parents=True)
+    (project / "LoginUseCase.test.ts").write_text(
+        'it("logs in", () => { const pwd = "SuperSecret99!"; });', encoding="utf-8"
+    )
+    (project / "TokenService.test.ts").write_text(
+        'const token = "header.payload.signaturevalue0123456789012345";', encoding="utf-8"
+    )
+    # A real production file with the same content SHOULD still be flagged.
+    (project / "LoginUseCase.ts").write_text(
+        'export const HARDCODED: secret = "SuperSecret99!";', encoding="utf-8"
+    )
+
+    result = SecretsScanner(str(tmp_path / "deliverable")).scan()
+
+    flagged = [f["file"] for f in result["findings"]]
+    assert not any("LoginUseCase.test.ts" in f for f in flagged), "test file must not be flagged"
+    assert not any("TokenService.test.ts" in f for f in flagged), "test file must not be flagged"
+    assert any("LoginUseCase.ts" in f for f in flagged), "production file with hardcoded secret must be flagged"
+
+
+def test_compose_ports_checker_accepts_mandated_ports(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+    (project / "docker-compose.yml").write_text(
+        "services:\n"
+        "  api:\n    ports:\n      - \"4000:4000\"\n"
+        "  mongodb:\n    image: mongo\n    ports:\n      - \"47017:27017\"\n"
+        "  mysql:\n    image: mysql\n    ports:\n      - \"43306:3306\"\n",
+        encoding="utf-8",
+    )
+
+    result = ComposePortsChecker(str(project), _PORT_CONTRACT).check()
+
+    assert result["status"] == "OK"
+    assert result["services"]["MongoDB"]["compliant"] is True
+    assert result["services"]["MySQL"]["compliant"] is True
+
+
+def test_compose_ports_checker_flags_standard_ports(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+    (project / "docker-compose.yml").write_text(
+        "services:\n"
+        "  mongodb:\n    ports:\n      - \"27017:27017\"\n"
+        "  mysql:\n    ports:\n      - \"3306:3306\"\n",
+        encoding="utf-8",
+    )
+
+    result = ComposePortsChecker(str(project), _PORT_CONTRACT).check()
+
+    assert result["status"] == "KO"
+    assert result["services"]["MongoDB"]["compliant"] is False
+    assert "27017:27017" in result["services"]["MongoDB"]["detail"]  # diagnoses the collision
+    assert "attendu 47017:27017" in result["services"]["MongoDB"]["detail"]
+
+
+def test_compose_ports_checker_missing_file(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+
+    result = ComposePortsChecker(str(project), _PORT_CONTRACT).check()
+
+    assert result["status"] == "KO"
+    assert result["compose_file"] is None
+
+
+def test_makefile_teardown_detected(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+    (project / "Makefile").write_text(
+        "start:\n\tdocker compose up -d\n\ndown:\n\tdocker compose down\n", encoding="utf-8"
+    )
+
+    result = MakefileTeardownChecker(str(project)).check()
+
+    assert result["status"] == "OK"
+    assert result["has_teardown"] is True
+    assert result["target"] == "down"
+
+
+def test_makefile_teardown_accepts_hyphenated_compose(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+    (project / "Makefile").write_text("clean:\n\tdocker-compose down -v\n", encoding="utf-8")
+
+    result = MakefileTeardownChecker(str(project)).check()
+
+    assert result["has_teardown"] is True
+    assert result["target"] == "clean"
+
+
+def test_makefile_teardown_missing(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+    (project / "Makefile").write_text("start:\n\tdocker compose up -d\n", encoding="utf-8")
+
+    result = MakefileTeardownChecker(str(project)).check()
+
+    assert result["status"] == "KO"
+    assert result["has_teardown"] is False
 
 
 def test_npm_audit_skips_without_lockfile(tmp_path: Path) -> None:

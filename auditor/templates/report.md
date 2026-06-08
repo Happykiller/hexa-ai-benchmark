@@ -14,9 +14,15 @@
 | Malus cumulés | {{ audit_data.summary.negative_points|md_cell }} |
 | Score brut (Net) | {{ audit_data.summary.raw_total_score|md_cell }} |
 | Score normalisé de base | {{ audit_data.summary.normalized_base_score|md_cell }}/{{ audit_data.summary.normalized_base_weight_total|md_cell }} |
-| Ajustement bonus/malus appliqué | {{ audit_data.summary.bonus_malus_adjustment.capped_adjustment|md_cell }} |
+| Règle de plafond (scoring) | {{ audit_data.summary.scoring_version|md_cell }} |
+| Malus appliqué | {{ audit_data.summary.bonus_malus_adjustment.capped_malus|md_cell }} |
+| Bonus effectif (comble du plafond) | {{ audit_data.summary.bonus_malus_adjustment.effective_bonus|md_cell }} |
+| Ajustement bonus/malus (net, legacy) | {{ audit_data.summary.bonus_malus_adjustment.capped_adjustment|md_cell }} |
 | Pourcentage brut du score net | {{ audit_data.summary.raw_percentage_net|md_cell }}% |
 | Pourcentage final du score net | {{ audit_data.summary.percentage_net|md_cell }}% |
+| Coût de la session ($) | {{ audit_data.summary.cost_usd|md_cell }} |
+| Tokens totaux (in+out) | {{ audit_data.summary.total_tokens|md_cell }} |
+| Valeur (points de score par $) | {{ audit_data.summary.cost_efficiency_pct_per_usd|md_cell }} |
 | Nombre total d'indicateurs | {{ audit_data.summary.indicators_count|md_cell }} |
 
 ### Score par pilier

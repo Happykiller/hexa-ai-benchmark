@@ -325,6 +325,53 @@ class HexagonalComplianceChecker:
         ("infrastructure","entrypoints",  "Entrypoints leak into Infrastructure"),
     ]
 
+    # Packages a *pure* domain file may still import: DI / metadata only (the prompt
+    # mandates InversifyJS in core). Any other bare specifier (mongoose, typeorm, axios,
+    # a DB driver, …) makes the file impure.
+    _CORE_ALLOWED_PACKAGES = {"inversify", "reflect-metadata", "tsyringe", "inversify-props"}
+
+    @staticmethod
+    def _pkg_root(spec: str) -> str:
+        parts = spec.split("/")
+        if spec.startswith("@") and len(parts) >= 2:
+            return f"{parts[0]}/{parts[1]}"
+        return parts[0]
+
+    def _core_purity(self, core_path: str) -> Dict[str, Any]:
+        """Ratio of core/ files importing no infrastructure library — a continuous
+        signal of domain purity (0..1) that varies even among rule-compliant solutions."""
+        total = 0
+        pure = 0
+        impure: List[Dict[str, Any]] = []
+        for root, dirs, files in os.walk(core_path):
+            dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
+            for file in files:
+                if not file.endswith((".ts", ".tsx")):
+                    continue
+                if file.endswith((".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx")):
+                    continue
+                file_path = os.path.join(root, file)
+                try:
+                    targets = extract_ts_import_targets(read_text_file(file_path))
+                except (UnicodeDecodeError, OSError):
+                    continue
+                total += 1
+                infra = [
+                    t for t in targets
+                    if t and not t.startswith((".", "/"))
+                    and self._pkg_root(t) not in self._CORE_ALLOWED_PACKAGES
+                ]
+                if infra:
+                    impure.append({"file": os.path.relpath(file_path, self.target_path), "imports": infra[:5]})
+                else:
+                    pure += 1
+        return {
+            "core_files": total,
+            "pure_core_files": pure,
+            "core_purity_ratio": round(pure / total, 4) if total else None,
+            "impure_core_files": impure[:10],
+        }
+
     def _scan_layer(self, layer_path: str, forbidden_segment: str, reason: str) -> List[Dict]:
         violations = []
         for root, dirs, files in os.walk(layer_path):
@@ -371,12 +418,18 @@ class HexagonalComplianceChecker:
                 "layer_exists": layer_exists,
             })
 
+        core_path = os.path.join(src_path, "core")
+        purity = self._core_purity(core_path) if os.path.isdir(core_path) else {
+            "core_files": 0, "pure_core_files": 0, "core_purity_ratio": None, "impure_core_files": []
+        }
+
         score = max(0, 100 - len(violations) * 10)
         return {
             "status": "KO" if violations else "OK",
             "score": score,
             "violations": violations,
-            "rules": rule_results
+            "rules": rule_results,
+            **purity,
         }
 
 class ReadmeChecker:

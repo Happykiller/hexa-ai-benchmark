@@ -287,9 +287,14 @@ class E2EFunctionalTester:
     def run_scenario(self) -> List[Dict[str, Any]]:
         results = []
         
-        # 0. Check Login / Auth (Optional check if endpoint requires it, here we check connectivity/existence)
-        # We'll simulate a 'Get Current User' or similar if available, otherwise we just list.
-        
+        # The spec mandates authentication for tasks / createTask / updateTaskStatus.
+        # When the orchestrator could not inject a token (the auth probe failed to
+        # locate it in this server's response shape), self-register a throwaway user so a
+        # working Task domain is still exercised — instead of collapsing the whole
+        # functional scenario, and the score (40% cap), on an auth-token detail.
+        if not self.token:
+            self.token = self._self_authenticate()
+
         # 1. List Tasks (Initial)
         list_query = "{ tasks { id title status } }"
         resp_list = self._post(list_query)
@@ -385,6 +390,90 @@ class E2EFunctionalTester:
 
         return results
 
+    # --------------------------------------------------------------------- #
+    # Adversarial scenario — harder, deterministic edge cases that separate a
+    # robust dependency engine from a naive one. Kept OUT of run_scenario so an
+    # edge-case failure never triggers the 40% functional cap.
+    # --------------------------------------------------------------------- #
+    def run_adversarial_scenario(self) -> List[Dict[str, Any]]:
+        results: List[Dict[str, Any]] = []
+        if not self.token:
+            self.token = self._self_authenticate()
+
+        # A. Multiple dependencies: a task with two prerequisites must stay blocked
+        #    until BOTH are COMPLETED (catches impls that check only the first dep).
+        a = self._create_task("Adv A")
+        b = self._create_task("Adv B")
+        multi_ok, multi_err = False, "setup incomplet (création des tâches)"
+        if a and b:
+            d = self._create_task("Adv D depends on A and B", depends_on=[a, b])
+            if d:
+                self._set_status(a, "COMPLETED")  # close A only — B still open
+                closed_early, _ = self._try_close(d)  # must be refused (B open)
+                self._set_status(b, "COMPLETED")  # now both closed
+                closed = self._set_status(d, "COMPLETED") == "COMPLETED"
+                multi_ok = (closed_early is False) and closed
+                multi_err = None if multi_ok else "Tâche fermée alors qu'une de ses dépendances était encore ouverte"
+        results.append({"step": "Adversarial: Dépendances multiples (toutes requises)", "success": multi_ok, "error": multi_err})
+
+        # B. Deep chain A→B→C: closing C while B is open must fail; full cascade succeeds.
+        ca = self._create_task("Chain A")
+        chain_ok, chain_err = False, "setup incomplet (chaîne)"
+        if ca:
+            cb = self._create_task("Chain B", depends_on=[ca])
+            cc = self._create_task("Chain C", depends_on=[cb]) if cb else None
+            if cb and cc:
+                early, _ = self._try_close(cc)  # B open → must be blocked
+                self._set_status(ca, "COMPLETED")
+                self._set_status(cb, "COMPLETED")
+                final = self._set_status(cc, "COMPLETED") == "COMPLETED"
+                chain_ok = (early is False) and final
+                chain_err = None if chain_ok else "Chaîne de dépendances à 2 niveaux mal gérée"
+        results.append({"step": "Adversarial: Chaîne de dépendances profonde", "success": chain_ok, "error": chain_err})
+
+        # C. A dependsOn referencing a non-existent task must be rejected at creation.
+        ghost = self._post(
+            'mutation { createTask(input: {title: "Adv ghost", dependsOn: ["00000000-ghost-id-0000"]}) { id } }'
+        )
+        ghost_id = self._extract_path(ghost, ["data", "createTask", "id"])
+        ghost_ok = ghost_id is None
+        results.append({
+            "step": "Adversarial: Dépendance inexistante rejetée",
+            "success": ghost_ok,
+            "error": None if ghost_ok else "Tâche créée avec une dépendance inexistante",
+        })
+
+        # D. An invalid status value must be rejected, not silently accepted.
+        ts = self._create_task("Adv status")
+        status_ok, status_err = False, "setup incomplet (statut)"
+        if ts:
+            resp = self._post(f'mutation {{ updateTaskStatus(id: "{ts}", status: "BANANA") {{ id status }} }}')
+            new_status = self._extract_path(resp, ["data", "updateTaskStatus", "status"])
+            status_ok = new_status is None  # rejected rather than accepting an arbitrary status
+            status_err = None if status_ok else f"Statut arbitraire accepté ({new_status})"
+        results.append({"step": "Adversarial: Statut invalide rejeté", "success": status_ok, "error": status_err})
+
+        return results
+
+    def _create_task(self, title: str, depends_on: Optional[List[str]] = None) -> Optional[str]:
+        deps = ""
+        if depends_on:
+            ids = ", ".join(f'"{i}"' for i in depends_on)
+            deps = f", dependsOn: [{ids}]"
+        resp = self._post(f'mutation {{ createTask(input: {{title: "{title}"{deps}}}) {{ id }} }}')
+        return self._extract_path(resp, ["data", "createTask", "id"])
+
+    def _set_status(self, task_id: str, status: str) -> Optional[str]:
+        resp = self._post(f'mutation {{ updateTaskStatus(id: "{task_id}", status: "{status}") {{ status }} }}')
+        return self._extract_path(resp, ["data", "updateTaskStatus", "status"])
+
+    def _try_close(self, task_id: str) -> "tuple[bool, Optional[str]]":
+        """Attempt to close a task. Returns (closed, error_message): closed=True only
+        if the server actually set it to COMPLETED."""
+        resp = self._post(f'mutation {{ updateTaskStatus(id: "{task_id}", status: "COMPLETED") {{ status }} }}')
+        status = self._extract_path(resp, ["data", "updateTaskStatus", "status"])
+        return status == "COMPLETED", self._extract_graphql_error_message(resp)
+
     def _post(self, query: str) -> Dict[str, Any]:
         headers: Dict[str, str] = {"Content-Type": "application/json"}
         if self.token:
@@ -405,6 +494,54 @@ class E2EFunctionalTester:
                 return None
             current = current.get(key)
         return current
+
+    def _self_authenticate(self) -> Optional[str]:
+        """Best-effort register-then-login to obtain a bearer token when none was
+        injected. Tolerant to the exact response shape (see _deep_find_token), so a
+        working Task domain stays drivable even when the auth probe could not extract
+        the token itself."""
+        email = f"audit_e2e_{uuid.uuid4().hex[:8]}@test.com"
+        password = "AuditPass1!"
+        token = self._deep_find_token(
+            self._post(f'mutation {{ register(email: "{email}", password: "{password}") {{ token }} }}')
+        )
+        if not token:
+            token = self._deep_find_token(
+                self._post(f'mutation {{ login(email: "{email}", password: "{password}") {{ token }} }}')
+            )
+        return token
+
+    @staticmethod
+    def _looks_like_jwt(value: Any) -> bool:
+        return (
+            isinstance(value, str)
+            and value.count(".") == 2
+            and all(value.split("."))
+            and len(value) > 20
+        )
+
+    def _deep_find_token(self, payload: Any) -> Optional[str]:
+        """Locate a bearer token in a register/login response. Tries the spec path
+        first, then any token-ish key, then any JWT-shaped string — so a server that
+        names the field accessToken / jwt stays drivable by the functional scenario."""
+        for op in ("register", "login", "signup", "signIn", "authenticate"):
+            tok = self._extract_path(payload, ["data", op, "token"])
+            if isinstance(tok, str) and tok:
+                return tok
+        stack: List[Any] = [payload]
+        while stack:
+            node = stack.pop()
+            if isinstance(node, dict):
+                for key, val in node.items():
+                    if isinstance(val, str) and val and ("token" in key.lower() or "jwt" in key.lower()):
+                        return val
+                    if self._looks_like_jwt(val):
+                        return val
+                    if isinstance(val, (dict, list)):
+                        stack.append(val)
+            elif isinstance(node, list):
+                stack.extend(node)
+        return None
 
     def _extract_graphql_error_message(self, response: Dict[str, Any]) -> Optional[str]:
         if response.get("_request_failed"):

@@ -114,6 +114,9 @@ class SecretsScanner:
     _SKIP_FILE_SUFFIXES = (
         ".example", ".sample", ".template", ".dist",
         ".lock", "-lock.json", ".map", ".min.js", ".snap",
+        # Test files legitimately contain fixture passwords / tokens.
+        ".test.ts", ".test.tsx", ".test.js", ".test.jsx",
+        ".spec.ts", ".spec.tsx", ".spec.js", ".spec.jsx",
     )
     _SCAN_SUFFIXES = (
         ".ts", ".tsx", ".js", ".jsx", ".json", ".yml", ".yaml",
@@ -233,4 +236,104 @@ class NpmAuditChecker:
             "high": high,
             "moderate": moderate,
             "detail": f"critical={critical}, high={high}, moderate={moderate}",
+        }
+
+
+# --------------------------------------------------------------------------- #
+# Docker-compose port contract (positive, static)
+# --------------------------------------------------------------------------- #
+class ComposePortsChecker:
+    """Verifies the deliverable publishes mongo/mysql on the mandated NON-STANDARD host
+    ports. Using non-default ports avoids collisions with DB instances already running
+    on the audit host (which otherwise make `make start` fail → false negatives). The
+    auditor only talks to the API on :4000, so DB host ports exist purely for the
+    contract; the app must still reach the DBs via the compose service names."""
+
+    _COMPOSE_FILES = ("docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml")
+
+    def __init__(self, target_path: str, contract: Dict[str, "tuple[int, int]"]):
+        self.target_path = target_path
+        self.contract = contract  # {service_label: (host_port, container_port)}
+
+    def _load_compose(self) -> "tuple[Any, Any]":
+        for name in self._COMPOSE_FILES:
+            path = os.path.join(self.target_path, name)
+            if os.path.isfile(path):
+                try:
+                    return read_text_file(path), name
+                except (OSError, UnicodeDecodeError):
+                    return None, name
+        return None, None
+
+    def check(self) -> Dict[str, Any]:
+        content, compose_file = self._load_compose()
+        services: Dict[str, Any] = {}
+        for label, (host, container) in self.contract.items():
+            compliant = False
+            if content is None:
+                detail = "docker-compose introuvable"
+            elif re.search(rf"\b{host}\s*:\s*{container}\b", content):
+                compliant, detail = True, f"{host}:{container} publié"
+            else:
+                other = re.search(rf"\b(\d+)\s*:\s*{container}\b", content)
+                detail = (
+                    f"publié sur {other.group(1)}:{container} (attendu {host}:{container})"
+                    if other else f"aucun mapping pour le port conteneur {container}"
+                )
+            services[label] = {
+                "expected_host": host,
+                "container": container,
+                "compliant": compliant,
+                "detail": detail,
+            }
+        compliant_count = sum(1 for s in services.values() if s["compliant"])
+        return {
+            "status": "OK" if compliant_count == len(services) else "PARTIEL" if compliant_count else "KO",
+            "compose_file": compose_file,
+            "services": services,
+        }
+
+
+# --------------------------------------------------------------------------- #
+# Makefile teardown target (positive, static)
+# --------------------------------------------------------------------------- #
+class MakefileTeardownChecker:
+    """Verifies the Makefile provides a teardown target that removes the stack
+    (`docker compose down`), so the environment can be returned to a clean state after
+    the work — and the auditor has a contract target to call for cleanup."""
+
+    _MAKEFILES = ("Makefile", "makefile", "GNUmakefile")
+    _TEARDOWN_NAMES = ("down", "stop", "clean", "teardown", "destroy")
+
+    def __init__(self, target_path: str):
+        self.target_path = target_path
+
+    def check(self) -> Dict[str, Any]:
+        content = None
+        for name in self._MAKEFILES:
+            path = os.path.join(self.target_path, name)
+            if os.path.isfile(path):
+                try:
+                    content = read_text_file(path)
+                    break
+                except (OSError, UnicodeDecodeError):
+                    pass
+        if content is None:
+            return {"status": "KO", "has_teardown": False, "target": None, "detail": "Makefile introuvable"}
+
+        has_down_cmd = re.search(r"docker[\s-]compose\s+down", content) is not None
+        target = next(
+            (m.group(1) for m in re.finditer(r"^([A-Za-z0-9_.-]+)\s*:", content, re.MULTILINE)
+             if m.group(1) in self._TEARDOWN_NAMES),
+            None,
+        )
+        if has_down_cmd:
+            return {
+                "status": "OK", "has_teardown": True, "target": target,
+                "detail": f"cible '{target}' → docker compose down" if target else "docker compose down présent dans le Makefile",
+            }
+        return {
+            "status": "KO", "has_teardown": False, "target": target,
+            "detail": (f"cible '{target}' présente mais sans 'docker compose down'" if target
+                       else "aucune cible de teardown (docker compose down absent)"),
         }
