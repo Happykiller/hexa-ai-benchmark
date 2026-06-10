@@ -1,6 +1,6 @@
 # Spécifications Techniques : API Todo Hexagonale Multi-Base
 
-**Version du prompt : `2606081800`**
+**Version du prompt : `2606082200`**
 
 ---
 
@@ -43,8 +43,9 @@ L'intégralité du cycle de vie du projet doit être pilotable via un `Makefile`
 | `make lint` | Exécute les vérifications de style et de typage à l'intérieur du conteneur. |
 | `make build` | Compile le projet TypeScript à l'intérieur du conteneur. |
 | `make test` | Lance les tests unitaires et d'intégration à l'intérieur du conteneur **avec rapport de couverture** (`--coverage`). |
+| `make down` | **Arrête et supprime** les conteneurs et réseaux de la stack (`docker compose down`). Doit garantir un environnement propre après le travail. |
 
-**Ordre d'exécution par l'auditeur :** les cibles sont appelées dans cet ordre strict : `make setup`, `make lint`, `make build`, `make test`, puis `make start`.
+**Ordre d'exécution par l'auditeur :** les cibles sont appelées dans cet ordre strict : `make setup`, `make lint`, `make build`, `make test`, puis `make start` ; l'auditeur termine en supprimant les conteneurs qu'il a lancés. Le livrable **doit** fournir `make down` (cible de teardown vérifiée).
 
 Conséquence : `make lint`, `make build` et `make test` doivent être exécutables avant que `make start` ait démarré la stack. Ces cibles ne doivent donc pas dépendre d'un conteneur déjà actif via `docker compose exec`. Utilisez `docker compose run --rm api ...`, `docker build`, ou une commande Docker équivalente capable de fonctionner depuis un état froid.
 
@@ -94,6 +95,16 @@ L'API utilise **simultanément** les deux bases de données, chacune affectée �
 | **MongoDB** | `Task` (id, title, status, dependsOn, userId) | Mongoose |
 
 **Docker Compose :** Doit orchestrer trois services : `api`, `mongodb`, et `mysql`. Les deux connexions sont initialisées au démarrage — **aucun commutateur** : les deux adaptateurs sont actifs en permanence.
+
+**Ports hôte (obligatoires).** Pour éviter toute collision avec des bases déjà présentes sur la machine d'audit, publiez les services sur ces ports hôte **exacts** (le port conteneur reste standard) :
+
+| Service | Mapping `ports:` (hôte:conteneur) |
+| :--- | :--- |
+| `api` | `4000:4000` |
+| `mongodb` | `47017:27017` |
+| `mysql` | `43306:3306` |
+
+L'API communique avec les bases via les **noms de service compose** (`mongodb:27017`, `mysql:3306`) sur le réseau interne — **jamais via `localhost`**. Les ports hôte ci-dessus ne servent qu'à l'inspection externe et sont vérifiés automatiquement.
 
 **Variables d'environnement attendues :**
 - `MONGO_URI` (ex : `mongodb://mongodb:27017/tasks`)
@@ -212,7 +223,7 @@ Le livrable **doit respecter exactement** l'arborescence suivante. Les noms de d
 ```
 ./YYYYMMDD_HHMM_[MODEL]_[TEMP]/
 ├── audit_trace.json         # Traçabilité de session (voir §4.3)
-├── Makefile                 # Cibles : setup / lint / build / test / start
+├── Makefile                 # Cibles : setup / lint / build / test / start / down
 ├── docker-compose.yml       # Services : api, mongodb, mysql (sans champ version:)
 ├── package.json
 ├── tsconfig.json            # strict: true obligatoire
@@ -250,7 +261,7 @@ Fichier de suivi **obligatoire** à la racine du livrable. Il mesure l'efficacit
 
 | Champ | Type | Définition |
 | :--- | :--- | :--- |
-| `meta.prompt_version` | `string` | Version exacte du présent prompt, à recopier telle quelle : `"2606081800"` |
+| `meta.prompt_version` | `string` | Version exacte du présent prompt, à recopier telle quelle : `"2606082200"` |
 | `meta.model` | `string` | Le nom exact du modèle d'IA utilisé (ex: "gpt-4o", "claude-3-7-sonnet", "gemini-1.5-pro") |
 | `meta.temperature` | `number` | La température configurée pour la génération |
 | `meta.effort` | `string` | Le niveau d'effort ou de raisonnement (reasoning effort) configuré |
@@ -277,7 +288,7 @@ Fichier de suivi **obligatoire** à la racine du livrable. Il mesure l'efficacit
 ```json
 {
   "meta": {
-    "prompt_version": "2606081800",
+    "prompt_version": "2606082200",
     "model": "claude-3-7-sonnet-20250219",
     "temperature": 0.2,
     "effort": "high",
