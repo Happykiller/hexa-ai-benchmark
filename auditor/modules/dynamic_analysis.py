@@ -107,12 +107,25 @@ class DockerOrchestrator:
                     "duration_seconds": round(time.monotonic() - monotonic_started_at, 3),
                 }
 
-            # Polling for health
-            max_retries = 30
+            # Polling for health.
+            #
+            # IMPORTANT : la sonde de santé NE DOIT PAS être une requête d'introspection
+            # (`{ __schema ... }`). Les serveurs Apollo désactivent l'introspection en
+            # production (NODE_ENV=production), ce qui est une bonne pratique de sécurité.
+            # Une sonde d'introspection y reçoit alors un HTTP 400 INTROSPECTION_DISABLED
+            # alors que l'API est parfaitement up — produisant un faux « API ne démarre
+            # pas » qui cappe tout le dynamique à 0. On sonde donc le méta-champ `__typename`,
+            # toujours disponible, introspection activée ou non.
+            #
+            # Budget large (120s) : `make start` rend la main avant que les conteneurs soient
+            # healthy, et l'init cold-volume de MySQL 8.4 peut consommer plusieurs dizaines de
+            # secondes sous charge I/O.
+            max_retries = 60
             retry_interval = 2
+            health_query = {"query": "{ __typename }"}
             for i in range(max_retries):
                 try:
-                    r = requests.post(self.endpoint, json={"query": "{ __schema { types { name } } }"}, timeout=2)
+                    r = requests.post(self.endpoint, json=health_query, timeout=2)
                     if r.status_code == 200:
                         return {
                             "status": "OK",
@@ -129,23 +142,42 @@ class DockerOrchestrator:
                     pass
                 time.sleep(retry_interval)
 
+            # Diagnostic ciblé : les logs du service `api` (cause réelle d'un endpoint
+            # injoignable) sont sinon noyés par le bruit d'init de MySQL dans un tail global.
+            def _compose_logs(args: List[str]) -> str:
+                try:
+                    res = subprocess.run(
+                        ["docker", "compose", "logs"] + args,
+                        cwd=self.target_path,
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                    )
+                    return res.stdout or res.stderr or ""
+                except Exception:
+                    return ""
+
+            api_logs = _compose_logs(["api", "--tail=200"])
+            container_logs = _compose_logs(["--tail=80"])
             try:
-                logs_result = subprocess.run(
-                    ["docker", "compose", "logs", "--tail=60"],
+                ps_result = subprocess.run(
+                    ["docker", "compose", "ps"],
                     cwd=self.target_path,
                     capture_output=True,
                     text=True,
                     timeout=30,
                 )
-                container_logs = logs_result.stdout or logs_result.stderr or ""
+                containers_status = ps_result.stdout or ps_result.stderr or ""
             except Exception:
-                container_logs = ""
+                containers_status = ""
 
             return {
                 "status": "KO",
-                "error": "GraphQL endpoint did not become healthy within 60s",
+                "error": f"GraphQL endpoint did not become healthy within {max_retries * retry_interval}s",
                 "output": result.stdout,
                 "stderr": result.stderr,
+                "api_logs": api_logs,
+                "containers_status": containers_status,
                 "container_logs": container_logs,
                 "fresh_docker": fresh,
                 "fresh_result": fresh_result,
