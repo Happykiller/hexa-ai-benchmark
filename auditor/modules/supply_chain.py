@@ -15,7 +15,7 @@ import json
 import os
 import re
 import subprocess
-from typing import Any, Dict, List
+from typing import Any
 
 from .static_analysis import EXCLUDED_DIRS, read_text_file, strip_ts_comments
 
@@ -27,18 +27,27 @@ class DevExChecker:
     """Developer-experience signals the prompt expects but the auditor never verified."""
 
     _ESLINT_FILES = (
-        ".eslintrc", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json",
-        ".eslintrc.yml", ".eslintrc.yaml",
-        "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs", "eslint.config.ts",
+        ".eslintrc",
+        ".eslintrc.js",
+        ".eslintrc.cjs",
+        ".eslintrc.json",
+        ".eslintrc.yml",
+        ".eslintrc.yaml",
+        "eslint.config.js",
+        "eslint.config.mjs",
+        "eslint.config.cjs",
+        "eslint.config.ts",
     )
 
     def __init__(self, target_path: str):
         self.target_path = target_path
 
-    def check(self) -> Dict[str, Any]:
+    def check(self) -> dict[str, Any]:
         indicators = {
             "tsconfig_strict": self._tsconfig_strict(),
-            "eslint_config": any(os.path.exists(os.path.join(self.target_path, f)) for f in self._ESLINT_FILES),
+            "eslint_config": any(
+                os.path.exists(os.path.join(self.target_path, f)) for f in self._ESLINT_FILES
+            ),
             "ci_pipeline": self._has_ci(),
             "gitignore_ok": self._gitignore_ok(),
         }
@@ -63,7 +72,7 @@ class DevExChecker:
             content = read_text_file(path)
         except (OSError, UnicodeDecodeError):
             return False
-        return "node_modules" in content and re.search(r'(^|\n)\s*\.?env\b', content) is not None
+        return "node_modules" in content and re.search(r"(^|\n)\s*\.?env\b", content) is not None
 
     def _tsconfig_strict(self) -> bool:
         """True if compilerOptions.strict is enabled (resolving one level of extends).
@@ -96,7 +105,7 @@ class DevExChecker:
     @staticmethod
     def _parse_jsonc(raw: str) -> Any:
         no_comments = strip_ts_comments(raw)
-        no_trailing = re.sub(r',(\s*[}\]])', r'\1', no_comments)
+        no_trailing = re.sub(r",(\s*[}\]])", r"\1", no_comments)
         try:
             return json.loads(no_trailing)
         except (json.JSONDecodeError, ValueError):
@@ -112,37 +121,65 @@ class SecretsScanner:
 
     _SKIP_DIRS = EXCLUDED_DIRS | {"__tests__", "tests", "fixtures", "__mocks__", "test"}
     _SKIP_FILE_SUFFIXES = (
-        ".example", ".sample", ".template", ".dist",
-        ".lock", "-lock.json", ".map", ".min.js", ".snap",
+        ".example",
+        ".sample",
+        ".template",
+        ".dist",
+        ".lock",
+        "-lock.json",
+        ".map",
+        ".min.js",
+        ".snap",
         # Test files legitimately contain fixture passwords / tokens.
-        ".test.ts", ".test.tsx", ".test.js", ".test.jsx",
-        ".spec.ts", ".spec.tsx", ".spec.js", ".spec.jsx",
+        ".test.ts",
+        ".test.tsx",
+        ".test.js",
+        ".test.jsx",
+        ".spec.ts",
+        ".spec.tsx",
+        ".spec.js",
+        ".spec.jsx",
     )
     _SCAN_SUFFIXES = (
-        ".ts", ".tsx", ".js", ".jsx", ".json", ".yml", ".yaml",
-        ".env", ".sh", ".cfg", ".conf", ".ini", ".txt", ".py",
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx",
+        ".json",
+        ".yml",
+        ".yaml",
+        ".env",
+        ".sh",
+        ".cfg",
+        ".conf",
+        ".ini",
+        ".txt",
+        ".py",
     )
     _PLACEHOLDER = re.compile(
-        r'(change[_-]?me|example|placeholder|your[_-]|xxx+|<[^>]+>|\$\{|process\.env|'
-        r'dummy|sample|todo|fixme|secret_?key_?here|s3cr3t)',
+        r"(change[_-]?me|example|placeholder|your[_-]|xxx+|<[^>]+>|\$\{|process\.env|"
+        r"dummy|sample|todo|fixme|secret_?key_?here|s3cr3t)",
         re.IGNORECASE,
     )
     _PATTERNS = [
-        ("aws_access_key", re.compile(r'\bAKIA[0-9A-Z]{16}\b')),
-        ("private_key_block", re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----')),
-        ("github_token", re.compile(r'\bgh[pousr]_[A-Za-z0-9]{30,}\b')),
-        ("slack_token", re.compile(r'\bxox[baprs]-[A-Za-z0-9-]{10,}\b')),
+        ("aws_access_key", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+        (
+            "private_key_block",
+            re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----"),
+        ),
+        ("github_token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}\b")),
+        ("slack_token", re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b")),
     ]
     _ASSIGNMENT = re.compile(
-        r'(?i)\b(secret|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret|password|passwd)\b'
+        r"(?i)\b(secret|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret|password|passwd)\b"
         r'\s*[:=]\s*["\']([^"\']{8,})["\']'
     )
 
     def __init__(self, target_path: str):
         self.target_path = target_path
 
-    def scan(self) -> Dict[str, Any]:
-        findings: List[Dict[str, str]] = []
+    def scan(self) -> dict[str, Any]:
+        findings: list[dict[str, str]] = []
 
         # A committed real .env (not an example) is itself a finding.
         env_path = os.path.join(self.target_path, ".env")
@@ -171,7 +208,9 @@ class SecretsScanner:
                 for match in self._ASSIGNMENT.finditer(content):
                     value = match.group(2)
                     if not self._PLACEHOLDER.search(value):
-                        findings.append({"file": rel, "kind": f"hardcoded_{match.group(1).lower()}"})
+                        findings.append(
+                            {"file": rel, "kind": f"hardcoded_{match.group(1).lower()}"}
+                        )
                         break  # one per file is enough to flag it
 
         # de-duplicate (file, kind)
@@ -197,7 +236,7 @@ class NpmAuditChecker:
     def __init__(self, target_path: str):
         self.target_path = target_path
 
-    def audit(self) -> Dict[str, Any]:
+    def audit(self) -> dict[str, Any]:
         lockfiles = ("package-lock.json", "npm-shrinkwrap.json", "yarn.lock", "pnpm-lock.yaml")
         if not any(os.path.exists(os.path.join(self.target_path, f)) for f in lockfiles):
             return {"status": "SKIPPED", "detail": "no lockfile present"}
@@ -251,7 +290,7 @@ class ComposePortsChecker:
 
     _COMPOSE_FILES = ("docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml")
 
-    def __init__(self, target_path: str, contract: Dict[str, "tuple[int, int]"]):
+    def __init__(self, target_path: str, contract: dict[str, "tuple[int, int]"]):
         self.target_path = target_path
         self.contract = contract  # {service_label: (host_port, container_port)}
 
@@ -265,9 +304,9 @@ class ComposePortsChecker:
                     return None, name
         return None, None
 
-    def check(self) -> Dict[str, Any]:
+    def check(self) -> dict[str, Any]:
         content, compose_file = self._load_compose()
-        services: Dict[str, Any] = {}
+        services: dict[str, Any] = {}
         for label, (host, container) in self.contract.items():
             compliant = False
             if content is None:
@@ -278,7 +317,8 @@ class ComposePortsChecker:
                 other = re.search(rf"\b(\d+)\s*:\s*{container}\b", content)
                 detail = (
                     f"publié sur {other.group(1)}:{container} (attendu {host}:{container})"
-                    if other else f"aucun mapping pour le port conteneur {container}"
+                    if other
+                    else f"aucun mapping pour le port conteneur {container}"
                 )
             services[label] = {
                 "expected_host": host,
@@ -288,7 +328,11 @@ class ComposePortsChecker:
             }
         compliant_count = sum(1 for s in services.values() if s["compliant"])
         return {
-            "status": "OK" if compliant_count == len(services) else "PARTIEL" if compliant_count else "KO",
+            "status": "OK"
+            if compliant_count == len(services)
+            else "PARTIEL"
+            if compliant_count
+            else "KO",
             "compose_file": compose_file,
             "services": services,
         }
@@ -308,7 +352,7 @@ class MakefileTeardownChecker:
     def __init__(self, target_path: str):
         self.target_path = target_path
 
-    def check(self) -> Dict[str, Any]:
+    def check(self) -> dict[str, Any]:
         content = None
         for name in self._MAKEFILES:
             path = os.path.join(self.target_path, name)
@@ -319,21 +363,38 @@ class MakefileTeardownChecker:
                 except (OSError, UnicodeDecodeError):
                     pass
         if content is None:
-            return {"status": "KO", "has_teardown": False, "target": None, "detail": "Makefile introuvable"}
+            return {
+                "status": "KO",
+                "has_teardown": False,
+                "target": None,
+                "detail": "Makefile introuvable",
+            }
 
         has_down_cmd = re.search(r"docker[\s-]compose\s+down", content) is not None
         target = next(
-            (m.group(1) for m in re.finditer(r"^([A-Za-z0-9_.-]+)\s*:", content, re.MULTILINE)
-             if m.group(1) in self._TEARDOWN_NAMES),
+            (
+                m.group(1)
+                for m in re.finditer(r"^([A-Za-z0-9_.-]+)\s*:", content, re.MULTILINE)
+                if m.group(1) in self._TEARDOWN_NAMES
+            ),
             None,
         )
         if has_down_cmd:
             return {
-                "status": "OK", "has_teardown": True, "target": target,
-                "detail": f"cible '{target}' → docker compose down" if target else "docker compose down présent dans le Makefile",
+                "status": "OK",
+                "has_teardown": True,
+                "target": target,
+                "detail": f"cible '{target}' → docker compose down"
+                if target
+                else "docker compose down présent dans le Makefile",
             }
         return {
-            "status": "KO", "has_teardown": False, "target": target,
-            "detail": (f"cible '{target}' présente mais sans 'docker compose down'" if target
-                       else "aucune cible de teardown (docker compose down absent)"),
+            "status": "KO",
+            "has_teardown": False,
+            "target": target,
+            "detail": (
+                f"cible '{target}' présente mais sans 'docker compose down'"
+                if target
+                else "aucune cible de teardown (docker compose down absent)"
+            ),
         }

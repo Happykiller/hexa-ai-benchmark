@@ -1,9 +1,4 @@
-import sys
 from pathlib import Path
-
-ROOT_DIR = Path(__file__).resolve().parents[2]
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
 
 from kb.builder import _extract_report_markdown
 from kb.normalizer import normalize
@@ -37,7 +32,7 @@ def test_extract_report_markdown_collects_summary_and_findings(tmp_path: Path) -
     assert extracted["summary_metrics"]["Pourcentage final du score net"] == "72.41%"
     assert extracted["findings_count"] == 1
     assert extracted["top_findings"][0]["indicator"] == "make lint"
-    assert "service \"api\" is not running" in extracted["top_findings"][0]["remarks"]
+    assert 'service "api" is not running' in extracted["top_findings"][0]["remarks"]
 
 
 def test_extract_report_markdown_keeps_actual_failed_tests(tmp_path: Path) -> None:
@@ -148,7 +143,9 @@ def test_kb_normalizer_extracts_trace_model_metadata() -> None:
     assert entry["prompt_version"] == "2605291055"
     assert entry["duration_seconds"] == 600
 
-    trace_diag = next(section for section in entry["sections"] if section["title"] == "Détail traçabilité")
+    trace_diag = next(
+        section for section in entry["sections"] if section["title"] == "Détail traçabilité"
+    )
     values = {item["label"]: item["value"] for item in trace_diag["items"]}
     assert values["Score trace"] == "0.0"
 
@@ -217,8 +214,11 @@ def test_kb_trace_diagnostic_exposes_trace_errors() -> None:
                                     "score": 0,
                                     "max_score": 2,
                                     "remarks": "summary.total_wall_time_seconds differs from summed phases by more than 10% (summary=1200, phases=300)",
-                                    "details": {"summary_total_wall_time_seconds": 1200, "phases_total_wall_time_seconds": 300},
-                                }
+                                    "details": {
+                                        "summary_total_wall_time_seconds": 1200,
+                                        "phases_total_wall_time_seconds": 300,
+                                    },
+                                },
                             ],
                         },
                         {
@@ -244,7 +244,9 @@ def test_kb_trace_diagnostic_exposes_trace_errors() -> None:
         None,
     )
 
-    trace_diag = next(section for section in entry["sections"] if section["title"] == "Détail traçabilité")
+    trace_diag = next(
+        section for section in entry["sections"] if section["title"] == "Détail traçabilité"
+    )
     values = {item["label"]: item["value"] for item in trace_diag["items"]}
     assert values["Score trace"] == "0.0 / 10.0 (0%)"
     assert values["3-1-1 Validation audit_trace.json"] == "OK · 1/1"

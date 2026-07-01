@@ -74,20 +74,20 @@ COST_SCORE_STEP_LABEL = "Coût de la session"
 # l'intensité/efficience entre modèles, pas de facturation exacte. Ajuster si besoin.
 PRICING_UPDATED = "2026-06-08 (estimations prix-liste, proxy abonnement)"
 MODEL_PRICING = {
-    "claude-opus":   {"input": 15.0, "output": 75.0, "cached_input": 1.5},
-    "claude-sonnet": {"input": 3.0,  "output": 15.0, "cached_input": 0.30},
-    "claude-haiku":  {"input": 1.0,  "output": 5.0,  "cached_input": 0.10},
-    "gpt-5.5":       {"input": 2.0,  "output": 12.0, "cached_input": 0.20},
-    "gpt-5":         {"input": 1.25, "output": 10.0, "cached_input": 0.125},
-    "gemini-flash":  {"input": 0.30, "output": 2.50, "cached_input": 0.03},
-    "gemini-pro":    {"input": 1.25, "output": 10.0, "cached_input": 0.125},
+    "claude-opus": {"input": 15.0, "output": 75.0, "cached_input": 1.5},
+    "claude-sonnet": {"input": 3.0, "output": 15.0, "cached_input": 0.30},
+    "claude-haiku": {"input": 1.0, "output": 5.0, "cached_input": 0.10},
+    "gpt-5.5": {"input": 2.0, "output": 12.0, "cached_input": 0.20},
+    "gpt-5": {"input": 1.25, "output": 10.0, "cached_input": 0.125},
+    "gemini-flash": {"input": 0.30, "output": 2.50, "cached_input": 0.03},
+    "gemini-pro": {"input": 1.25, "output": 10.0, "cached_input": 0.125},
 }
 
 # Session cost bands ($, whole session). Cheap = full marks. Ordered ascending; the
 # first band whose [min,max] contains the value wins.
 COST_USD_BANDS = [
-    {"min": 0.0, "max": 0.50, "score_ratio": 1.0,  "status": "OK",      "label": "très frugal"},
-    {"min": 0.0, "max": 1.50, "score_ratio": 0.75, "status": "OK",      "label": "frugal"},
+    {"min": 0.0, "max": 0.50, "score_ratio": 1.0, "status": "OK", "label": "très frugal"},
+    {"min": 0.0, "max": 1.50, "score_ratio": 0.75, "status": "OK", "label": "frugal"},
     {"min": 0.0, "max": 3.00, "score_ratio": 0.50, "status": "PARTIEL", "label": "modéré"},
     {"min": 0.0, "max": 6.00, "score_ratio": 0.25, "status": "PARTIEL", "label": "coûteux"},
 ]  # > $6 → 0
@@ -95,9 +95,9 @@ COST_USD_BANDS = [
 # Model-agnostic fallback when the model is absent from MODEL_PRICING (operator gap,
 # not the agent's fault): score frugality on total tokens instead of $.
 TOTAL_TOKENS_BANDS = [
-    {"min": 0, "max": 150000,  "score_ratio": 1.0,  "status": "OK",      "label": "très frugal"},
-    {"min": 0, "max": 400000,  "score_ratio": 0.75, "status": "OK",      "label": "frugal"},
-    {"min": 0, "max": 900000,  "score_ratio": 0.50, "status": "PARTIEL", "label": "modéré"},
+    {"min": 0, "max": 150000, "score_ratio": 1.0, "status": "OK", "label": "très frugal"},
+    {"min": 0, "max": 400000, "score_ratio": 0.75, "status": "OK", "label": "frugal"},
+    {"min": 0, "max": 900000, "score_ratio": 0.50, "status": "PARTIEL", "label": "modéré"},
     {"min": 0, "max": 2000000, "score_ratio": 0.25, "status": "PARTIEL", "label": "coûteux"},
 ]
 
@@ -165,7 +165,13 @@ TRACE_SCORING_CONFIG = {
         "weight": 2,
         "bands": [
             {"min": 600, "max": 1800, "score_ratio": 1.0, "status": "OK", "label": "target"},
-            {"min": 300, "max": 3600, "score_ratio": 0.5, "status": "PARTIEL", "label": "tolerated"},
+            {
+                "min": 300,
+                "max": 3600,
+                "score_ratio": 0.5,
+                "status": "PARTIEL",
+                "label": "tolerated",
+            },
         ],
     },
 }
@@ -211,7 +217,13 @@ TECHNICAL_STATS_SCORING_CONFIG = {
         "weight": 1,
         "bands": [
             {"min": 1000, "max": 5000, "score_ratio": 1.0, "status": "OK", "label": "target"},
-            {"min": 500, "max": 7000, "score_ratio": 0.5, "status": "PARTIEL", "label": "tolerated"},
+            {
+                "min": 500,
+                "max": 7000,
+                "score_ratio": 0.5,
+                "status": "PARTIEL",
+                "label": "tolerated",
+            },
         ],
     },
     "total_tests": {

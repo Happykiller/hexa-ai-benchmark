@@ -1,0 +1,26 @@
+# Tooling config for the hexa-ai-benchmark auditor/KB (local dev; no CI).
+# Scoring semantics are NOT affected by anything here.
+
+[tool.pytest.ini_options]
+testpaths = ["auditor/tests"]
+# Make the auditor package importable as top-level modules (main, modules.*,
+# scoring_config, challenges) and the repo root importable (kb.*, scripts.*),
+# so test files no longer need per-file sys.path bootstrapping.
+pythonpath = ["auditor", "."]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["knowledge_base", "livrables", "cr_audits", "node_modules"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+# The formatter owns line length; long URLs/strings should not fail lint.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Standalone script: must bootstrap sys.path before importing the kb package.
+"scripts/build_kb.py" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"

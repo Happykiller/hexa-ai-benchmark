@@ -1,9 +1,4 @@
-import sys
 from pathlib import Path
-
-AUDITOR_DIR = Path(__file__).resolve().parents[1]
-if str(AUDITOR_DIR) not in sys.path:
-    sys.path.insert(0, str(AUDITOR_DIR))
 
 from main import TraceabilityValidator
 from modules.static_analysis import (
@@ -95,7 +90,9 @@ def test_traceability_validator_reports_wall_time_consistency_separately(tmp_pat
 
     assert result["status"] == "OK"
     assert result["wall_time_consistency"]["status"] == "KO"
-    assert "differs from summed phases by more than 10%" in result["wall_time_consistency"]["remarks"]
+    assert (
+        "differs from summed phases by more than 10%" in result["wall_time_consistency"]["remarks"]
+    )
 
 
 def test_traceability_validator_rejects_inconsistent_turn_summary(tmp_path: Path) -> None:
@@ -223,8 +220,12 @@ def test_project_stats_measures_assertion_ratio(tmp_path: Path) -> None:
     project = tmp_path / "deliverable"
     tests_dir = project / "tests"
     tests_dir.mkdir(parents=True)
-    (tests_dir / "real.test.ts").write_text("it('x', () => { expect(1).toBe(1); });", encoding="utf-8")
-    (tests_dir / "fake.test.ts").write_text("it('y', () => { /* no real assertion here */ });", encoding="utf-8")
+    (tests_dir / "real.test.ts").write_text(
+        "it('x', () => { expect(1).toBe(1); });", encoding="utf-8"
+    )
+    (tests_dir / "fake.test.ts").write_text(
+        "it('y', () => { /* no real assertion here */ });", encoding="utf-8"
+    )
 
     stats = ProjectStatsAnalyzer(str(project)).analyze()
 

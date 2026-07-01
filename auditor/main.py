@@ -1,16 +1,35 @@
-import click
 import functools
 import json
+import logging
 import os
 import re
 import subprocess
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+import click
+from challenges import DEFAULT_PROFILE
 from jinja2 import Environment, FileSystemLoader
+from modules.dynamic_analysis import (
+    AuthTester,
+    DockerOrchestrator,
+    E2EFunctionalTester,
+    MakefileRunner,
+    PerformanceBenchmarker,
+    precreate_bind_mount_dirs,
+)
+from modules.static_analysis import (
+    CodeSmellAnalyzer,
+    ProjectStatsAnalyzer,
+)
+from modules.supply_chain import (
+    ComposePortsChecker,
+    MakefileTeardownChecker,
+    NpmAuditChecker,
+    SecretsScanner,
+)
 from rich.console import Console
 from rich.table import Table
-
 from scoring_config import (
     BASE_SCORE_BUCKETS,
     BASE_SCORE_BUCKETS_BY_VERSION,
@@ -27,10 +46,6 @@ from scoring_config import (
     TOTAL_TOKENS_BANDS,
     TRACE_SCORING_CONFIG,
 )
-from challenges import DEFAULT_PROFILE
-from modules.dynamic_analysis import AuthTester, DockerOrchestrator, E2EFunctionalTester, MakefileRunner, PerformanceBenchmarker
-from modules.static_analysis import AuthImplementationChecker, CodeQualityChecker, CodeSmellAnalyzer, DualPersistenceChecker, HexagonalComplianceChecker, ProjectStatsAnalyzer, ReadmeChecker, UseCaseInjectionChecker
-from modules.supply_chain import ComposePortsChecker, MakefileTeardownChecker, NpmAuditChecker, SecretsScanner
 
 console = Console()
 
@@ -52,7 +67,7 @@ def _md_cell(value: Any, max_len: int = 800) -> str:
     return text
 
 
-def _aggregate_status(statuses: List[str]) -> str:
+def _aggregate_status(statuses: list[str]) -> str:
     if not statuses:
         return "INCONNU"
     if any(status in ("KO", "MALUS", "DETECTE") for status in statuses):
@@ -89,7 +104,7 @@ def _first_non_empty(*values: Any) -> str:
     return ""
 
 
-def _to_float(value: Any) -> Optional[float]:
+def _to_float(value: Any) -> float | None:
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -105,7 +120,7 @@ def _format_number(value: Any, decimals: int = 2) -> str:
     return f"{numeric:.{decimals}f}"
 
 
-def _parse_iso_datetime(value: str) -> Optional[datetime]:
+def _parse_iso_datetime(value: str) -> datetime | None:
     if not value or not isinstance(value, str):
         return None
     normalized = value.replace("Z", "+00:00")
@@ -115,44 +130,44 @@ def _parse_iso_datetime(value: str) -> Optional[datetime]:
         return None
 
 
-def _parse_test_results(output: str) -> Dict[str, int]:
+def _parse_test_results(output: str) -> dict[str, int]:
     """Parses Jest-style test output for passed/failed/total counts."""
     res = {"passed": 0, "failed": 0, "total": 0}
-    
+
     # Matches "5 passed", "1 failed", "6 total" independently to be robust
     passed_match = re.search(r"(\d+)\s+passed", output)
     if passed_match:
         res["passed"] = int(passed_match.group(1))
-        
+
     failed_match = re.search(r"(\d+)\s+failed", output)
     if failed_match:
         res["failed"] = int(failed_match.group(1))
-        
+
     total_match = re.search(r"(\d+)\s+total", output)
     if total_match:
         res["total"] = int(total_match.group(1))
-        
+
     return res
 
 
-def _parse_coverage_results(output: str) -> Dict[str, Any]:
+def _parse_coverage_results(output: str) -> dict[str, Any]:
     """Parses Jest --coverage output for global line/statement coverage percentage."""
     # Istanbul text table: "All files | 78.57 | ..."
-    table = re.search(r'All files\s*\|\s*([\d.]+)', output)
+    table = re.search(r"All files\s*\|\s*([\d.]+)", output)
     if table:
         return {"coverage_pct": float(table.group(1)), "source": "table"}
     # Istanbul summary: "Lines        : 78.57% ( 22/28 )"
-    lines = re.search(r'Lines\s*[:\|]\s*([\d.]+)\s*%', output, re.IGNORECASE)
+    lines = re.search(r"Lines\s*[:\|]\s*([\d.]+)\s*%", output, re.IGNORECASE)
     if lines:
         return {"coverage_pct": float(lines.group(1)), "source": "summary_lines"}
     # Statements fallback
-    stmts = re.search(r'Statements\s*[:\|]\s*([\d.]+)\s*%', output, re.IGNORECASE)
+    stmts = re.search(r"Statements\s*[:\|]\s*([\d.]+)\s*%", output, re.IGNORECASE)
     if stmts:
         return {"coverage_pct": float(stmts.group(1)), "source": "summary_stmts"}
     return {"coverage_pct": None, "source": "not_found"}
 
 
-def _parse_coverage_by_layer(target_path: str) -> Dict[str, Any]:
+def _parse_coverage_by_layer(target_path: str) -> dict[str, Any]:
     """Aggregate Istanbul line coverage per hexagonal layer from
     coverage/coverage-summary.json (the json-summary reporter). Returns per-layer pct,
     or an empty map with a ``source`` reason when the file is absent/unreadable — the
@@ -187,7 +202,7 @@ def _parse_coverage_by_layer(target_path: str) -> Dict[str, Any]:
     return {"source": "json-summary", "layers": layers}
 
 
-def _build_trace_metrics(traceability: Dict[str, Any]) -> Dict[str, Any]:
+def _build_trace_metrics(traceability: dict[str, Any]) -> dict[str, Any]:
     metrics = {
         "phases_count": traceability.get("phases_count", 0),
         "total_turns": None,
@@ -218,9 +233,9 @@ def _build_trace_metrics(traceability: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(phases, list) or not phases:
         return metrics
 
-    durations: List[float] = []
-    turns: List[float] = []
-    tool_calls: List[float] = []
+    durations: list[float] = []
+    turns: list[float] = []
+    tool_calls: list[float] = []
 
     for phase in phases:
         if not isinstance(phase, dict):
@@ -246,11 +261,11 @@ def _build_trace_metrics(traceability: Dict[str, Any]) -> Dict[str, Any]:
         metrics["total_tool_calls"] = sum(tool_calls)
     if metrics["total_wall_time_seconds"] is None and durations:
         metrics["total_wall_time_seconds"] = sum(durations)
-        
+
     return metrics
 
 
-def _normalize_model_id(model_id: Optional[str]) -> Optional[str]:
+def _normalize_model_id(model_id: str | None) -> str | None:
     """Map a free-form meta.model string to a MODEL_PRICING key (best-effort)."""
     if not model_id:
         return None
@@ -272,7 +287,7 @@ def _normalize_model_id(model_id: Optional[str]) -> Optional[str]:
     return None
 
 
-def _compute_session_cost(trace_metrics: Dict[str, Any], model_id: Optional[str]) -> Dict[str, Any]:
+def _compute_session_cost(trace_metrics: dict[str, Any], model_id: str | None) -> dict[str, Any]:
     """Compute session cost from agent-reported tokens × the per-model price table.
     Returns cost_usd=None when the model isn't priced or no tokens were reported."""
     inp = trace_metrics.get("total_input_tokens")
@@ -308,11 +323,11 @@ def _compute_session_cost(trace_metrics: Dict[str, Any], model_id: Optional[str]
     }
 
 
-def _functional_e2e_failed(e2e_results: List[Dict[str, Any]]) -> bool:
+def _functional_e2e_failed(e2e_results: list[dict[str, Any]]) -> bool:
     return any(not bool(step.get("success")) for step in e2e_results)
 
 
-def _compute_score_caps(raw_percentage: float, reasons: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _compute_score_caps(raw_percentage: float, reasons: list[dict[str, Any]]) -> dict[str, Any]:
     applied_caps = [
         {
             "id": reason["id"],
@@ -335,7 +350,7 @@ def _compute_score_caps(raw_percentage: float, reasons: List[Dict[str, Any]]) ->
     }
 
 
-def _indicator_matches_selector(indicator: Dict[str, Any], selector: Dict[str, Any]) -> bool:
+def _indicator_matches_selector(indicator: dict[str, Any], selector: dict[str, Any]) -> bool:
     if indicator.get("phase_number") != selector.get("phase"):
         return False
     steps = selector.get("steps")
@@ -345,10 +360,10 @@ def _indicator_matches_selector(indicator: Dict[str, Any], selector: Dict[str, A
 
 
 def _compute_bucket_score(
-    indicators: List[Dict[str, Any]],
+    indicators: list[dict[str, Any]],
     weight: float,
-    selectors: List[Dict[str, Any]],
-) -> Dict[str, Any]:
+    selectors: list[dict[str, Any]],
+) -> dict[str, Any]:
     matched = [
         indicator
         for indicator in indicators
@@ -361,11 +376,7 @@ def _compute_bucket_score(
         for indicator in matched
         if indicator["polarity"] == "positive" and indicator["max_score"] is not None
     )
-    raw_total = sum(
-        indicator["score"]
-        for indicator in matched
-        if indicator["score"] is not None
-    )
+    raw_total = sum(indicator["score"] for indicator in matched if indicator["score"] is not None)
     ratio = 0.0 if not positive_possible else raw_total / positive_possible
     normalized = round(max(0.0, min(weight, ratio * weight)), 2)
 
@@ -378,7 +389,7 @@ def _compute_bucket_score(
     }
 
 
-def _compute_bonus_malus_adjustment(audit_db: Dict[str, Any]) -> Dict[str, Any]:
+def _compute_bonus_malus_adjustment(audit_db: dict[str, Any]) -> dict[str, Any]:
     phase_number = BONUS_MALUS_SCORE_CONFIG["phase_number"]
     bonus_cap = BONUS_MALUS_SCORE_CONFIG["bonus_cap"]
     malus_cap = BONUS_MALUS_SCORE_CONFIG["malus_cap"]
@@ -389,15 +400,15 @@ def _compute_bonus_malus_adjustment(audit_db: Dict[str, Any]) -> Dict[str, Any]:
     for phase in audit_db["phases"]:
         if phase["number"] == phase_number:
             bonus_raw = float(phase.get("positive_points_earned", 0) or 0)  # >= 0
-            malus_raw = float(phase.get("negative_points", 0) or 0)         # <= 0
+            malus_raw = float(phase.get("negative_points", 0) or 0)  # <= 0
             net_raw = float(phase.get("raw_total", bonus_raw + malus_raw) or 0)
             break
 
     # v1 clamps the *net* adjustment to [malus_cap, bonus_cap]; kept for reproducibility.
     capped_adjustment = max(malus_cap, min(bonus_cap, net_raw))
     # v2 caps bonus and malus independently so the ceiling rule can apply them apart.
-    capped_bonus = max(0.0, min(bonus_cap, bonus_raw))   # 0 .. +bonus_cap
-    capped_malus = max(malus_cap, min(0.0, malus_raw))   # malus_cap .. 0
+    capped_bonus = max(0.0, min(bonus_cap, bonus_raw))  # 0 .. +bonus_cap
+    capped_malus = max(malus_cap, min(0.0, malus_raw))  # malus_cap .. 0
     return {
         "raw_adjustment": round(net_raw, 2),
         "capped_adjustment": round(capped_adjustment, 2),
@@ -411,9 +422,9 @@ def _compute_bonus_malus_adjustment(audit_db: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _compute_final_score_summary(
-    audit_db: Dict[str, Any], scoring_version: str = SCORING_DEFAULT_VERSION
-) -> Dict[str, Any]:
-    bucket_scores: Dict[str, Dict[str, Any]] = {}
+    audit_db: dict[str, Any], scoring_version: str = SCORING_DEFAULT_VERSION
+) -> dict[str, Any]:
+    bucket_scores: dict[str, dict[str, Any]] = {}
     base_score = 0.0
     base_weight_total = 0.0
 
@@ -435,13 +446,17 @@ def _compute_final_score_summary(
         # Legacy: net bonus/malus added to the base, then clamped. Bonus can complete
         # an imperfect base to 100% (saturation).
         effective_bonus = None
-        raw_percentage = round(max(0.0, min(100.0, base_score + adjustment["capped_adjustment"])), 2)
+        raw_percentage = round(
+            max(0.0, min(100.0, base_score + adjustment["capped_adjustment"])), 2
+        )
     else:
         # v2 reserved ceiling: maluses apply fully; the bonus may only fill a fraction
         # of the remaining gap to 100, so 100% is unreachable unless the base is flawless.
         after_malus = base_score + adjustment["capped_malus"]
         headroom = max(0.0, 100.0 - after_malus)
-        effective_bonus = round(min(adjustment["capped_bonus"], headroom * BONUS_HEADROOM_FRACTION), 2)
+        effective_bonus = round(
+            min(adjustment["capped_bonus"], headroom * BONUS_HEADROOM_FRACTION), 2
+        )
         raw_percentage = round(max(0.0, min(100.0, after_malus + effective_bonus)), 2)
 
     adjustment["scoring_version"] = scoring_version
@@ -465,7 +480,7 @@ def _compute_final_score_summary(
     }
 
 
-def _score_from_bands(value: Any, bands: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _score_from_bands(value: Any, bands: list[dict[str, Any]]) -> dict[str, Any]:
     numeric = _to_float(value)
     if numeric is None:
         return {
@@ -474,7 +489,7 @@ def _score_from_bands(value: Any, bands: List[Dict[str, Any]]) -> Dict[str, Any]
             "remarks": "value is not numeric",
         }
 
-    def in_band(min_value: Optional[float], max_value: Optional[float]) -> bool:
+    def in_band(min_value: float | None, max_value: float | None) -> bool:
         if min_value is not None and numeric < min_value:
             return False
         if max_value is not None and numeric > max_value:
@@ -501,14 +516,14 @@ def _score_from_bands(value: Any, bands: List[Dict[str, Any]]) -> Dict[str, Any]
 
 
 def _append_scored_indicator_from_config(
-    audit_db: Dict[str, Any],
-    config: Dict[str, Any],
+    audit_db: dict[str, Any],
+    config: dict[str, Any],
     measured_value: Any,
     trace_or_stats_present: bool = True,
     as_measured: bool = False,
 ) -> None:
     band_result = _score_from_bands(measured_value, config["bands"])
-    
+
     remarks = band_result["remarks"]
     if "description" in config:
         remarks = f"{config['description']} | {remarks}"
@@ -523,7 +538,9 @@ def _append_scored_indicator_from_config(
         band_result["score_ratio"] > 0,
         remarks,
         polarity=config.get("polarity", "positive"),
-        status="MESURE" if as_measured else (band_result["status"] if trace_or_stats_present else "SKIPPED"),
+        status="MESURE"
+        if as_measured
+        else (band_result["status"] if trace_or_stats_present else "SKIPPED"),
         kind="measured" if as_measured else "scored",
         details={
             "measured_value": measured_value,
@@ -535,7 +552,7 @@ def _append_scored_indicator_from_config(
     )
 
 
-def _make_status_line(result: Dict[str, Any]) -> str:
+def _make_status_line(result: dict[str, Any]) -> str:
     exit_code = result.get("exit_code")
     if exit_code is not None:
         message = f"exit_code={exit_code}"
@@ -545,7 +562,7 @@ def _make_status_line(result: Dict[str, Any]) -> str:
     return f"{message}; {extra}" if extra else message
 
 
-def _phase_entry(audit_db: Dict[str, Any], phase_number: int, phase_label: str) -> Dict[str, Any]:
+def _phase_entry(audit_db: dict[str, Any], phase_number: int, phase_label: str) -> dict[str, Any]:
     for phase in audit_db["phases"]:
         if phase["number"] == phase_number:
             return phase
@@ -564,7 +581,7 @@ def _phase_entry(audit_db: Dict[str, Any], phase_number: int, phase_label: str) 
     return phase
 
 
-def _step_entry(phase: Dict[str, Any], step_number: int, step_label: str) -> Dict[str, Any]:
+def _step_entry(phase: dict[str, Any], step_number: int, step_label: str) -> dict[str, Any]:
     for step in phase["steps"]:
         if step["number"] == step_number and step["label"] == step_label:
             return step
@@ -584,7 +601,7 @@ def _step_entry(phase: Dict[str, Any], step_number: int, step_label: str) -> Dic
 
 
 def _append_indicator(
-    audit_db: Dict[str, Any],
+    audit_db: dict[str, Any],
     phase_number: int,
     phase_label: str,
     step_number: int,
@@ -593,24 +610,24 @@ def _append_indicator(
     achieved: bool,
     remarks: str,
     polarity: str = "positive",
-    status: Optional[str] = None,
-    details: Optional[Dict[str, Any]] = None,
+    status: str | None = None,
+    details: dict[str, Any] | None = None,
     kind: str = "scored",
-    measured_value: Optional[Any] = None,
+    measured_value: Any | None = None,
     score_ratio: float = 1.0,
-    rank: Optional[int] = None,
-    weight: Optional[float] = None,
-) -> Dict[str, Any]:
+    rank: int | None = None,
+    weight: float | None = None,
+) -> dict[str, Any]:
     phase = _phase_entry(audit_db, phase_number, phase_label)
     step = _step_entry(phase, step_number, step_label)
     indicator_number = len(step["indicators"]) + 1
-    
+
     if weight is not None:
         actual_weight = weight
     else:
         fibonacci_rank = rank if rank is not None else indicator_number
         actual_weight = _fibonacci(fibonacci_rank)
-    
+
     if kind == "measured":
         if status is None:
             status = "MESURE"
@@ -654,9 +671,11 @@ def _append_indicator(
     return indicator
 
 
-def _finalize_audit_db(audit_db: Dict[str, Any], scoring_version: str = SCORING_DEFAULT_VERSION) -> None:
+def _finalize_audit_db(
+    audit_db: dict[str, Any], scoring_version: str = SCORING_DEFAULT_VERSION
+) -> None:
     for phase in audit_db["phases"]:
-        phase_statuses: List[str] = []
+        phase_statuses: list[str] = []
         phase_positive_earned = 0
         phase_positive_possible = 0
         phase_negative_points = 0
@@ -668,7 +687,9 @@ def _finalize_audit_db(audit_db: Dict[str, Any], scoring_version: str = SCORING_
             step["positive_points_earned"] = sum(
                 indicator["score"]
                 for indicator in step["indicators"]
-                if indicator["kind"] == "scored" and indicator["polarity"] == "positive" and indicator["score"] > 0
+                if indicator["kind"] == "scored"
+                and indicator["polarity"] == "positive"
+                and indicator["score"] > 0
             )
             step["positive_points_possible"] = sum(
                 indicator["max_score"]
@@ -678,7 +699,9 @@ def _finalize_audit_db(audit_db: Dict[str, Any], scoring_version: str = SCORING_
             step["negative_points"] = sum(
                 indicator["score"]
                 for indicator in step["indicators"]
-                if indicator["kind"] == "scored" and indicator["score"] is not None and indicator["score"] < 0
+                if indicator["kind"] == "scored"
+                and indicator["score"] is not None
+                and indicator["score"] < 0
             )
             step["raw_total"] = sum(
                 indicator["score"]
@@ -701,7 +724,9 @@ def _finalize_audit_db(audit_db: Dict[str, Any], scoring_version: str = SCORING_
     positive_points_earned = sum(
         indicator["score"]
         for indicator in audit_db["indicators"]
-        if indicator["kind"] == "scored" and indicator["polarity"] == "positive" and indicator["score"] > 0
+        if indicator["kind"] == "scored"
+        and indicator["polarity"] == "positive"
+        and indicator["score"] > 0
     )
     positive_points_possible = sum(
         indicator["max_score"]
@@ -711,7 +736,9 @@ def _finalize_audit_db(audit_db: Dict[str, Any], scoring_version: str = SCORING_
     negative_points = sum(
         indicator["score"]
         for indicator in audit_db["indicators"]
-        if indicator["kind"] == "scored" and indicator["score"] is not None and indicator["score"] < 0
+        if indicator["kind"] == "scored"
+        and indicator["score"] is not None
+        and indicator["score"] < 0
     )
     raw_total = sum(
         indicator["score"]
@@ -719,9 +746,7 @@ def _finalize_audit_db(audit_db: Dict[str, Any], scoring_version: str = SCORING_
         if indicator["kind"] == "scored" and indicator["score"] is not None
     )
     percentage_net = (
-        round((raw_total / positive_points_possible) * 100, 2)
-        if positive_points_possible
-        else 0.0
+        round((raw_total / positive_points_possible) * 100, 2) if positive_points_possible else 0.0
     )
     final_score = _compute_final_score_summary(audit_db, scoring_version)
 
@@ -754,8 +779,12 @@ def _finalize_audit_db(audit_db: Dict[str, Any], scoring_version: str = SCORING_
         "score_caps": final_score["score_caps"],
         "score_capped": final_score["score_capped"],
         "indicators_count": len(audit_db["indicators"]),
-        "measured_indicators_count": sum(1 for indicator in audit_db["indicators"] if indicator["kind"] == "measured"),
-        "scored_indicators_count": sum(1 for indicator in audit_db["indicators"] if indicator["kind"] == "scored"),
+        "measured_indicators_count": sum(
+            1 for indicator in audit_db["indicators"] if indicator["kind"] == "measured"
+        ),
+        "scored_indicators_count": sum(
+            1 for indicator in audit_db["indicators"] if indicator["kind"] == "scored"
+        ),
     }
     audit_db["points"] = [
         {
@@ -777,18 +806,22 @@ class TraceabilityValidator:
         self.target_path = target_path
         self.trace_file = os.path.join(target_path, "audit_trace.json")
 
-    def validate(self) -> Dict[str, Any]:
+    def validate(self) -> dict[str, Any]:
         if not os.path.exists(self.trace_file):
             return {"status": "KO", "error": "audit_trace.json not found", "phases_count": 0}
         try:
-            with open(self.trace_file, "r", encoding="utf-8") as f:
+            with open(self.trace_file, encoding="utf-8") as f:
                 data = json.load(f)
 
             if not isinstance(data, dict):
-                return {"status": "KO", "error": "audit_trace.json root must be an object", "phases_count": 0}
+                return {
+                    "status": "KO",
+                    "error": "audit_trace.json root must be an object",
+                    "phases_count": 0,
+                }
 
-            errors: List[str] = []
-            wall_time_consistency: Dict[str, Any] = {
+            errors: list[str] = []
+            wall_time_consistency: dict[str, Any] = {
                 "status": "SKIPPED",
                 "summary_total_wall_time_seconds": None,
                 "phases_total_wall_time_seconds": None,
@@ -839,8 +872,12 @@ class TraceabilityValidator:
                         errors.append(f"phases[{index}].{key} must be a non-negative number")
 
             if not errors and isinstance(summary, dict) and phases:
-                phase_turns_total = sum(_to_float(phase.get("turns_in_phase")) or 0.0 for phase in phases)
-                phase_tools_total = sum(_to_float(phase.get("tool_calls_in_phase")) or 0.0 for phase in phases)
+                phase_turns_total = sum(
+                    _to_float(phase.get("turns_in_phase")) or 0.0 for phase in phases
+                )
+                phase_tools_total = sum(
+                    _to_float(phase.get("tool_calls_in_phase")) or 0.0 for phase in phases
+                )
                 phase_wall_time_total = 0.0
                 for phase in phases:
                     start_dt = _parse_iso_datetime(str(phase.get("start_time", "")))
@@ -849,8 +886,16 @@ class TraceabilityValidator:
                         phase_wall_time_total += (end_dt - start_dt).total_seconds()
 
                 consistency_checks = [
-                    ("summary.total_turns", _to_float(summary.get("total_turns")), phase_turns_total),
-                    ("summary.total_tool_calls", _to_float(summary.get("total_tool_calls")), phase_tools_total),
+                    (
+                        "summary.total_turns",
+                        _to_float(summary.get("total_turns")),
+                        phase_turns_total,
+                    ),
+                    (
+                        "summary.total_tool_calls",
+                        _to_float(summary.get("total_tool_calls")),
+                        phase_tools_total,
+                    ),
                 ]
                 for label, summary_value, phase_total in consistency_checks:
                     if summary_value is None:
@@ -873,7 +918,9 @@ class TraceabilityValidator:
                     "remarks": "not enough valid timing data",
                 }
                 if summary_wall_time is not None and phase_wall_time_total > 0:
-                    delta_ratio = abs(summary_wall_time - phase_wall_time_total) / phase_wall_time_total
+                    delta_ratio = (
+                        abs(summary_wall_time - phase_wall_time_total) / phase_wall_time_total
+                    )
                     ok = delta_ratio <= 0.10
                     wall_time_consistency = {
                         "status": "OK" if ok else "KO",
@@ -914,12 +961,21 @@ class TraceabilityValidator:
 @click.group()
 def cli() -> None:
     """AI Agent Deliverable Auditor CLI"""
+    # Opt-in diagnostics: set HEXA_AUDIT_LOG_LEVEL=DEBUG to surface the module-level
+    # debug logs (Docker/E2E/auth request failures) when a run needs investigating.
+    _log_level = os.environ.get("HEXA_AUDIT_LOG_LEVEL")
+    if _log_level:
+        logging.basicConfig(level=_log_level.upper(), format="%(levelname)s %(name)s: %(message)s")
 
 
 @cli.command()
 @click.argument("path", type=click.Path(exists=True))
 @click.option("--skip-dynamic", is_flag=True, help="Skip docker and dynamic tests")
-@click.option("--force-dynamic", is_flag=True, help="Run make test, Docker, E2E and perf even if make build fails")
+@click.option(
+    "--force-dynamic",
+    is_flag=True,
+    help="Run make test, Docker, E2E and perf even if make build fails",
+)
 @click.option("--fresh-docker", is_flag=True, help="Run docker compose down -v before make start")
 @click.option(
     "--scoring",
@@ -929,7 +985,10 @@ def cli() -> None:
     help="Final-score ceiling rule: v2 reserves 100%% for a flawless base; v1 reproduces legacy scores",
 )
 def analyze(
-    path: str, skip_dynamic: bool, force_dynamic: bool, fresh_docker: bool,
+    path: str,
+    skip_dynamic: bool,
+    force_dynamic: bool,
+    fresh_docker: bool,
     scoring: str = SCORING_DEFAULT_VERSION,
 ) -> None:
     """Analyze a deliverable at the given PATH"""
@@ -938,7 +997,7 @@ def analyze(
 
     _log(f"[bold blue]Starting Full Audit for:[/bold blue] {path}")
     audit_started_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    audit_db: Dict[str, Any] = {
+    audit_db: dict[str, Any] = {
         "meta": {
             "target_path": path,
             "audit_started_at": audit_started_at,
@@ -958,19 +1017,33 @@ def analyze(
 
     profile = DEFAULT_PROFILE
     make = MakefileRunner(path)
-    op_results: Dict[str, Dict[str, Any]] = {}
+    op_results: dict[str, dict[str, Any]] = {}
 
     expected_e2e_steps = list(profile.e2e_step_names)
-    auth_step_weights: Dict[str, int] = dict(profile.auth_step_weights)
-    adversarial_step_weights: Dict[str, int] = dict(profile.adversarial_step_weights)
+    auth_step_weights: dict[str, int] = dict(profile.auth_step_weights)
+    adversarial_step_weights: dict[str, int] = dict(profile.adversarial_step_weights)
+
+    # Pre-create docker-compose bind-mount host dirs (owned by the audit user) so the
+    # Docker daemon doesn't auto-create them as root and break the build context — a false
+    # "make build failed" that otherwise caps the whole run at 40%.
+    _precreated = precreate_bind_mount_dirs(path)
+    if _precreated:
+        _log(f"Pré-création des bind-mounts: {', '.join(os.path.basename(p) for p in _precreated)}")
 
     # 1. Setup
     _log("Running make setup...")
     op_results["setup"] = make.run_target("setup")
     _append_indicator(
-        audit_db, 1, "Opérationnalité", 1, "Exécution des cibles make & Docker", "make setup",
-        op_results["setup"]["status"] == "OK", _make_status_line(op_results["setup"]),
-        details=op_results["setup"], weight=1
+        audit_db,
+        1,
+        "Opérationnalité",
+        1,
+        "Exécution des cibles make & Docker",
+        "make setup",
+        op_results["setup"]["status"] == "OK",
+        _make_status_line(op_results["setup"]),
+        details=op_results["setup"],
+        weight=1,
     )
 
     # 2. Lint, Build, Test
@@ -981,17 +1054,31 @@ def analyze(
     _log("Running make lint...")
     op_results["lint"] = make.run_target("lint")
     _append_indicator(
-        audit_db, 1, "Opérationnalité", 1, "Exécution des cibles make & Docker", "make lint",
-        op_results["lint"]["status"] == "OK", _make_status_line(op_results["lint"]),
-        details=op_results["lint"], weight=5
+        audit_db,
+        1,
+        "Opérationnalité",
+        1,
+        "Exécution des cibles make & Docker",
+        "make lint",
+        op_results["lint"]["status"] == "OK",
+        _make_status_line(op_results["lint"]),
+        details=op_results["lint"],
+        weight=5,
     )
 
     _log("Running make build...")
     op_results["build"] = make.run_target("build")
     _append_indicator(
-        audit_db, 1, "Opérationnalité", 1, "Exécution des cibles make & Docker", "make build",
-        op_results["build"]["status"] == "OK", _make_status_line(op_results["build"]),
-        details=op_results["build"], weight=10
+        audit_db,
+        1,
+        "Opérationnalité",
+        1,
+        "Exécution des cibles make & Docker",
+        "make build",
+        op_results["build"]["status"] == "OK",
+        _make_status_line(op_results["build"]),
+        details=op_results["build"],
+        weight=10,
     )
 
     is_operational = op_results["build"]["status"] == "OK"
@@ -1009,15 +1096,24 @@ def analyze(
             "details": "make build failed; test phase not executed",
         }
     _append_indicator(
-        audit_db, 1, "Opérationnalité", 1, "Exécution des cibles make & Docker", "make test",
-        op_results["test"]["status"] == "OK", _make_status_line(op_results["test"]),
+        audit_db,
+        1,
+        "Opérationnalité",
+        1,
+        "Exécution des cibles make & Docker",
+        "make test",
+        op_results["test"]["status"] == "OK",
+        _make_status_line(op_results["test"]),
         status=op_results["test"]["status"] if op_results["test"]["status"] == "SKIPPED" else None,
-        details=op_results["test"], weight=10
+        details=op_results["test"],
+        weight=10,
     )
 
     if should_run_dynamic:
         if force_dynamic and not is_operational:
-            _log("make build failed; --force-dynamic is set, starting Docker infrastructure anyway...")
+            _log(
+                "make build failed; --force-dynamic is set, starting Docker infrastructure anyway..."
+            )
         else:
             _log("Starting Docker infrastructure (make start)...")
         if fresh_docker:
@@ -1026,13 +1122,23 @@ def analyze(
     elif skip_dynamic:
         docker_start = {"status": "SKIPPED", "details": "dynamic phase skipped"}
     else:
-        docker_start = {"status": "SKIPPED", "details": "make build failed; dynamic phase not executed"}
+        docker_start = {
+            "status": "SKIPPED",
+            "details": "make build failed; dynamic phase not executed",
+        }
 
     _append_indicator(
-        audit_db, 1, "Opérationnalité", 1, "Exécution des cibles make & Docker", "make start",
-        docker_start["status"] == "OK", _make_status_line(docker_start),
+        audit_db,
+        1,
+        "Opérationnalité",
+        1,
+        "Exécution des cibles make & Docker",
+        "make start",
+        docker_start["status"] == "OK",
+        _make_status_line(docker_start),
         status=docker_start["status"] if docker_start["status"] == "SKIPPED" else None,
-        details=docker_start, weight=10
+        details=docker_start,
+        weight=10,
     )
 
     if docker_start["status"] == "OK":
@@ -1040,23 +1146,43 @@ def analyze(
         exposed_containers = orchestrator.inspect_exposed_containers()
         containers_list = exposed_containers.get("containers", [])
         if not containers_list:
-             _append_indicator(
-                audit_db, 1, "Opérationnalité", 1, "Exécution des cibles make & Docker", "Conteneurs actifs",
-                False, "Aucun conteneur détecté", details=exposed_containers, weight=2
+            _append_indicator(
+                audit_db,
+                1,
+                "Opérationnalité",
+                1,
+                "Exécution des cibles make & Docker",
+                "Conteneurs actifs",
+                False,
+                "Aucun conteneur détecté",
+                details=exposed_containers,
+                weight=2,
             )
         for container in containers_list:
             _append_indicator(
-                audit_db, 1, "Opérationnalité", 1, "Exécution des cibles make & Docker", f"Conteneur : {container['name']}",
+                audit_db,
+                1,
+                "Opérationnalité",
+                1,
+                "Exécution des cibles make & Docker",
+                f"Conteneur : {container['name']}",
                 container["state"] in ("running", "up", "active"),
                 f"state={container['state']}, status={container['status']}",
-                details=container, weight=2
+                details=container,
+                weight=2,
             )
 
     # Detect version obsolete in command outputs (flexible regex)
     version_obsolete_count = 0
     obsolete_pattern = re.compile(r"attribute .*version.* is obsolete", re.IGNORECASE)
     for res in list(op_results.values()) + [docker_start]:
-        out = str(res.get("output", "")) + " " + str(res.get("error", "")) + " " + str(res.get("stderr", ""))
+        out = (
+            str(res.get("output", ""))
+            + " "
+            + str(res.get("error", ""))
+            + " "
+            + str(res.get("stderr", ""))
+        )
         version_obsolete_count += len(obsolete_pattern.findall(out))
 
     traceability = TraceabilityValidator(path).validate()
@@ -1069,7 +1195,9 @@ def analyze(
     # Parse test execution results early
     test_out = ""
     if "test" in op_results:
-        test_out = str(op_results["test"].get("output", "")) + str(op_results["test"].get("error", ""))
+        test_out = str(op_results["test"].get("output", "")) + str(
+            op_results["test"].get("error", "")
+        )
     test_results = _parse_test_results(test_out)
     coverage_data = _parse_coverage_results(test_out)
     coverage_by_layer = _parse_coverage_by_layer(path)
@@ -1079,56 +1207,73 @@ def analyze(
     stats["coverage_pct"] = coverage_data.get("coverage_pct")
 
     # Add Docker Obsolete Malus as FIRST malus to ensure -1pt (rank 1)
-    smells.setdefault("all_maluses", []).insert(0, {
-        "id": "docker_version_obsolete",
-        "reason": "Docker version attribute is obsolete",
-        "status": "DETECTE" if version_obsolete_count > 0 else "NON_DETECTE",
-        "count": version_obsolete_count,
-        "detail": f"obsolete_detected_count={version_obsolete_count}",
-    })
+    smells.setdefault("all_maluses", []).insert(
+        0,
+        {
+            "id": "docker_version_obsolete",
+            "reason": "Docker version attribute is obsolete",
+            "status": "DETECTE" if version_obsolete_count > 0 else "NON_DETECTE",
+            "count": version_obsolete_count,
+            "detail": f"obsolete_detected_count={version_obsolete_count}",
+        },
+    )
 
     # Anti-gaming maluses derived from test quality vs declared test files.
     _assertion_ratio = stats.get("assertion_ratio", 0.0)
     _test_files = stats.get("total_tests", 0)
     _exec_cases = stats.get("execution_test_total", 0)
-    smells["all_maluses"].append({
-        "id": "tests_without_assertions",
-        "reason": "Fichiers de test sans assertion réelle",
-        "status": "DETECTE" if (_test_files >= 5 and _assertion_ratio < 0.5) else "NON_DETECTE",
-        "count": _test_files,
-        "detail": f"assertion_ratio={_assertion_ratio}, test_files={_test_files}",
-    })
-    smells["all_maluses"].append({
-        "id": "tests_declared_not_executed",
-        "reason": "Plus de fichiers de test que de cas réellement exécutés (padding)",
-        "status": "DETECTE" if (_test_files >= 8 and 0 < _exec_cases < _test_files) else "NON_DETECTE",
-        "count": _test_files,
-        "detail": f"executed_cases={_exec_cases}, test_files={_test_files}",
-    })
+    smells["all_maluses"].append(
+        {
+            "id": "tests_without_assertions",
+            "reason": "Fichiers de test sans assertion réelle",
+            "status": "DETECTE" if (_test_files >= 5 and _assertion_ratio < 0.5) else "NON_DETECTE",
+            "count": _test_files,
+            "detail": f"assertion_ratio={_assertion_ratio}, test_files={_test_files}",
+        }
+    )
+    smells["all_maluses"].append(
+        {
+            "id": "tests_declared_not_executed",
+            "reason": "Plus de fichiers de test que de cas réellement exécutés (padding)",
+            "status": "DETECTE"
+            if (_test_files >= 8 and 0 < _exec_cases < _test_files)
+            else "NON_DETECTE",
+            "count": _test_files,
+            "detail": f"executed_cases={_exec_cases}, test_files={_test_files}",
+        }
+    )
 
     # Supply-chain / secrets maluses (Phase D). Secrets scan is static (always run);
     # npm audit needs the network, so it is skipped with --skip-dynamic.
     secrets_res = SecretsScanner(path).scan()
-    smells["all_maluses"].append({
-        "id": "committed_secrets",
-        "reason": "Secrets / clés / .env commités dans le dépôt",
-        "status": secrets_res.get("status", "NON_DETECTE"),
-        "count": secrets_res.get("count", 0),
-        "detail": secrets_res.get("detail", ""),
-    })
-    npm_res = {"status": "SKIPPED", "detail": "--skip-dynamic"} if skip_dynamic else NpmAuditChecker(path).audit()
-    smells["all_maluses"].append({
-        "id": "npm_vulnerabilities",
-        "reason": "Vulnérabilités npm (high/critical)",
-        "status": npm_res.get("status", "SKIPPED"),
-        "count": npm_res.get("critical", 0) + npm_res.get("high", 0),
-        "detail": npm_res.get("detail", ""),
-    })
+    smells["all_maluses"].append(
+        {
+            "id": "committed_secrets",
+            "reason": "Secrets / clés / .env commités dans le dépôt",
+            "status": secrets_res.get("status", "NON_DETECTE"),
+            "count": secrets_res.get("count", 0),
+            "detail": secrets_res.get("detail", ""),
+        }
+    )
+    npm_res = (
+        {"status": "SKIPPED", "detail": "--skip-dynamic"}
+        if skip_dynamic
+        else NpmAuditChecker(path).audit()
+    )
+    smells["all_maluses"].append(
+        {
+            "id": "npm_vulnerabilities",
+            "reason": "Vulnérabilités npm (high/critical)",
+            "status": npm_res.get("status", "SKIPPED"),
+            "count": npm_res.get("critical", 0) + npm_res.get("high", 0),
+            "detail": npm_res.get("detail", ""),
+        }
+    )
 
     performance = {"avg_latency_ms": 0, "p95_ms": 0, "error_rate": 0}
-    e2e_results: List[Dict[str, Any]] = []
-    auth_e2e_results: List[Dict[str, Any]] = []
-    auth_token: Optional[str] = None
+    e2e_results: list[dict[str, Any]] = []
+    auth_e2e_results: list[dict[str, Any]] = []
+    auth_token: str | None = None
 
     # Step 1-2: Validation fonctionnelle E2E
     if docker_start["status"] == "OK":
@@ -1155,7 +1300,8 @@ def analyze(
                     e2e_step["step"],
                     bool(e2e_step.get("success")),
                     _first_non_empty(e2e_step.get("error"), "validated"),
-                    details=e2e_step, weight=5
+                    details=e2e_step,
+                    weight=5,
                 )
 
             for step_name in expected_e2e_steps:
@@ -1169,7 +1315,8 @@ def analyze(
                         step_name,
                         False,
                         "Step not reached due to previous failure",
-                        status="SKIPPED", weight=5
+                        status="SKIPPED",
+                        weight=5,
                     )
 
             _log("Running Performance Benchmark...")
@@ -1190,12 +1337,17 @@ def analyze(
                     f"p95_ms={round(performance.get('p95_ms', 0), 2)}, "
                     f"error_rate={round(performance.get('error_rate', 0), 2)}"
                 ),
-                details=performance, weight=5
+                details=performance,
+                weight=5,
             )
             executed_auth_steps = [r["step"] for r in auth_e2e_results]
             for auth_step in auth_e2e_results:
                 _append_indicator(
-                    audit_db, 1, "Opérationnalité", 4, "Validation sécurité E2E",
+                    audit_db,
+                    1,
+                    "Opérationnalité",
+                    4,
+                    "Validation sécurité E2E",
                     auth_step["step"],
                     bool(auth_step.get("success")),
                     _first_non_empty(auth_step.get("error"), "validated"),
@@ -1205,9 +1357,16 @@ def analyze(
             for step_name, w in auth_step_weights.items():
                 if step_name not in executed_auth_steps:
                     _append_indicator(
-                        audit_db, 1, "Opérationnalité", 4, "Validation sécurité E2E",
-                        step_name, False, "Step not reached",
-                        status="SKIPPED", weight=w,
+                        audit_db,
+                        1,
+                        "Opérationnalité",
+                        4,
+                        "Validation sécurité E2E",
+                        step_name,
+                        False,
+                        "Step not reached",
+                        status="SKIPPED",
+                        weight=w,
                     )
 
             # Step 1-5: Adversarial business-logic robustness (de-saturation). Kept
@@ -1217,7 +1376,11 @@ def analyze(
             executed_adv_steps = [r["step"] for r in adversarial_results]
             for adv_step in adversarial_results:
                 _append_indicator(
-                    audit_db, 1, "Opérationnalité", 5, "Robustesse métier (E2E adversarial)",
+                    audit_db,
+                    1,
+                    "Opérationnalité",
+                    5,
+                    "Robustesse métier (E2E adversarial)",
                     adv_step["step"],
                     bool(adv_step.get("success")),
                     _first_non_empty(adv_step.get("error"), "validated"),
@@ -1227,9 +1390,16 @@ def analyze(
             for step_name, w in adversarial_step_weights.items():
                 if step_name not in executed_adv_steps:
                     _append_indicator(
-                        audit_db, 1, "Opérationnalité", 5, "Robustesse métier (E2E adversarial)",
-                        step_name, False, "Step not reached",
-                        status="SKIPPED", weight=w,
+                        audit_db,
+                        1,
+                        "Opérationnalité",
+                        5,
+                        "Robustesse métier (E2E adversarial)",
+                        step_name,
+                        False,
+                        "Step not reached",
+                        status="SKIPPED",
+                        weight=w,
                     )
         finally:
             orchestrator.stop()
@@ -1257,7 +1427,8 @@ def analyze(
                 step_name,
                 False,
                 reason,
-                status="SKIPPED", weight=5
+                status="SKIPPED",
+                weight=5,
             )
         _append_indicator(
             audit_db,
@@ -1269,17 +1440,34 @@ def analyze(
             False,
             reason,
             status="SKIPPED",
-            details=performance, weight=5
+            details=performance,
+            weight=5,
         )
         for step_name, w in auth_step_weights.items():
             _append_indicator(
-                audit_db, 1, "Opérationnalité", 4, "Validation sécurité E2E",
-                step_name, False, reason, status="SKIPPED", weight=w,
+                audit_db,
+                1,
+                "Opérationnalité",
+                4,
+                "Validation sécurité E2E",
+                step_name,
+                False,
+                reason,
+                status="SKIPPED",
+                weight=w,
             )
         for step_name, w in adversarial_step_weights.items():
             _append_indicator(
-                audit_db, 1, "Opérationnalité", 5, "Robustesse métier (E2E adversarial)",
-                step_name, False, reason, status="SKIPPED", weight=w,
+                audit_db,
+                1,
+                "Opérationnalité",
+                5,
+                "Robustesse métier (E2E adversarial)",
+                step_name,
+                False,
+                reason,
+                status="SKIPPED",
+                weight=w,
             )
 
     # Step 1-3: Résultats détaillés des tests unitaires
@@ -1289,71 +1477,125 @@ def analyze(
     # Scoring logic for Passed Tests (Target 21 points)
     # 0..1=1pt (ratio 0.05), 2..5=3pts (0.14), 6..13=10pts (0.47), 14..21=21pts (1.0)
     passed_ratio = 0.0
-    if passed_count >= 14: passed_ratio = 1.0
-    elif passed_count >= 6: passed_ratio = 0.47
-    elif passed_count >= 2: passed_ratio = 0.14
-    elif passed_count >= 0: passed_ratio = 0.05
+    if passed_count >= 14:
+        passed_ratio = 1.0
+    elif passed_count >= 6:
+        passed_ratio = 0.47
+    elif passed_count >= 2:
+        passed_ratio = 0.14
+    elif passed_count >= 0:
+        passed_ratio = 0.05
 
     # Anti-gaming: passing tests only count fully when test files actually assert
     # something. Tests stuffed without assertions are heavily discounted.
     assertion_ratio = stats.get("assertion_ratio", 0.0)
-    if assertion_ratio >= 0.6: assertion_quality = 1.0
-    elif assertion_ratio >= 0.3: assertion_quality = 0.6
-    else: assertion_quality = 0.3
+    if assertion_ratio >= 0.6:
+        assertion_quality = 1.0
+    elif assertion_ratio >= 0.3:
+        assertion_quality = 0.6
+    else:
+        assertion_quality = 0.3
     passed_ratio = round(passed_ratio * assertion_quality, 4)
 
     _append_indicator(
-        audit_db, 1, "Opérationnalité", 3, "Résultats des tests unitaires", "Tests PASS",
+        audit_db,
+        1,
+        "Opérationnalité",
+        3,
+        "Résultats des tests unitaires",
+        "Tests PASS",
         passed_count > 0,
         f"count={passed_count}, assertion_ratio={assertion_ratio}, quality_factor={assertion_quality}",
-        score_ratio=passed_ratio, weight=21
+        score_ratio=passed_ratio,
+        weight=21,
     )
 
     # Scoring logic for Failed Tests (Malus up to -21 points)
     failed_ratio = 0.0
-    if failed_count >= 14: failed_ratio = 1.0
-    elif failed_count >= 6: failed_ratio = 0.47
-    elif failed_count >= 2: failed_ratio = 0.14
-    elif failed_count >= 1: failed_ratio = 0.05
+    if failed_count >= 14:
+        failed_ratio = 1.0
+    elif failed_count >= 6:
+        failed_ratio = 0.47
+    elif failed_count >= 2:
+        failed_ratio = 0.14
+    elif failed_count >= 1:
+        failed_ratio = 0.05
 
     _append_indicator(
-        audit_db, 1, "Opérationnalité", 3, "Résultats des tests unitaires", "Tests FAIL",
-        failed_count > 0, f"count={failed_count}", polarity="negative", score_ratio=failed_ratio, weight=21
+        audit_db,
+        1,
+        "Opérationnalité",
+        3,
+        "Résultats des tests unitaires",
+        "Tests FAIL",
+        failed_count > 0,
+        f"count={failed_count}",
+        polarity="negative",
+        score_ratio=failed_ratio,
+        weight=21,
     )
 
     # Coverage indicator — bands: ≥80%=100%, ≥60%=50%, else=0%
     cov_pct = coverage_data.get("coverage_pct")
     cov_ratio = 0.0
     if cov_pct is not None:
-        if cov_pct >= 80.0: cov_ratio = 1.0
-        elif cov_pct >= 60.0: cov_ratio = 0.5
+        if cov_pct >= 80.0:
+            cov_ratio = 1.0
+        elif cov_pct >= 60.0:
+            cov_ratio = 0.5
     _append_indicator(
-        audit_db, 1, "Opérationnalité", 3, "Résultats des tests unitaires", "Couverture de code (%)",
+        audit_db,
+        1,
+        "Opérationnalité",
+        3,
+        "Résultats des tests unitaires",
+        "Couverture de code (%)",
         cov_pct is not None and cov_pct >= 60.0,
-        f"coverage={cov_pct}% (source={coverage_data.get('source')})" if cov_pct is not None else "non détectée — --coverage manquant ?",
-        score_ratio=cov_ratio, weight=15,
+        f"coverage={cov_pct}% (source={coverage_data.get('source')})"
+        if cov_pct is not None
+        else "non détectée — --coverage manquant ?",
+        score_ratio=cov_ratio,
+        weight=15,
     )
 
     # Coverage by layer (continuous): core must be tested harder than entrypoints. When
     # the json-summary reporter is absent the indicator is informational (kind=measured),
     # so a missing report never penalises — it only adds resolution when present.
     cov_layers = coverage_by_layer.get("layers", {})
-    for _layer, _target, _w in (("core", 85.0, 10), ("adapters", 60.0, 5), ("entrypoints", 40.0, 3)):
+    for _layer, _target, _w in (
+        ("core", 85.0, 10),
+        ("adapters", 60.0, 5),
+        ("entrypoints", 40.0, 3),
+    ):
         _pct = cov_layers.get(_layer)
         _name = f"Couverture {_layer}/ (cible ≥{int(_target)}%)"
         if _pct is None:
             _append_indicator(
-                audit_db, 1, "Opérationnalité", 3, "Résultats des tests unitaires", _name,
+                audit_db,
+                1,
+                "Opérationnalité",
+                3,
+                "Résultats des tests unitaires",
+                _name,
                 False,
                 f"coverage-summary.json {coverage_by_layer.get('source')} — couche non mesurée",
-                kind="measured", measured_value=None, details=coverage_by_layer,
+                kind="measured",
+                measured_value=None,
+                details=coverage_by_layer,
             )
         else:
             _append_indicator(
-                audit_db, 1, "Opérationnalité", 3, "Résultats des tests unitaires", _name,
+                audit_db,
+                1,
+                "Opérationnalité",
+                3,
+                "Résultats des tests unitaires",
+                _name,
                 _pct >= _target,
                 f"coverage_{_layer}={_pct}% (cible {int(_target)}%)",
-                score_ratio=round(min(1.0, _pct / _target), 4), weight=_w, details=coverage_by_layer,
+                score_ratio=round(min(1.0, _pct / _target), 4),
+                weight=_w,
+                details=coverage_by_layer,
             )
 
     # docker-compose / Makefile deployment contract (static, always run, no Docker
@@ -1365,23 +1607,36 @@ def analyze(
         audit_db.setdefault("artifacts", {})["compose_ports"] = ports_res
         for label, info in ports_res["services"].items():
             _append_indicator(
-                audit_db, 1, "Opérationnalité", 6, _compose_step,
+                audit_db,
+                1,
+                "Opérationnalité",
+                6,
+                _compose_step,
                 f"{label} exposé sur le port hôte {info['expected_host']}",
-                info["compliant"], info["detail"], weight=3, details=info,
+                info["compliant"],
+                info["detail"],
+                weight=3,
+                details=info,
             )
     teardown_res = MakefileTeardownChecker(path).check()
     audit_db.setdefault("artifacts", {})["makefile_teardown"] = teardown_res
     _append_indicator(
-        audit_db, 1, "Opérationnalité", 6, _compose_step,
+        audit_db,
+        1,
+        "Opérationnalité",
+        6,
+        _compose_step,
         "Cible Makefile de teardown (docker compose down)",
-        teardown_res.get("has_teardown", False), teardown_res.get("detail", ""),
-        weight=3, details=teardown_res,
+        teardown_res.get("has_teardown", False),
+        teardown_res.get("detail", ""),
+        weight=3,
+        details=teardown_res,
     )
 
     # Static checkers run + scored via the declarative registry (challenges.py).
     # Order is defined by profile.static_checkers and reproduces indicator codes
     # 2-1-x .. 2-6-x exactly. Results are kept for the artifacts section below.
-    static_results: Dict[str, Any] = {}
+    static_results: dict[str, Any] = {}
     append_indicator = functools.partial(_append_indicator, audit_db)
     for spec in profile.static_checkers:
         result = spec.analyze(path)
@@ -1419,7 +1674,8 @@ def analyze(
             traceability.get("error"),
             traceability.get("status"),
         ),
-        details=traceability, weight=1
+        details=traceability,
+        weight=1,
     )
     _append_indicator(
         audit_db,
@@ -1430,7 +1686,8 @@ def analyze(
         "Nombre de phases tracées >= 1",
         traceability.get("phases_count", 0) >= 1,
         f"phases_count={traceability.get('phases_count', 0)}",
-        details=traceability, weight=2
+        details=traceability,
+        weight=2,
     )
     wall_time_consistency = traceability.get("wall_time_consistency", {})
     wall_time_status = wall_time_consistency.get("status")
@@ -1463,34 +1720,62 @@ def analyze(
     if cost_info["cost_usd"] is not None:
         band = _score_from_bands(cost_info["cost_usd"], COST_USD_BANDS)
         _append_indicator(
-            audit_db, COST_SCORE_PHASE, COST_SCORE_PHASE_LABEL, 1, COST_SCORE_STEP_LABEL,
+            audit_db,
+            COST_SCORE_PHASE,
+            COST_SCORE_PHASE_LABEL,
+            1,
+            COST_SCORE_STEP_LABEL,
             "Coût total de la session ($)",
-            band["score_ratio"] >= 1.0,
+            band["score_ratio"] > 0,  # graduated: any scoring band earns weight×ratio
             f"cost_usd={cost_info['cost_usd']} (modèle={cost_info['model_key']}, prix {PRICING_UPDATED}); {band['remarks']}",
-            score_ratio=band["score_ratio"], status=band["status"], weight=10, details=cost_info,
+            score_ratio=band["score_ratio"],
+            status=band["status"],
+            weight=10,
+            details=cost_info,
         )
     elif cost_info["total_tokens"] is not None:
         band = _score_from_bands(cost_info["total_tokens"], TOTAL_TOKENS_BANDS)
         _append_indicator(
-            audit_db, COST_SCORE_PHASE, COST_SCORE_PHASE_LABEL, 1, COST_SCORE_STEP_LABEL,
+            audit_db,
+            COST_SCORE_PHASE,
+            COST_SCORE_PHASE_LABEL,
+            1,
+            COST_SCORE_STEP_LABEL,
             "Frugalité en tokens (modèle non tarifé)",
-            band["score_ratio"] >= 1.0,
+            band["score_ratio"] > 0,  # graduated: any scoring band earns weight×ratio
             f"total_tokens={cost_info['total_tokens']}; modèle '{cost_info['model_id']}' absent de la table de prix; {band['remarks']}",
-            score_ratio=band["score_ratio"], status=band["status"], weight=10, details=cost_info,
+            score_ratio=band["score_ratio"],
+            status=band["status"],
+            weight=10,
+            details=cost_info,
         )
     else:
         _append_indicator(
-            audit_db, COST_SCORE_PHASE, COST_SCORE_PHASE_LABEL, 1, COST_SCORE_STEP_LABEL,
+            audit_db,
+            COST_SCORE_PHASE,
+            COST_SCORE_PHASE_LABEL,
+            1,
+            COST_SCORE_STEP_LABEL,
             "Coût total de la session ($)",
             False,
             "tokens absents de audit_trace.json (summary.total_input_tokens / total_output_tokens requis)",
-            status="SKIPPED", weight=10, details=cost_info,
+            status="SKIPPED",
+            weight=10,
+            details=cost_info,
         )
     # Informational measures (not scored): total tokens and computed cost.
     _append_indicator(
-        audit_db, COST_SCORE_PHASE, COST_SCORE_PHASE_LABEL, 1, COST_SCORE_STEP_LABEL,
-        "Tokens totaux (in+out)", False, str(cost_info["total_tokens"]),
-        kind="measured", measured_value=cost_info["total_tokens"], details=cost_info,
+        audit_db,
+        COST_SCORE_PHASE,
+        COST_SCORE_PHASE_LABEL,
+        1,
+        COST_SCORE_STEP_LABEL,
+        "Tokens totaux (in+out)",
+        False,
+        str(cost_info["total_tokens"]),
+        kind="measured",
+        measured_value=cost_info["total_tokens"],
+        details=cost_info,
     )
 
     for bonus in smells.get("all_bonuses", []):
@@ -1510,7 +1795,7 @@ def analyze(
         m_weight = 5
         if malus.get("id") == "docker_version_obsolete":
             m_weight = 1
-            
+
         _append_indicator(
             audit_db,
             4,
@@ -1522,7 +1807,8 @@ def analyze(
             malus.get("detail", malus.get("status", "INCONNU")),
             polarity="negative",
             status=malus.get("status"),
-            details=malus, weight=m_weight
+            details=malus,
+            weight=m_weight,
         )
 
     for metric_key, config in TECHNICAL_STATS_SCORING_CONFIG.items():
@@ -1541,10 +1827,16 @@ def analyze(
 
     try:
         tree_output = subprocess.run(
-            ["tree", "-a", "-I", "node_modules|dist|build|tmp|.git|__pycache__|.pytest_cache|venv|.claude|coverage|tests", path],
+            [
+                "tree",
+                "-a",
+                "-I",
+                "node_modules|dist|build|tmp|.git|__pycache__|.pytest_cache|venv|.claude|coverage|tests",
+                path,
+            ],
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         ).stdout
     except Exception as e:
         tree_output = f"Erreur lors de l'exécution de tree: {e}"
@@ -1577,9 +1869,11 @@ def analyze(
     report_content = template.render(audit_data=audit_db, stats=stats)
 
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    output_dir = os.path.join(repo_root, "cr_audits")
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    # Output dir is overridable via HEXA_AUDIT_OUTPUT_DIR so tests (and one-off runs)
+    # can isolate their artifacts. The default preserves the historical location the KB
+    # builder scans — no effect on scoring.
+    output_dir = os.environ.get("HEXA_AUDIT_OUTPUT_DIR") or os.path.join(repo_root, "cr_audits")
+    os.makedirs(output_dir, exist_ok=True)
 
     safe_name = os.path.basename(path.rstrip("/"))
     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1630,7 +1924,7 @@ def analyze(
             phase["label"],
             f"{phase['raw_total']}/{phase['positive_points_possible']}",
         )
-    
+
     table.add_section()
     table.add_row(
         "Base → Final",
@@ -1640,7 +1934,7 @@ def analyze(
     table.add_row(
         "Conclusion",
         f"Positive Net: {summary['raw_total_score']}/{summary['positive_points_possible']} ({summary['percentage_net']}%)",
-        style="bold green"
+        style="bold green",
     )
     console.print(table)
 

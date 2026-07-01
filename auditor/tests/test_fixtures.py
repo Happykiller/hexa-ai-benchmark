@@ -1,13 +1,7 @@
-import sys
 from pathlib import Path
-
-AUDITOR_DIR = Path(__file__).resolve().parents[1]
-if str(AUDITOR_DIR) not in sys.path:
-    sys.path.insert(0, str(AUDITOR_DIR))
 
 from main import TraceabilityValidator
 from modules.static_analysis import HexagonalComplianceChecker, ReadmeChecker
-
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 

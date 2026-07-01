@@ -1,14 +1,8 @@
+import json
 import re
 import subprocess
-import sys
 from pathlib import Path
 from unittest.mock import patch
-
-AUDITOR_DIR = Path(__file__).resolve().parents[1]
-if str(AUDITOR_DIR) not in sys.path:
-    sys.path.insert(0, str(AUDITOR_DIR))
-
-import json
 
 from main import (
     _compute_final_score_summary,
@@ -18,7 +12,13 @@ from main import (
     _parse_coverage_by_layer,
     analyze,
 )
-from modules.dynamic_analysis import AuthTester, DockerOrchestrator, E2EFunctionalTester, _mint_jwt
+from modules.dynamic_analysis import (
+    AuthTester,
+    DockerOrchestrator,
+    E2EFunctionalTester,
+    _mint_jwt,
+    precreate_bind_mount_dirs,
+)
 
 
 def test_docker_orchestrator_times_out_make_start(tmp_path: Path) -> None:
@@ -51,7 +51,9 @@ def test_docker_orchestrator_exposes_stderr_on_nonzero_exit(tmp_path: Path) -> N
 def test_e2e_rejects_unrelated_graphql_errors() -> None:
     # Pre-seed a token so the self-authentication step is skipped and the mocked
     # responses below stay aligned with the functional steps.
-    tester = E2EFunctionalTester("http://example.test/graphql", token="pre.baked.tokenvalue0123456789")
+    tester = E2EFunctionalTester(
+        "http://example.test/graphql", token="pre.baked.tokenvalue0123456789"
+    )
     responses = iter(
         [
             {"data": {"tasks": []}},
@@ -113,7 +115,9 @@ def test_deep_find_token_tolerant_to_response_shapes() -> None:
         == "a.b.cspecpathtokenvalue000000"
     )
     assert (
-        tester._deep_find_token({"data": {"login": {"accessToken": "x.y.zaltkeytokenvalue111111111"}}})
+        tester._deep_find_token(
+            {"data": {"login": {"accessToken": "x.y.zaltkeytokenvalue111111111"}}}
+        )
         == "x.y.zaltkeytokenvalue111111111"
     )
     assert (
@@ -178,7 +182,9 @@ _ADVERSARIAL_STEPS = [
 
 
 def test_adversarial_scenario_passes_on_robust_engine() -> None:
-    tester = E2EFunctionalTester("http://example.test/graphql", token="pre.baked.tokenvalue0123456789")
+    tester = E2EFunctionalTester(
+        "http://example.test/graphql", token="pre.baked.tokenvalue0123456789"
+    )
     with patch.object(tester, "_post", side_effect=_make_dependency_server(robust=True)):
         results = {r["step"]: r["success"] for r in tester.run_adversarial_scenario()}
 
@@ -188,7 +194,9 @@ def test_adversarial_scenario_passes_on_robust_engine() -> None:
 
 
 def test_adversarial_scenario_fails_on_naive_engine() -> None:
-    tester = E2EFunctionalTester("http://example.test/graphql", token="pre.baked.tokenvalue0123456789")
+    tester = E2EFunctionalTester(
+        "http://example.test/graphql", token="pre.baked.tokenvalue0123456789"
+    )
     with patch.object(tester, "_post", side_effect=_make_dependency_server(robust=False)):
         results = {r["step"]: r["success"] for r in tester.run_adversarial_scenario()}
 
@@ -202,19 +210,43 @@ def test_adversarial_scenario_fails_on_naive_engine() -> None:
     assert results["Adversarial: Chaîne de dépendances profonde"] is True
 
 
-def test_main_marks_e2e_as_skipped_when_dynamic_phase_is_disabled(tmp_path: Path) -> None:
+def test_main_marks_e2e_as_skipped_when_dynamic_phase_is_disabled(
+    tmp_path: Path, monkeypatch
+) -> None:
     project = tmp_path / "deliverable"
     project.mkdir()
+    monkeypatch.setenv("HEXA_AUDIT_OUTPUT_DIR", str(tmp_path / "cr_audits"))
 
     def fake_run_target(target: str):
         return {"status": "OK", "output": "", "error": "", "exit_code": 0}
 
-    with patch("main.MakefileRunner.run_target", side_effect=fake_run_target), \
-        patch("main.HexagonalComplianceChecker.check", return_value={"status": "OK", "score": 100, "rules": []}), \
-        patch("main.CodeQualityChecker.check_any_usage", return_value={"status": "OK", "score": 100, "any_count": 0, "ts_files": 0}), \
-        patch("main.ProjectStatsAnalyzer.analyze", return_value={"total_files": 0, "total_ts_files": 0, "total_lines": 0, "total_size_kb": 0, "total_tests": 0}), \
-        patch("main.CodeSmellAnalyzer.analyze", return_value={"total_bonus": 0, "total_malus": 0, "bonuses": [], "maluses": [], "all_bonuses": [], "all_maluses": []}), \
-        patch("main.Environment.get_template") as get_template:
+    with (
+        patch("main.MakefileRunner.run_target", side_effect=fake_run_target),
+        # HexagonalComplianceChecker / CodeQualityChecker are invoked via the challenges
+        # registry (not through `main`), so there is no `main.*` attribute to patch.
+        patch(
+            "main.ProjectStatsAnalyzer.analyze",
+            return_value={
+                "total_files": 0,
+                "total_ts_files": 0,
+                "total_lines": 0,
+                "total_size_kb": 0,
+                "total_tests": 0,
+            },
+        ),
+        patch(
+            "main.CodeSmellAnalyzer.analyze",
+            return_value={
+                "total_bonus": 0,
+                "total_malus": 0,
+                "bonuses": [],
+                "maluses": [],
+                "all_bonuses": [],
+                "all_maluses": [],
+            },
+        ),
+        patch("main.Environment.get_template") as get_template,
+    ):
         get_template.return_value.render.return_value = "report"
         analyze.callback(str(project), True, False, False)
 
@@ -222,21 +254,51 @@ def test_main_marks_e2e_as_skipped_when_dynamic_phase_is_disabled(tmp_path: Path
     assert report_files, "no audit_report_<timestamp>.md found in project"
 
 
-def test_main_force_dynamic_runs_docker_even_when_build_fails(tmp_path: Path) -> None:
+def test_main_force_dynamic_runs_docker_even_when_build_fails(tmp_path: Path, monkeypatch) -> None:
     project = tmp_path / "deliverable"
     project.mkdir()
+    monkeypatch.setenv("HEXA_AUDIT_OUTPUT_DIR", str(tmp_path / "cr_audits"))
 
     def fake_run_target(target: str):
         status = "KO" if target == "build" else "OK"
-        return {"status": status, "output": "", "error": "", "exit_code": 1 if status == "KO" else 0}
+        return {
+            "status": status,
+            "output": "",
+            "error": "",
+            "exit_code": 1 if status == "KO" else 0,
+        }
 
-    with patch("main.MakefileRunner.run_target", side_effect=fake_run_target), \
-        patch("main.DockerOrchestrator.start", return_value={"status": "KO", "error": "runtime failed"}) as start, \
-        patch("main.HexagonalComplianceChecker.check", return_value={"status": "OK", "score": 100, "rules": []}), \
-        patch("main.CodeQualityChecker.check_any_usage", return_value={"status": "OK", "score": 100, "any_count": 0, "ts_files": 0}), \
-        patch("main.ProjectStatsAnalyzer.analyze", return_value={"total_files": 0, "total_ts_files": 0, "total_lines": 0, "total_size_kb": 0, "total_tests": 0}), \
-        patch("main.CodeSmellAnalyzer.analyze", return_value={"total_bonus": 0, "total_malus": 0, "bonuses": [], "maluses": [], "all_bonuses": [], "all_maluses": []}), \
-        patch("main.Environment.get_template") as get_template:
+    with (
+        patch("main.MakefileRunner.run_target", side_effect=fake_run_target),
+        patch(
+            "main.DockerOrchestrator.start",
+            return_value={"status": "KO", "error": "runtime failed"},
+        ) as start,
+        # HexagonalComplianceChecker / CodeQualityChecker are invoked via the challenges
+        # registry (not through `main`), so there is no `main.*` attribute to patch.
+        patch(
+            "main.ProjectStatsAnalyzer.analyze",
+            return_value={
+                "total_files": 0,
+                "total_ts_files": 0,
+                "total_lines": 0,
+                "total_size_kb": 0,
+                "total_tests": 0,
+            },
+        ),
+        patch(
+            "main.CodeSmellAnalyzer.analyze",
+            return_value={
+                "total_bonus": 0,
+                "total_malus": 0,
+                "bonuses": [],
+                "maluses": [],
+                "all_bonuses": [],
+                "all_maluses": [],
+            },
+        ),
+        patch("main.Environment.get_template") as get_template,
+    ):
         get_template.return_value.render.return_value = "report"
         analyze.callback(str(project), False, True, True)
 
@@ -323,11 +385,46 @@ def _audit_db_base_99(bonus: int = 5, malus: int = 0):
             }
         ],
         "indicators": [
-            {"kind": "scored", "phase_number": 1, "step_number": 1, "polarity": "positive", "score": 50, "max_score": 50},
-            {"kind": "scored", "phase_number": 2, "step_number": 1, "polarity": "positive", "score": 25, "max_score": 25},
-            {"kind": "scored", "phase_number": 2, "step_number": 2, "polarity": "positive", "score": 15, "max_score": 15},
-            {"kind": "scored", "phase_number": 3, "step_number": 1, "polarity": "positive", "score": 9, "max_score": 10},
-            {"kind": "scored", "phase_number": 6, "step_number": 1, "polarity": "positive", "score": 12, "max_score": 12},
+            {
+                "kind": "scored",
+                "phase_number": 1,
+                "step_number": 1,
+                "polarity": "positive",
+                "score": 50,
+                "max_score": 50,
+            },
+            {
+                "kind": "scored",
+                "phase_number": 2,
+                "step_number": 1,
+                "polarity": "positive",
+                "score": 25,
+                "max_score": 25,
+            },
+            {
+                "kind": "scored",
+                "phase_number": 2,
+                "step_number": 2,
+                "polarity": "positive",
+                "score": 15,
+                "max_score": 15,
+            },
+            {
+                "kind": "scored",
+                "phase_number": 3,
+                "step_number": 1,
+                "polarity": "positive",
+                "score": 9,
+                "max_score": 10,
+            },
+            {
+                "kind": "scored",
+                "phase_number": 6,
+                "step_number": 1,
+                "polarity": "positive",
+                "score": 12,
+                "max_score": 12,
+            },
         ],
     }
 
@@ -366,7 +463,7 @@ def test_parse_coverage_by_layer_aggregates_per_layer(tmp_path: Path) -> None:
     result = _parse_coverage_by_layer(str(tmp_path))
 
     assert result["source"] == "json-summary"
-    assert result["layers"]["core"] == 90.0       # (9+9)/(10+10)
+    assert result["layers"]["core"] == 90.0  # (9+9)/(10+10)
     assert result["layers"]["adapters"] == 50.0
     assert result["layers"]["entrypoints"] == 20.0
 
@@ -407,7 +504,11 @@ def test_normalize_model_id_maps_known_families() -> None:
 
 
 def test_compute_session_cost_prices_known_model() -> None:
-    trace = {"total_input_tokens": 100_000, "total_output_tokens": 50_000, "total_cached_input_tokens": 0}
+    trace = {
+        "total_input_tokens": 100_000,
+        "total_output_tokens": 50_000,
+        "total_cached_input_tokens": 0,
+    }
     cost = _compute_session_cost(trace, "claude-opus-4-8")
     assert cost["priced"] is True
     assert cost["total_tokens"] == 150_000
@@ -418,7 +519,11 @@ def test_compute_session_cost_prices_known_model() -> None:
 def test_compute_session_cost_cached_billed_cheaper() -> None:
     # 600k input INCLUDING 200k cached, 90k output, opus pricing → cached billed at the
     # cheaper cached rate, the remaining 400k input at the full rate.
-    trace = {"total_input_tokens": 600_000, "total_output_tokens": 90_000, "total_cached_input_tokens": 200_000}
+    trace = {
+        "total_input_tokens": 600_000,
+        "total_output_tokens": 90_000,
+        "total_cached_input_tokens": 200_000,
+    }
     cost = _compute_session_cost(trace, "claude-opus-4-8")
     # 0.4M*15 + 0.2M*1.5 + 0.09M*75 = 6 + 0.3 + 6.75
     assert cost["cost_usd"] == 13.05
@@ -447,7 +552,11 @@ def _make_fake_graphql_server(secure: bool):
     def post(query, token=None):
         if "register(" in query and 'password: "123"' in query:
             if secure:
-                return {"errors": [{"message": "weak password", "extensions": {"code": "BAD_USER_INPUT"}}]}
+                return {
+                    "errors": [
+                        {"message": "weak password", "extensions": {"code": "BAD_USER_INPUT"}}
+                    ]
+                }
             state["n"] += 1
             tok = f"t{state['n']}"
             state["users"][tok] = "weak"
@@ -462,7 +571,11 @@ def _make_fake_graphql_server(secure: bool):
             return {"data": {key: {"token": tok, "user": {"id": email, "email": email}}}}
         authed = (token in state["users"]) if secure else (token is not None)
         if not authed:
-            return {"errors": [{"message": "unauthenticated", "extensions": {"code": "UNAUTHENTICATED"}}]}
+            return {
+                "errors": [
+                    {"message": "unauthenticated", "extensions": {"code": "UNAUTHENTICATED"}}
+                ]
+            }
         if "createTask" in query:
             state["n"] += 1
             tid = f"task{state['n']}"
@@ -511,3 +624,47 @@ def test_auth_tester_security_steps_fail_on_insecure_server() -> None:
 
     for step in _SECURITY_STEPS:
         assert results[step] is False, f"insecure server should fail {step}"
+
+
+def test_precreate_bind_mount_dirs_creates_only_in_tree_binds(tmp_path: Path) -> None:
+    deliverable = tmp_path / "deliverable"
+    deliverable.mkdir()
+    (deliverable / "docker-compose.yml").write_text(
+        "services:\n"
+        "  api:\n"
+        "    build: .\n"
+        "    volumes:\n"
+        "      - ./coverage:/app/coverage\n"  # in-tree bind -> created
+        "      - mydata:/data\n"  # named volume -> skipped
+        "      - /etc/hosts:/etc/hosts:ro\n"  # out-of-tree -> skipped
+        "volumes:\n"
+        "  mydata:\n",
+        encoding="utf-8",
+    )
+    created = precreate_bind_mount_dirs(str(deliverable))
+
+    assert (deliverable / "coverage").is_dir()
+    assert [Path(p).name for p in created] == ["coverage"]
+    assert not (deliverable / "mydata").exists()
+
+
+def test_precreate_bind_mount_dirs_long_syntax(tmp_path: Path) -> None:
+    deliverable = tmp_path / "deliverable"
+    deliverable.mkdir()
+    (deliverable / "docker-compose.yml").write_text(
+        "services:\n"
+        "  api:\n"
+        "    volumes:\n"
+        "      - type: bind\n"
+        "        source: ./reports\n"
+        "        target: /app/reports\n",
+        encoding="utf-8",
+    )
+    precreate_bind_mount_dirs(str(deliverable))
+    assert (deliverable / "reports").is_dir()
+
+
+def test_precreate_bind_mount_dirs_noop_without_compose(tmp_path: Path) -> None:
+    deliverable = tmp_path / "deliverable"
+    deliverable.mkdir()
+    assert precreate_bind_mount_dirs(str(deliverable)) == []

@@ -1,12 +1,7 @@
 import json
 import subprocess
-import sys
 from pathlib import Path
 from unittest.mock import patch
-
-AUDITOR_DIR = Path(__file__).resolve().parents[1]
-if str(AUDITOR_DIR) not in sys.path:
-    sys.path.insert(0, str(AUDITOR_DIR))
 
 from modules.supply_chain import (
     ComposePortsChecker,
@@ -64,7 +59,9 @@ def test_secrets_scanner_flags_real_and_skips_placeholders(tmp_path: Path) -> No
     project = tmp_path / "deliverable"
     project.mkdir()
     # Whitelisted example file with placeholder values → must NOT flag.
-    (project / ".env.example").write_text("JWT_SECRET=changeme\nAPI_KEY=your-key-here\n", encoding="utf-8")
+    (project / ".env.example").write_text(
+        "JWT_SECRET=changeme\nAPI_KEY=your-key-here\n", encoding="utf-8"
+    )
     # Real hardcoded secret in source → must flag.
     (project / "config.ts").write_text(
         'export const cfg = { apiKey: "sk-live-9f8a7b6c5d4e3f2a1b0c4d5e" };', encoding="utf-8"
@@ -121,7 +118,9 @@ def test_secrets_scanner_skips_test_files(tmp_path: Path) -> None:
     flagged = [f["file"] for f in result["findings"]]
     assert not any("LoginUseCase.test.ts" in f for f in flagged), "test file must not be flagged"
     assert not any("TokenService.test.ts" in f for f in flagged), "test file must not be flagged"
-    assert any("LoginUseCase.ts" in f for f in flagged), "production file with hardcoded secret must be flagged"
+    assert any("LoginUseCase.ts" in f for f in flagged), (
+        "production file with hardcoded secret must be flagged"
+    )
 
 
 def test_compose_ports_checker_accepts_mandated_ports(tmp_path: Path) -> None:
@@ -129,9 +128,9 @@ def test_compose_ports_checker_accepts_mandated_ports(tmp_path: Path) -> None:
     project.mkdir()
     (project / "docker-compose.yml").write_text(
         "services:\n"
-        "  api:\n    ports:\n      - \"4000:4000\"\n"
-        "  mongodb:\n    image: mongo\n    ports:\n      - \"47017:27017\"\n"
-        "  mysql:\n    image: mysql\n    ports:\n      - \"43306:3306\"\n",
+        '  api:\n    ports:\n      - "4000:4000"\n'
+        '  mongodb:\n    image: mongo\n    ports:\n      - "47017:27017"\n'
+        '  mysql:\n    image: mysql\n    ports:\n      - "43306:3306"\n',
         encoding="utf-8",
     )
 
@@ -147,8 +146,8 @@ def test_compose_ports_checker_flags_standard_ports(tmp_path: Path) -> None:
     project.mkdir()
     (project / "docker-compose.yml").write_text(
         "services:\n"
-        "  mongodb:\n    ports:\n      - \"27017:27017\"\n"
-        "  mysql:\n    ports:\n      - \"3306:3306\"\n",
+        '  mongodb:\n    ports:\n      - "27017:27017"\n'
+        '  mysql:\n    ports:\n      - "3306:3306"\n',
         encoding="utf-8",
     )
 
@@ -220,9 +219,15 @@ def test_npm_audit_parses_high_and_critical(tmp_path: Path) -> None:
     project.mkdir()
     (project / "package-lock.json").write_text("{}", encoding="utf-8")
     fake_stdout = json.dumps(
-        {"metadata": {"vulnerabilities": {"info": 0, "low": 1, "moderate": 2, "high": 3, "critical": 1}}}
+        {
+            "metadata": {
+                "vulnerabilities": {"info": 0, "low": 1, "moderate": 2, "high": 3, "critical": 1}
+            }
+        }
     )
-    completed = subprocess.CompletedProcess(args=["npm", "audit", "--json"], returncode=1, stdout=fake_stdout, stderr="")
+    completed = subprocess.CompletedProcess(
+        args=["npm", "audit", "--json"], returncode=1, stdout=fake_stdout, stderr=""
+    )
 
     with patch("modules.supply_chain.subprocess.run", return_value=completed):
         result = NpmAuditChecker(str(project)).audit()
@@ -237,7 +242,10 @@ def test_npm_audit_skips_when_offline(tmp_path: Path) -> None:
     project.mkdir()
     (project / "package-lock.json").write_text("{}", encoding="utf-8")
     completed = subprocess.CompletedProcess(
-        args=["npm", "audit", "--json"], returncode=1, stdout=json.dumps({"error": {"code": "ENOTFOUND"}}), stderr=""
+        args=["npm", "audit", "--json"],
+        returncode=1,
+        stdout=json.dumps({"error": {"code": "ENOTFOUND"}}),
+        stderr="",
     )
 
     with patch("modules.supply_chain.subprocess.run", return_value=completed):
