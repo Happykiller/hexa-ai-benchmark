@@ -2,31 +2,35 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from .constants import ADMISSION_THRESHOLD, SCAN_DIRS
+from .constants import ADMISSION_THRESHOLD, OVERRIDES_PATH, SCAN_DIRS
 from .markdown_parser import extract_report_markdown, md_files_by_stem
 from .render import build_sections
 
 DOCKER_NOISE_RE = re.compile(
-    r'^\s*[a-f0-9]+\s+(Downloading|Extracting|Pull complete|Pushed|Waiting|'
-    r'Pulling fs layer|Download complete|Already exists|Layer already exists)\b',
+    r"^\s*[a-f0-9]+\s+(Downloading|Extracting|Pull complete|Pushed|Waiting|"
+    r"Pulling fs layer|Download complete|Already exists|Layer already exists)\b",
     re.IGNORECASE,
 )
 
 # MongoDB/MySQL structured JSON log lines — not useful for crash diagnosis
 DB_JSON_LOG_RE = re.compile(
-    r'^\s*(?:[a-zA-Z0-9_-]*(?:mongo|mysql|postgres|redis|mariadb)[a-zA-Z0-9_-]*)\s+\|\s*\{',
+    r"^\s*(?:[a-zA-Z0-9_-]*(?:mongo|mysql|postgres|redis|mariadb)[a-zA-Z0-9_-]*)\s+\|\s*\{",
     re.IGNORECASE,
 )
 
 # Container service prefix: "api-1  | " or "todo_api-1  | "
-CONTAINER_PREFIX_RE = re.compile(r'^\s*([a-zA-Z0-9_.-]+)\s+\|\s?', re.IGNORECASE)
-API_SERVICE_RE = re.compile(r'\bapi\b', re.IGNORECASE)
+CONTAINER_PREFIX_RE = re.compile(r"^\s*([a-zA-Z0-9_.-]+)\s+\|\s?", re.IGNORECASE)
+API_SERVICE_RE = re.compile(r"\bapi\b", re.IGNORECASE)
 
 
 def clean_output(text: str, max_lines: int = 20) -> str:
-    lines = [line for line in (text or "").split("\n") if line.strip() and not DOCKER_NOISE_RE.match(line)]
+    lines = [
+        line
+        for line in (text or "").split("\n")
+        if line.strip() and not DOCKER_NOISE_RE.match(line)
+    ]
     return "\n".join(lines[-max_lines:]).strip()
 
 
@@ -52,7 +56,8 @@ def clean_container_logs(text: str, max_lines: int = 40) -> str:
 
     # Fallback: strip DB JSON logs and docker layer noise, keep last N
     filtered = [
-        line for line in all_lines
+        line
+        for line in all_lines
         if not DOCKER_NOISE_RE.match(line) and not DB_JSON_LOG_RE.match(line)
     ]
     return "\n".join(filtered[-max_lines:]).strip()
@@ -64,21 +69,21 @@ def agent_from_path(target_path: str) -> str:
     return match.group(1) if match else basename
 
 
-def session_from_path(target_path: str) -> Optional[str]:
+def session_from_path(target_path: str) -> str | None:
     basename = Path(target_path.rstrip("/")).name
     match = re.match(r"^(\d{8}_\d{4})_", basename)
     return match.group(1) if match else None
 
 
-def trace_meta_from_artifacts(artifacts: Dict[str, Any]) -> Dict[str, Any]:
+def trace_meta_from_artifacts(artifacts: dict[str, Any]) -> dict[str, Any]:
     traceability = artifacts.get("traceability", {})
     data = traceability.get("data", {}) if isinstance(traceability, dict) else {}
     meta = data.get("meta", {}) if isinstance(data, dict) else {}
     return meta if isinstance(meta, dict) else {}
 
 
-def extract_phase_indicators(data: Dict[str, Any], phase_code: str) -> List[Dict[str, Any]]:
-    indicators: List[Dict[str, Any]] = []
+def extract_phase_indicators(data: dict[str, Any], phase_code: str) -> list[dict[str, Any]]:
+    indicators: list[dict[str, Any]] = []
     for phase in data.get("phases", []):
         if str(phase.get("code")) != phase_code:
             continue
@@ -102,17 +107,31 @@ def extract_phase_indicators(data: Dict[str, Any], phase_code: str) -> List[Dict
     return indicators
 
 
-def normalize_old(data: Dict[str, Any], source_file: str, report_markdown: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def normalize_old(
+    data: dict[str, Any], source_file: str, report_markdown: dict[str, Any] | None
+) -> dict[str, Any]:
     meta = data.get("meta", {})
     summary = data.get("summary", {})
     target = meta.get("target_path", "")
     score_breakdown = summary.get("score_breakdown", {})
 
     bucket_scores = {
-        "operationality": {"normalized_score": score_breakdown.get("operational", 0), "weight": score_breakdown.get("operational_max", 50)},
-        "architecture": {"normalized_score": score_breakdown.get("architecture", 0), "weight": score_breakdown.get("architecture_max", 25)},
-        "quality": {"normalized_score": score_breakdown.get("quality", 0), "weight": score_breakdown.get("quality_max", 15)},
-        "traceability": {"normalized_score": score_breakdown.get("traceability", 0), "weight": score_breakdown.get("traceability_max", 10)},
+        "operationality": {
+            "normalized_score": score_breakdown.get("operational", 0),
+            "weight": score_breakdown.get("operational_max", 50),
+        },
+        "architecture": {
+            "normalized_score": score_breakdown.get("architecture", 0),
+            "weight": score_breakdown.get("architecture_max", 25),
+        },
+        "quality": {
+            "normalized_score": score_breakdown.get("quality", 0),
+            "weight": score_breakdown.get("quality_max", 15),
+        },
+        "traceability": {
+            "normalized_score": score_breakdown.get("traceability", 0),
+            "weight": score_breakdown.get("traceability_max", 10),
+        },
     }
     if not score_breakdown:
         labels_map = {
@@ -122,9 +141,19 @@ def normalize_old(data: Dict[str, Any], source_file: str, report_markdown: Optio
             "tracabilite": "traceability",
         }
         for point in data.get("points", []):
-            key = next((value for label, value in labels_map.items() if label in point.get("label", "").lower()), None)
+            key = next(
+                (
+                    value
+                    for label, value in labels_map.items()
+                    if label in point.get("label", "").lower()
+                ),
+                None,
+            )
             if key:
-                bucket_scores[key] = {"normalized_score": point.get("score", 0), "weight": point.get("max_score", 0)}
+                bucket_scores[key] = {
+                    "normalized_score": point.get("score", 0),
+                    "weight": point.get("max_score", 0),
+                }
 
     score_pct = float(summary.get("global_score", 0))
     agent = agent_from_path(target)
@@ -140,11 +169,14 @@ def normalize_old(data: Dict[str, Any], source_file: str, report_markdown: Optio
         "audit_finished_at": meta.get("audit_finished_at", ""),
         "scoring_model": "legacy",
         "score_percentage": score_pct,
-        "admission_status": summary.get("admission_status", "ADMIS" if score_pct >= ADMISSION_THRESHOLD else "ECHEC"),
+        "admission_status": summary.get(
+            "admission_status", "ADMIS" if score_pct >= ADMISSION_THRESHOLD else "ECHEC"
+        ),
         "score_capped": False,
         "score_caps": [],
         "skip_dynamic": meta.get("skip_dynamic", False),
         "bucket_scores": bucket_scores,
+        "cost": None,
         "target_path": target,
         "stats": None,
         "make_targets": None,
@@ -165,10 +197,10 @@ def normalize_old(data: Dict[str, Any], source_file: str, report_markdown: Optio
     }
 
 
-def extract_tooltips(artifacts: Dict[str, Any], data: Dict[str, Any]) -> Dict[str, Any]:
-    tooltips: Dict[str, Any] = {}
+def extract_tooltips(artifacts: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
+    tooltips: dict[str, Any] = {}
 
-    make: Dict[str, str] = {}
+    make: dict[str, str] = {}
     for target, result in artifacts.get("make_targets", {}).items():
         if result.get("status") != "OK":
             parts = []
@@ -186,7 +218,9 @@ def extract_tooltips(artifacts: Dict[str, Any], data: Dict[str, Any]) -> Dict[st
         err_msg = str(docker_start.get("error") or "").strip()
         if err_msg:
             parts.append(err_msg)
-        compose_out = clean_output(str(docker_start.get("stderr") or docker_start.get("output") or ""))
+        compose_out = clean_output(
+            str(docker_start.get("stderr") or docker_start.get("output") or "")
+        )
         if compose_out:
             parts.append(compose_out)
         container_logs = clean_container_logs(str(docker_start.get("container_logs") or ""))
@@ -196,7 +230,7 @@ def extract_tooltips(artifacts: Dict[str, Any], data: Dict[str, Any]) -> Dict[st
             make["docker"] = "\n".join(parts)
     tooltips["make"] = make
 
-    e2e_errors: Dict[str, str] = {}
+    e2e_errors: dict[str, str] = {}
     for result in artifacts.get("e2e_results", []) + artifacts.get("auth_e2e_results", []):
         if not result.get("success") and result.get("error"):
             e2e_errors[result["step"]] = str(result["error"])
@@ -204,15 +238,21 @@ def extract_tooltips(artifacts: Dict[str, Any], data: Dict[str, Any]) -> Dict[st
 
     hexa_violations = artifacts.get("hexagonal", {}).get("violations", [])
     if hexa_violations:
-        lines = [f"{violation.get('file','')} — {violation.get('reason','')} (import: {violation.get('pattern','')})" for violation in hexa_violations[:10]]
+        lines = [
+            f"{violation.get('file', '')} — {violation.get('reason', '')} (import: {violation.get('pattern', '')})"
+            for violation in hexa_violations[:10]
+        ]
         if len(hexa_violations) > 10:
-            lines.append(f"… +{len(hexa_violations)-10} autres")
+            lines.append(f"… +{len(hexa_violations) - 10} autres")
         tooltips["hexa_violations"] = "\n".join(lines)
 
     injection_violations = artifacts.get("injection", {}).get("violations", [])
     if injection_violations:
         tooltips["inj_violations"] = "\n".join(
-            [f"{violation.get('file','')} : {violation.get('pattern','')}" for violation in injection_violations[:5]]
+            [
+                f"{violation.get('file', '')} : {violation.get('pattern', '')}"
+                for violation in injection_violations[:5]
+            ]
         )
 
     traceability = artifacts.get("traceability", {})
@@ -235,7 +275,9 @@ def extract_tooltips(artifacts: Dict[str, Any], data: Dict[str, Any]) -> Dict[st
     return tooltips
 
 
-def normalize_new(data: Dict[str, Any], source_file: str, report_markdown: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def normalize_new(
+    data: dict[str, Any], source_file: str, report_markdown: dict[str, Any] | None
+) -> dict[str, Any]:
     meta = data.get("meta", {})
     summary = data.get("summary", {})
     artifacts = data.get("artifacts", {})
@@ -244,7 +286,10 @@ def normalize_new(data: Dict[str, Any], source_file: str, report_markdown: Optio
 
     score_pct = float(summary.get("percentage_net", 0))
     bucket_scores = {
-        key: {"normalized_score": value.get("normalized_score", 0), "weight": value.get("weight", 0)}
+        key: {
+            "normalized_score": value.get("normalized_score", 0),
+            "weight": value.get("weight", 0),
+        }
         for key, value in summary.get("bucket_scores", {}).items()
     }
 
@@ -272,6 +317,13 @@ def normalize_new(data: Dict[str, Any], source_file: str, report_markdown: Optio
         "score_caps": [cap.get("reason", "") for cap in summary.get("score_caps", [])],
         "skip_dynamic": meta.get("skip_dynamic", False),
         "bucket_scores": bucket_scores,
+        "cost": {
+            "usd": (meta.get("cost") or {}).get("cost_usd"),
+            "tokens": (meta.get("cost") or {}).get("total_tokens"),
+            "model_key": (meta.get("cost") or {}).get("model_key"),
+            "priced": (meta.get("cost") or {}).get("priced"),
+            "efficiency": summary.get("cost_efficiency_pct_per_usd"),
+        },
         "target_path": target,
         "stats": {
             "files": stats.get("total_files"),
@@ -282,8 +334,13 @@ def normalize_new(data: Dict[str, Any], source_file: str, report_markdown: Optio
             "tests_fail": stats.get("execution_test_failed"),
             "coverage": stats.get("coverage_pct"),
         },
-        "make_targets": {key: value.get("status") for key, value in artifacts.get("make_targets", {}).items()},
-        "docker": {"status": docker_start.get("status"), "waited_s": docker_start.get("waited_seconds")},
+        "make_targets": {
+            key: value.get("status") for key, value in artifacts.get("make_targets", {}).items()
+        },
+        "docker": {
+            "status": docker_start.get("status"),
+            "waited_s": docker_start.get("waited_seconds"),
+        },
         "hexagonal": {
             "status": hexagonal.get("status"),
             "violations": len(hexagonal.get("violations", [])),
@@ -327,29 +384,79 @@ def normalize_new(data: Dict[str, Any], source_file: str, report_markdown: Optio
         },
         "traceability_indicators": extract_phase_indicators(data, "3"),
         "duration_seconds": trace_metrics.get("total_wall_time_seconds"),
-        "bonuses": [{"reason": bonus.get("reason", ""), "ok": bonus.get("status") == "OK"} for bonus in smells.get("all_bonuses", [])],
-        "maluses": [{"reason": malus.get("reason", ""), "detected": malus.get("status") == "DETECTE"} for malus in smells.get("all_maluses", [])],
-        "e2e_steps": {result["step"]: bool(result.get("success")) for result in artifacts.get("e2e_results", [])},
-        "auth_e2e_steps": {result["step"]: bool(result.get("success")) for result in artifacts.get("auth_e2e_results", [])},
+        "bonuses": [
+            {"reason": bonus.get("reason", ""), "ok": bonus.get("status") == "OK"}
+            for bonus in smells.get("all_bonuses", [])
+        ],
+        "maluses": [
+            {"reason": malus.get("reason", ""), "detected": malus.get("status") == "DETECTE"}
+            for malus in smells.get("all_maluses", [])
+        ],
+        "e2e_steps": {
+            result["step"]: bool(result.get("success"))
+            for result in artifacts.get("e2e_results", [])
+        },
+        "auth_e2e_steps": {
+            result["step"]: bool(result.get("success"))
+            for result in artifacts.get("auth_e2e_results", [])
+        },
         "performance": artifacts.get("performance"),
         "report_markdown": report_markdown,
         "_tooltips": extract_tooltips(artifacts, data),
     }
 
 
-def normalize(data: Dict[str, Any], source_file: str, report_markdown: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    entry = normalize_new(data, source_file, report_markdown) if data.get("meta", {}).get("scoring_model") else normalize_old(data, source_file, report_markdown)
+def normalize(
+    data: dict[str, Any], source_file: str, report_markdown: dict[str, Any] | None
+) -> dict[str, Any]:
+    entry = (
+        normalize_new(data, source_file, report_markdown)
+        if data.get("meta", {}).get("scoring_model")
+        else normalize_old(data, source_file, report_markdown)
+    )
     entry["sections"] = build_sections(entry)
     return entry
 
 
-def is_test_artifact(entry: Dict[str, Any]) -> bool:
+def is_test_artifact(entry: dict[str, Any]) -> bool:
     target_path = entry.get("target_path", "")
     return target_path.startswith("/tmp/") or "pytest" in target_path
 
 
-def load_all() -> List[Dict[str, Any]]:
-    entries: List[Dict[str, Any]] = []
+def load_overrides() -> dict[str, Any]:
+    """Load knowledge_base/overrides.json ({} if absent/unreadable).
+
+    Structure: {"<entry_id>": {"model": "...", "effort": "...", ...}} — tracked,
+    reversible manual corrections applied on top of the raw cr_audits data.
+    """
+    if not OVERRIDES_PATH.exists():
+        return {}
+    try:
+        data = json.loads(OVERRIDES_PATH.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError) as exc:
+        print(f"[WARN] overrides.json unreadable: {exc}", file=sys.stderr)
+        return {}
+
+
+def apply_overrides(entry: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
+    """Shallow-merge the manual patch for this entry id and record which keys changed
+    (``_overrides_applied``) so the front can flag manually-corrected entries."""
+    patch = overrides.get(entry.get("id", ""))
+    if isinstance(patch, dict) and patch:
+        entry.update(patch)
+        entry["_overrides_applied"] = sorted(patch.keys())
+        # Sections are pre-built by normalize(); rebuild so they reflect the correction
+        # (adds the "Corrections manuelles" section, refreshes any overridden field).
+        if "sections" in entry:
+            entry["sections"] = build_sections(entry)
+    return entry
+
+
+def load_all(overrides: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    if overrides is None:
+        overrides = load_overrides()
+    entries: list[dict[str, Any]] = []
     seen: set[str] = set()
     md_files = md_files_by_stem()
     for scan_dir in SCAN_DIRS:
@@ -363,6 +470,7 @@ def load_all() -> List[Dict[str, Any]]:
                 data = json.loads(path.read_text(encoding="utf-8"))
                 report_markdown = extract_report_markdown(md_files.get(path.stem))
                 entry = normalize(data, str(path), report_markdown)
+                entry = apply_overrides(entry, overrides)
                 if not is_test_artifact(entry):
                     entries.append(entry)
             except Exception as exc:

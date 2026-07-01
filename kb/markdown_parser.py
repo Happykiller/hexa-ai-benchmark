@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .constants import FINDING_TOKENS, SCAN_DIRS
 
@@ -11,13 +11,13 @@ def truncate(text: str, limit: int) -> str:
     return text[: limit - 1].rstrip() + "…"
 
 
-def parse_table_row(line: str) -> List[str]:
+def parse_table_row(line: str) -> list[str]:
     if not line.startswith("|"):
         return []
     return [part.strip() for part in line.strip().strip("|").split("|")]
 
 
-def safe_float(value: str) -> Optional[float]:
+def safe_float(value: str) -> float | None:
     if not value:
         return None
     match = re.search(r"-?\d+(?:\.\d+)?", value.replace(",", "."))
@@ -29,7 +29,7 @@ def safe_float(value: str) -> Optional[float]:
         return None
 
 
-def is_benign_negative_indicator(indicator: str, score: Optional[float], remarks: str) -> bool:
+def is_benign_negative_indicator(indicator: str, score: float | None, remarks: str) -> bool:
     indicator_lc = (indicator or "").lower()
     remarks_lc = (remarks or "").lower()
     if score != 0:
@@ -43,7 +43,9 @@ def is_benign_negative_indicator(indicator: str, score: Optional[float], remarks
     return False
 
 
-def is_interesting_finding(indicator: str, score: Optional[float], max_score: Optional[float], remarks: str) -> bool:
+def is_interesting_finding(
+    indicator: str, score: float | None, max_score: float | None, remarks: str
+) -> bool:
     if is_benign_negative_indicator(indicator, score, remarks):
         return False
     remarks_lc = (remarks or "").lower()
@@ -52,8 +54,8 @@ def is_interesting_finding(indicator: str, score: Optional[float], max_score: Op
     return any(token in remarks_lc for token in FINDING_TOKENS)
 
 
-def md_files_by_stem() -> Dict[str, Path]:
-    files: Dict[str, Path] = {}
+def md_files_by_stem() -> dict[str, Path]:
+    files: dict[str, Path] = {}
     for scan_dir in SCAN_DIRS:
         if not scan_dir.exists():
             continue
@@ -62,7 +64,7 @@ def md_files_by_stem() -> Dict[str, Path]:
     return files
 
 
-def extract_report_markdown(md_path: Optional[Path]) -> Optional[Dict[str, Any]]:
+def extract_report_markdown(md_path: Path | None) -> dict[str, Any] | None:
     if not md_path or not md_path.exists():
         return None
 
@@ -70,8 +72,8 @@ def extract_report_markdown(md_path: Optional[Path]) -> Optional[Dict[str, Any]]
     current_h2 = ""
     current_h3 = ""
     current_h4 = ""
-    summary_metrics: Dict[str, str] = {}
-    findings: List[Dict[str, Any]] = []
+    summary_metrics: dict[str, str] = {}
+    findings: list[dict[str, Any]] = []
     trace_file_invalid = False
 
     for raw_line in text.splitlines():
@@ -92,7 +94,16 @@ def extract_report_markdown(md_path: Optional[Path]) -> Optional[Dict[str, Any]]
             continue
 
         cells = parse_table_row(line)
-        if not cells or cells[0] in {"Mesure", "Code", "Cible", "Etape", "Phase", "Pilier", "Règle", "Type"}:
+        if not cells or cells[0] in {
+            "Mesure",
+            "Code",
+            "Cible",
+            "Etape",
+            "Phase",
+            "Pilier",
+            "Règle",
+            "Type",
+        }:
             continue
 
         if current_h2 == "Résumé global" and not current_h3 and len(cells) == 2:
@@ -105,6 +116,11 @@ def extract_report_markdown(md_path: Optional[Path]) -> Optional[Dict[str, Any]]
         code, indicator, _, score_raw, max_raw, remarks = cells[:6]
         score = safe_float(score_raw)
         max_score = safe_float(max_raw)
+        # Heuristique d'affichage couplée à une convention de l'auditeur : l'indicateur
+        # "3-1-1" est le gate de validité de audit_trace.json. S'il échoue, les autres
+        # indicateurs "3-*" (traçabilité) deviennent du bruit → on les masque du récap.
+        # Si ce code d'indicateur change côté auditeur (auditor/main.py, phase 3),
+        # mettre à jour cette condition en conséquence.
         if (
             code == "3-1-1"
             and "audit_trace" in indicator.lower()

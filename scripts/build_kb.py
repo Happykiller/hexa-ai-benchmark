@@ -10,6 +10,5 @@ if str(ROOT_DIR) not in sys.path:
 
 from kb.builder import main
 
-
 if __name__ == "__main__":
     main()
