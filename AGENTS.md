@@ -118,4 +118,5 @@ livrables/<TIMESTAMP_MODEL_TEMP>/
 - **GraphQL endpoint**: the auditor assumes `http://localhost:4000/graphql` for all dynamic tests.
 - **`audit_trace.json`**: phases must include ISO-8601 datetimes and context usage percentages; missing or malformed traces score 0 on Phase 3.
 - **Docker Compose version field**: presence of `attribute version is obsolete` in compose output is detected and penalized.
+- **Bind-mount pre-creation**: before running make targets, the auditor parses the deliverable's `docker-compose.yml` and pre-creates host bind-mount dirs (e.g. `./coverage`) owned by the audit user (`precreate_bind_mount_dirs` in `dynamic_analysis.py`). This prevents the Docker daemon from auto-creating them as `root:root`, which would break the build context (`error from sender: … permission denied`) and cause a spurious `make build failed` (40% cap).
 - **TypeScript `any`**: the regex also matches `as any`, `<any>`, etc., excluding comments.

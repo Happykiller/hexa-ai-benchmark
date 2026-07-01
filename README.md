@@ -91,20 +91,33 @@ python3 auditor/main.py analyze livrables/<NOM_DU_LIVRABLE> --skip-dynamic
 
 ## Mettre à jour la knowledge base
 
-Après chaque session d'audit, régénérer la base statique puis le rendu React :
+La KB est un **magasin de données** dérivé, pas un simple snapshot :
+
+- `cr_audits/*.json` (+ `.md` jumeaux) = **source brute immuable** produite par l'auditeur.
+- `knowledge_base/overrides.json` = **corrections manuelles tracées/réversibles**, keyées par
+  id d'entrée (ex. `model`/`effort` mal auto-déclarés par l'agent — voir « Format
+  `audit_trace.json` »). Appliquées au build ; jamais hand-editer les `cr_*.json`.
+- `knowledge_base/data.json` = **dérivé** (brut + overrides), régénérable **ou** upsertable
+  à l'unité. Le coût estimé ($, tokens, pts/$) y est surfacé et affiché dans le détail ;
+  les entrées corrigées portent une section « Corrections manuelles ».
 
 ```bash
-python3 scripts/build_kb.py      # régénère knowledge_base/data.json
-npm install                      # une seule fois
+python3 scripts/build_kb.py                     # rebuild complet (tous les cr_audits)
+python3 scripts/build_kb.py --add cr_audits/cr_<...>.json   # ajout/maj d'UNE entrée (upsert par id)
+
+# Corriger une métadonnée : éditer knowledge_base/overrides.json, ex.
+#   { "cr_20260529_1322_GPT5.5-medium_20260529_161440": { "model": "gpt-5.4-codex" } }
+# puis relancer build_kb.py (complet ou --add).
+
+npm install                      # une seule fois (rendu web ; data.json est lu au runtime)
 npm run dev                      # serveur React/Vite en dev avec autoreload
-npm run dev:kb                   # régénère data.json puis lance le serveur dev
-npm run build:kb:web            # régénère knowledge_base/index.html et assets/
-# ou tout en une fois
-npm run build:kb
+npm run build:kb:web             # régénère knowledge_base/index.html et assets/
 git add knowledge_base/ && git commit -m "kb: add run <agent> <date>"
 ```
 
-Le builder Python agrège les artefacts `cr_audits/*.json` et leurs rapports jumeaux `cr_audits/*.md` pour enrichir `knowledge_base/data.json` avec des constats textuels réutilisables. Le frontend React lit ensuite ce fichier et produit une interface statique dans `knowledge_base/`.
+Format d'`overrides.json` : `{ "<id_entrée>": { "<champ>": "<valeur>" } }` — merge shallow
+au niveau top de l'entrée (`model`, `effort`, `prompt_version`, …). Le rendu web lit
+`data.json` au runtime : régénérer `data.json` suffit à mettre à jour la KB déployée.
 
 ---
 
