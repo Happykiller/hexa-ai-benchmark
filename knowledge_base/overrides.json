@@ -1,4 +1,8 @@
 {
+  "cr_20260711_0958_gpt-5.6-sol_medium_20260711_133633": {
+    "model": "gpt-5.6-sol",
+    "effort": "medium"
+  },
   "cr_20260701_0638_claude-sonnet-5_1.0_20260701_092022": {
     "effort": "medium"
   },
