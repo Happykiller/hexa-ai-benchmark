@@ -270,6 +270,8 @@ def _normalize_model_id(model_id: str | None) -> str | None:
     if not model_id:
         return None
     s = str(model_id).lower()
+    if "fable" in s:
+        return "claude-fable"
     if "opus" in s:
         return "claude-opus"
     if "sonnet" in s:

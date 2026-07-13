@@ -491,6 +491,7 @@ def test_scoring_v2_has_dedicated_cost_bucket() -> None:
 
 
 def test_normalize_model_id_maps_known_families() -> None:
+    assert _normalize_model_id("claude-fable-5") == "claude-fable"
     assert _normalize_model_id("claude-opus-4-8") == "claude-opus"
     assert _normalize_model_id("claude-sonnet-4-6") == "claude-sonnet"
     assert _normalize_model_id("GPT5.5-medium") == "gpt-5.5"
@@ -512,8 +513,8 @@ def test_compute_session_cost_prices_known_model() -> None:
     cost = _compute_session_cost(trace, "claude-opus-4-8")
     assert cost["priced"] is True
     assert cost["total_tokens"] == 150_000
-    # 0.1M*15 + 0.05M*75 = 1.5 + 3.75
-    assert cost["cost_usd"] == 5.25
+    # 0.1M*5 + 0.05M*25 = 0.5 + 1.25
+    assert cost["cost_usd"] == 1.75
 
 
 def test_compute_session_cost_cached_billed_cheaper() -> None:
@@ -525,8 +526,8 @@ def test_compute_session_cost_cached_billed_cheaper() -> None:
         "total_cached_input_tokens": 200_000,
     }
     cost = _compute_session_cost(trace, "claude-opus-4-8")
-    # 0.4M*15 + 0.2M*1.5 + 0.09M*75 = 6 + 0.3 + 6.75
-    assert cost["cost_usd"] == 13.05
+    # 0.4M*5 + 0.2M*0.5 + 0.09M*25 = 2.0 + 0.1 + 2.25
+    assert cost["cost_usd"] == 4.35
     assert cost["total_tokens"] == 690_000
 
 

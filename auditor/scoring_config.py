@@ -72,10 +72,13 @@ COST_SCORE_STEP_LABEL = "Coût de la session"
 # sont surtout consommés via abonnement (Claude Code, Codex, AGY) où le coût marginal au
 # token n'est pas le prix API — ces valeurs servent de PROXY relatif pour comparer
 # l'intensité/efficience entre modèles, pas de facturation exacte. Ajuster si besoin.
-PRICING_UPDATED = "2026-06-08 (estimations prix-liste, proxy abonnement)"
+# Sonnet 5 est en prix d'introduction ($2/$10) jusqu'au 2026-08-31, puis passe à $3/$15 —
+# revoir cette entrée après cette date (source: platform.claude.com/docs/en/about-claude/pricing).
+PRICING_UPDATED = "2026-07-02 (tarifs officiels Anthropic, platform.claude.com/docs/en/about-claude/pricing)"
 MODEL_PRICING = {
-    "claude-opus": {"input": 15.0, "output": 75.0, "cached_input": 1.5},
-    "claude-sonnet": {"input": 3.0, "output": 15.0, "cached_input": 0.30},
+    "claude-fable": {"input": 10.0, "output": 50.0, "cached_input": 1.0},
+    "claude-opus": {"input": 5.0, "output": 25.0, "cached_input": 0.50},
+    "claude-sonnet": {"input": 2.0, "output": 10.0, "cached_input": 0.20},
     "claude-haiku": {"input": 1.0, "output": 5.0, "cached_input": 0.10},
     "gpt-5.5": {"input": 2.0, "output": 12.0, "cached_input": 0.20},
     "gpt-5": {"input": 1.25, "output": 10.0, "cached_input": 0.125},
