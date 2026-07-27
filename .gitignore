@@ -2,10 +2,7 @@ livrables/*
 cr_audits/
 __pycache__/
 *.pyc
-.claude/
+.claude/settings.local.json
 .claude_cache/
 venv/
-CLAUDE.md
-CODEX.md
-GEMINI.md
 node_modules/
