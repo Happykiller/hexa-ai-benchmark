@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .constants import FINDING_TOKENS, SCAN_DIRS
+from .constants import FINDING_TOKENS, SCAN_DIRS, repo_relative
 
 
 def truncate(text: str, limit: int) -> str:
@@ -170,7 +170,7 @@ def extract_report_markdown(md_path: Path | None) -> dict[str, Any] | None:
         )
     )
     return {
-        "source_file": str(md_path),
+        "source_file": repo_relative(md_path),
         "summary_metrics": summary_metrics,
         "findings_count": len(findings),
         "top_findings": findings[:8],

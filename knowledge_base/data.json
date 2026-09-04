@@ -286,7 +286,7 @@
       "error_rate": 0.0
     },
     "report_markdown": {
-      "source_file": "/home/admin/sandbox/hexa-ai-benchmark/cr_audits/cr_20260726_1445_claude-opus-5_1_20260726_155534.md",
+      "source_file": "cr_audits/cr_20260726_1445_claude-opus-5_1_20260726_155534.md",
       "summary_metrics": {
         "Points positifs gagnés": "446.0",
         "Points positifs possibles": "476",
@@ -1195,7 +1195,7 @@
       "error_rate": 0.0
     },
     "report_markdown": {
-      "source_file": "/home/admin/sandbox/hexa-ai-benchmark/cr_audits/cr_20260711_0958_gpt-5.6-sol_medium_20260711_133633.md",
+      "source_file": "cr_audits/cr_20260711_0958_gpt-5.6-sol_medium_20260711_133633.md",
       "summary_metrics": {
         "Points positifs gagnés": "440.0",
         "Points positifs possibles": "476",
@@ -1819,7 +1819,7 @@
   },
   {
     "id": "cr_20260702_0705_claude-fable-5_1.0_20260702_104846",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260702_0705_claude-fable-5_1.0_20260702_104846.json",
+    "source_file": "cr_audits/cr_20260702_0705_claude-fable-5_1.0_20260702_104846.json",
     "agent": "claude-fable-5_1.0",
     "model": "claude-fable-5",
     "effort": "high",
@@ -2104,7 +2104,7 @@
       "error_rate": 0.0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260702_0705_claude-fable-5_1.0_20260702_104846.md",
+      "source_file": "cr_audits/cr_20260702_0705_claude-fable-5_1.0_20260702_104846.md",
       "summary_metrics": {
         "Points positifs gagnés": "430.5",
         "Points positifs possibles": "458",
@@ -2722,7 +2722,7 @@
   },
   {
     "id": "cr_20260701_0733_claude-sonnet-5_0.2_20260701_105206",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260701_0733_claude-sonnet-5_0.2_20260701_105206.json",
+    "source_file": "cr_audits/cr_20260701_0733_claude-sonnet-5_0.2_20260701_105206.json",
     "agent": "claude-sonnet-5_0.2",
     "model": "claude-sonnet-5",
     "effort": "high",
@@ -3013,7 +3013,7 @@
       "error_rate": 0.0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260701_0733_claude-sonnet-5_0.2_20260701_105206.md",
+      "source_file": "cr_audits/cr_20260701_0733_claude-sonnet-5_0.2_20260701_105206.md",
       "summary_metrics": {
         "Points positifs gagnés": "446.0",
         "Points positifs possibles": "476",
@@ -3625,7 +3625,7 @@
   },
   {
     "id": "cr_20260701_0638_claude-sonnet-5_1.0_20260701_092022",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260701_0638_claude-sonnet-5_1.0_20260701_092022.json",
+    "source_file": "cr_audits/cr_20260701_0638_claude-sonnet-5_1.0_20260701_092022.json",
     "agent": "claude-sonnet-5_1.0",
     "model": "claude-sonnet-5",
     "effort": "medium",
@@ -3916,7 +3916,7 @@
       "error_rate": 0.0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260701_0638_claude-sonnet-5_1.0_20260701_092022.md",
+      "source_file": "cr_audits/cr_20260701_0638_claude-sonnet-5_1.0_20260701_092022.md",
       "summary_metrics": {
         "Points positifs gagnés": "422.0",
         "Points positifs possibles": "458",
@@ -4541,7 +4541,7 @@
   },
   {
     "id": "cr_20260608_1655_claude-opus-4-8_t1_20260610_103736",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260608_1655_claude-opus-4-8_t1_20260610_103736.json",
+    "source_file": "cr_audits/cr_20260608_1655_claude-opus-4-8_t1_20260610_103736.json",
     "agent": "claude-opus-4-8_t1",
     "model": "claude-opus-4-8",
     "effort": "xhigh",
@@ -4826,7 +4826,7 @@
       "error_rate": 0.0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260608_1655_claude-opus-4-8_t1_20260610_103736.md",
+      "source_file": "cr_audits/cr_20260608_1655_claude-opus-4-8_t1_20260610_103736.md",
       "summary_metrics": {
         "Points positifs gagnés": "439.0",
         "Points positifs possibles": "476",
@@ -5431,7 +5431,7 @@
   },
   {
     "id": "cr_20260608_1736_GEMINI_0.2_20260610_103516",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260608_1736_GEMINI_0.2_20260610_103516.json",
+    "source_file": "cr_audits/cr_20260608_1736_GEMINI_0.2_20260610_103516.json",
     "agent": "GEMINI_0.2",
     "model": "gemini-3.5-flash",
     "effort": "high",
@@ -5710,7 +5710,7 @@
       "error_rate": 100
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260608_1736_GEMINI_0.2_20260610_103516.md",
+      "source_file": "cr_audits/cr_20260608_1736_GEMINI_0.2_20260610_103516.md",
       "summary_metrics": {
         "Points positifs gagnés": "346.0",
         "Points positifs possibles": "476",
@@ -6289,7 +6289,7 @@
   },
   {
     "id": "cr_20260608_1618_GPT5-5_high_20260610_103329",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260608_1618_GPT5-5_high_20260610_103329.json",
+    "source_file": "cr_audits/cr_20260608_1618_GPT5-5_high_20260610_103329.json",
     "agent": "GPT5-5_high",
     "model": "gpt-5.5-codex",
     "effort": "high",
@@ -6574,7 +6574,7 @@
       "error_rate": 0.0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260608_1618_GPT5-5_high_20260610_103329.md",
+      "source_file": "cr_audits/cr_20260608_1618_GPT5-5_high_20260610_103329.md",
       "summary_metrics": {
         "Points positifs gagnés": "404.5",
         "Points positifs possibles": "476",
@@ -7194,7 +7194,7 @@
   },
   {
     "id": "cr_20260610_0633_claude-fable-5_1.0_20260610_100539",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260610_0633_claude-fable-5_1.0_20260610_100539.json",
+    "source_file": "cr_audits/cr_20260610_0633_claude-fable-5_1.0_20260610_100539.json",
     "agent": "claude-fable-5_1.0",
     "model": "claude-fable-5",
     "effort": "medium",
@@ -7479,7 +7479,7 @@
       "error_rate": 0.0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260610_0633_claude-fable-5_1.0_20260610_100539.md",
+      "source_file": "cr_audits/cr_20260610_0633_claude-fable-5_1.0_20260610_100539.md",
       "summary_metrics": {
         "Points positifs gagnés": "449.0",
         "Points positifs possibles": "476",
@@ -8069,7 +8069,7 @@
   },
   {
     "id": "cr_20260608_1351_gemini-3.5-flash_0.2_20260608_165401",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260608_1351_gemini-3.5-flash_0.2_20260608_165401.json",
+    "source_file": "cr_audits/cr_20260608_1351_gemini-3.5-flash_0.2_20260608_165401.json",
     "agent": "gemini-3.5-flash_0.2",
     "model": "gemini-3.5-flash",
     "effort": "high",
@@ -8354,7 +8354,7 @@
       "error_rate": 0.0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260608_1351_gemini-3.5-flash_0.2_20260608_165401.md",
+      "source_file": "cr_audits/cr_20260608_1351_gemini-3.5-flash_0.2_20260608_165401.md",
       "summary_metrics": {
         "Points positifs gagnés": "429.5",
         "Points positifs possibles": "449",
@@ -8933,7 +8933,7 @@
   },
   {
     "id": "cr_20260529_1322_GPT5.5-medium_20260529_161440",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260529_1322_GPT5.5-medium_20260529_161440.json",
+    "source_file": "cr_audits/cr_20260529_1322_GPT5.5-medium_20260529_161440.json",
     "agent": "GPT5.5-medium",
     "model": "gpt-5.4-codex",
     "effort": "high",
@@ -9174,7 +9174,7 @@
       "error_rate": 0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260529_1322_GPT5.5-medium_20260529_161440.md",
+      "source_file": "cr_audits/cr_20260529_1322_GPT5.5-medium_20260529_161440.md",
       "summary_metrics": {
         "Points positifs gagnés": "254.5",
         "Points positifs possibles": "350",
@@ -9653,7 +9653,7 @@
   },
   {
     "id": "cr_20260529_1338_GEMINI_3.5_FLASH_0.2_20260529_152416",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260529_1338_GEMINI_3.5_FLASH_0.2_20260529_152416.json",
+    "source_file": "cr_audits/cr_20260529_1338_GEMINI_3.5_FLASH_0.2_20260529_152416.json",
     "agent": "GEMINI_3.5_FLASH_0.2",
     "model": "gemini-3.5-flash",
     "effort": "medium",
@@ -9894,7 +9894,7 @@
       "error_rate": 0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260529_1338_GEMINI_3.5_FLASH_0.2_20260529_152416.md",
+      "source_file": "cr_audits/cr_20260529_1338_GEMINI_3.5_FLASH_0.2_20260529_152416.md",
       "summary_metrics": {
         "Points positifs gagnés": "240.5",
         "Points positifs possibles": "350",
@@ -10361,7 +10361,7 @@
   },
   {
     "id": "cr_20260529_1042_claude-opus-4-8_temp1.0_20260529_151706",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260529_1042_claude-opus-4-8_temp1.0_20260529_151706.json",
+    "source_file": "cr_audits/cr_20260529_1042_claude-opus-4-8_temp1.0_20260529_151706.json",
     "agent": "claude-opus-4-8_temp1.0",
     "model": "claude-opus-4-8",
     "effort": "high",
@@ -10591,7 +10591,7 @@
       "error_rate": 0.0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260529_1042_claude-opus-4-8_temp1.0_20260529_151706.md",
+      "source_file": "cr_audits/cr_20260529_1042_claude-opus-4-8_temp1.0_20260529_151706.md",
       "summary_metrics": {
         "Points positifs gagnés": "333.5",
         "Points positifs possibles": "354",
@@ -11106,7 +11106,7 @@
   },
   {
     "id": "cr_20260518_1200_GEMINI_0.0_20260518_163937",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260518_1200_GEMINI_0.0_20260518_163937.json",
+    "source_file": "cr_audits/cr_20260518_1200_GEMINI_0.0_20260518_163937.json",
     "agent": "GEMINI_0.0",
     "model": "gemini-1.5-pro",
     "effort": "high",
@@ -11318,7 +11318,7 @@
       "error_rate": 0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260518_1200_GEMINI_0.0_20260518_163937.md",
+      "source_file": "cr_audits/cr_20260518_1200_GEMINI_0.0_20260518_163937.md",
       "summary_metrics": {
         "Points positifs gagnés": "178.5",
         "Points positifs possibles": "348",
@@ -11774,7 +11774,7 @@
   },
   {
     "id": "cr_20260518_1000_claude-sonnet-4-6_1.0_20260518_163913",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260518_1000_claude-sonnet-4-6_1.0_20260518_163913.json",
+    "source_file": "cr_audits/cr_20260518_1000_claude-sonnet-4-6_1.0_20260518_163913.json",
     "agent": "claude-sonnet-4-6_1.0",
     "model": "claude-sonnet-4-6",
     "effort": "auto",
@@ -11999,7 +11999,7 @@
       "error_rate": 0.0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260518_1000_claude-sonnet-4-6_1.0_20260518_163913.md",
+      "source_file": "cr_audits/cr_20260518_1000_claude-sonnet-4-6_1.0_20260518_163913.md",
       "summary_metrics": {
         "Points positifs gagnés": "243.0",
         "Points positifs possibles": "354",
@@ -12500,7 +12500,7 @@
   },
   {
     "id": "cr_20260424_1521_GPT5_0.2_20260518_163518",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260424_1521_GPT5_0.2_20260518_163518.json",
+    "source_file": "cr_audits/cr_20260424_1521_GPT5_0.2_20260518_163518.json",
     "agent": "GPT5_0.2",
     "model": "GPT5_0.2",
     "effort": "",
@@ -12730,7 +12730,7 @@
       "error_rate": 0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260424_1521_GPT5_0.2_20260518_163518.md",
+      "source_file": "cr_audits/cr_20260424_1521_GPT5_0.2_20260518_163518.md",
       "summary_metrics": {
         "Points positifs gagnés": "107.94",
         "Points positifs possibles": "348",
@@ -13152,7 +13152,7 @@
   },
   {
     "id": "cr_20260424_1200_GEMINI_2_0_FLASH_THINKING_0_20260518_163138",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260424_1200_GEMINI_2_0_FLASH_THINKING_0_20260518_163138.json",
+    "source_file": "cr_audits/cr_20260424_1200_GEMINI_2_0_FLASH_THINKING_0_20260518_163138.json",
     "agent": "GEMINI_2_0_FLASH_THINKING_0",
     "model": "GEMINI_2_0_FLASH_THINKING_0",
     "effort": "",
@@ -13384,7 +13384,7 @@
       "error_rate": 0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260424_1200_GEMINI_2_0_FLASH_THINKING_0_20260518_163138.md",
+      "source_file": "cr_audits/cr_20260424_1200_GEMINI_2_0_FLASH_THINKING_0_20260518_163138.md",
       "summary_metrics": {
         "Points positifs gagnés": "116.0",
         "Points positifs possibles": "348",
@@ -13805,7 +13805,7 @@
   },
   {
     "id": "cr_20260518_1325_claude-opus-4-7_0.2_20260518_155824",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260518_1325_claude-opus-4-7_0.2_20260518_155824.json",
+    "source_file": "cr_audits/cr_20260518_1325_claude-opus-4-7_0.2_20260518_155824.json",
     "agent": "claude-opus-4-7_0.2",
     "model": "claude-opus-4-7",
     "effort": "high",
@@ -14015,7 +14015,7 @@
       "error_rate": 0
     },
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260518_1325_claude-opus-4-7_0.2_20260518_155824.md",
+      "source_file": "cr_audits/cr_20260518_1325_claude-opus-4-7_0.2_20260518_155824.md",
       "summary_metrics": {
         "Points positifs gagnés": "243.5",
         "Points positifs possibles": "348",
@@ -14473,7 +14473,7 @@
   },
   {
     "id": "cr_20260424_1631_CLAUDE_SONNET_4_6_1_20260424_165918",
-    "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260424_1631_CLAUDE_SONNET_4_6_1_20260424_165918.json",
+    "source_file": "cr_audits/cr_20260424_1631_CLAUDE_SONNET_4_6_1_20260424_165918.json",
     "agent": "CLAUDE_SONNET_4_6_1",
     "model": "CLAUDE_SONNET_4_6_1",
     "effort": "",
@@ -14523,7 +14523,7 @@
     "auth_e2e_steps": null,
     "performance": null,
     "report_markdown": {
-      "source_file": "/home/happykiller/sandbox/hexa-ai-benchmark/cr_audits/cr_20260424_1631_CLAUDE_SONNET_4_6_1_20260424_165918.md",
+      "source_file": "cr_audits/cr_20260424_1631_CLAUDE_SONNET_4_6_1_20260424_165918.md",
       "summary_metrics": {},
       "findings_count": 0,
       "top_findings": []

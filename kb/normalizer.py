@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .constants import ADMISSION_THRESHOLD, OVERRIDES_PATH, SCAN_DIRS
+from .constants import ADMISSION_THRESHOLD, OVERRIDES_PATH, SCAN_DIRS, repo_relative
 from .markdown_parser import extract_report_markdown, md_files_by_stem
 from .render import build_sections
 
@@ -159,7 +159,7 @@ def normalize_old(
     agent = agent_from_path(target)
     return {
         "id": Path(source_file).stem,
-        "source_file": source_file,
+        "source_file": repo_relative(source_file),
         "agent": agent,
         "model": str(meta.get("model") or agent),
         "effort": str(meta.get("effort") or ""),
@@ -302,7 +302,7 @@ def normalize_new(
 
     return {
         "id": Path(source_file).stem,
-        "source_file": source_file,
+        "source_file": repo_relative(source_file),
         "agent": agent,
         "model": str(trace_meta.get("model") or agent),
         "effort": str(trace_meta.get("effort") or ""),

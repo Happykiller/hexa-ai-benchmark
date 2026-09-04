@@ -1,7 +1,113 @@
+import json
 from pathlib import Path
 
-from kb.builder import _extract_report_markdown
+import pytest
+
+from kb import builder
+from kb.builder import KnowledgeBaseShrinkError, _extract_report_markdown, build_knowledge_base
+from kb.constants import ROOT_DIR
 from kb.normalizer import normalize
+
+
+def _entry(entry_id: str, **extra: object) -> dict:
+    return {"id": entry_id, "model": "m", "score_percentage": 80.0, **extra}
+
+
+@pytest.fixture
+def kb_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Redirect the builder at a throwaway knowledge_base/ so tests never touch the real one."""
+    monkeypatch.setattr(builder, "KB_DIR", tmp_path)
+    monkeypatch.setattr(builder, "DATA_PATH", tmp_path / "data.json")
+    monkeypatch.setattr(builder, "PROMPT_SRC", tmp_path / "absent.md")
+    return tmp_path
+
+
+def test_full_rebuild_refuses_to_drop_published_entries(
+    kb_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """cr_audits/ is gitignored: a missing raw report must not silently erase a published run."""
+    data_path = kb_dir / "data.json"
+    published = [_entry("cr_kept"), _entry("cr_orphan", model="gpt-5.6-sol")]
+    data_path.write_text(json.dumps(published), encoding="utf-8")
+    monkeypatch.setattr(builder, "load_all", lambda: [_entry("cr_kept")])
+
+    with pytest.raises(KnowledgeBaseShrinkError) as excinfo:
+        build_knowledge_base()
+
+    assert "cr_orphan" in str(excinfo.value)
+    assert "--allow-drop" in str(excinfo.value)
+    assert json.loads(data_path.read_text(encoding="utf-8")) == published
+
+
+def test_full_rebuild_drops_entries_when_explicitly_allowed(
+    kb_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data_path = kb_dir / "data.json"
+    data_path.write_text(json.dumps([_entry("cr_kept"), _entry("cr_orphan")]), encoding="utf-8")
+    monkeypatch.setattr(builder, "load_all", lambda: [_entry("cr_kept")])
+
+    build_knowledge_base(allow_drop=True)
+
+    assert [e["id"] for e in json.loads(data_path.read_text(encoding="utf-8"))] == ["cr_kept"]
+
+
+def test_full_rebuild_writes_when_no_entry_is_lost(
+    kb_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data_path = kb_dir / "data.json"
+    data_path.write_text(json.dumps([_entry("cr_kept")]), encoding="utf-8")
+    monkeypatch.setattr(builder, "load_all", lambda: [_entry("cr_kept"), _entry("cr_new")])
+
+    build_knowledge_base()
+
+    assert [e["id"] for e in json.loads(data_path.read_text(encoding="utf-8"))] == [
+        "cr_kept",
+        "cr_new",
+    ]
+
+
+def test_full_rebuild_on_a_fresh_checkout_is_not_blocked(
+    kb_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No data.json yet — nothing published, so nothing can be lost."""
+    monkeypatch.setattr(builder, "load_all", lambda: [_entry("cr_new")])
+
+    build_knowledge_base()
+
+    assert (kb_dir / "data.json").exists()
+
+
+def test_source_file_is_repo_relative_however_the_path_is_given() -> None:
+    """data.json is versioned: no machine-specific prefix, and a full rebuild (absolute paths)
+    must agree with --add (whatever the caller typed)."""
+    absolute = str(ROOT_DIR / "cr_audits" / "sample.json")
+    relative = "cr_audits/sample.json"
+
+    payload = {
+        "meta": {"target_path": "livrables/20260701_0638_x", "scoring_model": "fib_v2"},
+        "summary": {"percentage_net": 80, "bucket_scores": {}},
+        "artifacts": {},
+        "stats": {},
+    }
+
+    from_rebuild = normalize(dict(payload), absolute, None)
+    from_add = normalize(dict(payload), relative, None)
+
+    assert from_rebuild["source_file"] == "cr_audits/sample.json"
+    assert from_rebuild["source_file"] == from_add["source_file"]
+    assert from_rebuild["id"] == from_add["id"]
+
+
+def test_report_markdown_source_file_is_repo_relative(tmp_path: Path, monkeypatch) -> None:
+    report = ROOT_DIR / "cr_audits" / "_pytest_tmp_report.md"
+    report.write_text("# Rapport d'Audit par Indicateurs\n", encoding="utf-8")
+    try:
+        extracted = _extract_report_markdown(report)
+    finally:
+        report.unlink()
+
+    assert extracted is not None
+    assert extracted["source_file"] == "cr_audits/_pytest_tmp_report.md"
 
 
 def test_extract_report_markdown_collects_summary_and_findings(tmp_path: Path) -> None:
