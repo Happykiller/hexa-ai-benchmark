@@ -30,4 +30,10 @@ outillage ([`MOTEUR.md`](docs/KB/MOTEUR.md)) et historique des sujets
 
 Le projet et ses documents sont en **français**.
 
-À la fin d'une session ayant produit un apprentissage, lance `/capitalize`.
+En fin de session de travail, lance `/cloture` : il capitalise, committe et pousse tous les
+dépôts du projet, puis arrête les conteneurs. Pour capitaliser seul, sans refermer la session :
+`/capitalize`.
+
+Attention aux conteneurs : ils ne viennent pas du projet mais du **livrable audité**, et un audit
+même `--skip-dynamic` peut en laisser tourner. Un working tree propre ne prouve rien à ce sujet —
+`livrables/` et `cr_audits/` sont gitignorés.

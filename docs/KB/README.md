@@ -2,7 +2,7 @@
 titre: Base de connaissance — index racine
 type: index
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-04
 ---
 
 # Base de connaissance — hexa-ai-benchmark
@@ -21,4 +21,6 @@ premier commit.
 | [`MOTEUR.md`](MOTEUR.md) | Cartographie de l'outillage Claude (`.claude/`) : pourquoi chaque outil existe |
 | [`HISTORY.md`](HISTORY.md) | Index chronologique des sujets abordés en session |
 
-Alimentée en fin de session par le skill `/capitalize`.
+Alimentée en fin de session par le skill `/capitalize`, lui-même appelé par `/cloture` — le rituel
+qui referme la session (capitaliser, committer, pousser, arrêter les conteneurs). Voir
+[`MOTEUR.md`](MOTEUR.md).

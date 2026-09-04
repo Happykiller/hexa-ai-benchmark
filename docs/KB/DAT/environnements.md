@@ -45,6 +45,22 @@ le daemon le crée en `root:root`, ce qui casse ensuite le contexte de build
 Un score plafonné à 40 % doit toujours faire suspecter ce mécanisme avant de conclure que le
 livrable est mauvais.
 
+## Piège n°3 — un audit laisse sa stack en vie
+
+Un audit ne fait pas de `docker compose down` en sortie : la stack du livrable **continue de
+tourner** après la fin du run. Le nom du projet compose est celui du dossier de livrable
+(ex. `20260702_0705_claude-fable-5_10`), pas celui de ce dépôt.
+
+Deux raisons pour lesquelles ça passe inaperçu :
+
+1. `livrables/` et `cr_audits/` sont gitignorés, donc **le working tree reste propre** — rien ne
+   signale qu'un audit a eu lieu, encore moins qu'il a laissé quelque chose derrière lui ;
+2. même un audit `--skip-dynamic` en laisse, puisque les cibles `make` passent par Docker.
+
+Le contrôle est `docker compose ls` : toute stack dont le `CONFIG FILES` pointe dans `livrables/`
+est un résidu. C'est l'étape 6 du skill `/cloture`, et la raison pour laquelle un dépôt propre ne
+suffit pas à déclarer une session close.
+
 ## Tests de l'auditeur
 
 `pyproject.toml` déclare `testpaths = ["auditor/tests"]` et un `pythonpath = ["auditor", "."]` :

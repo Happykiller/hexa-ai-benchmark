@@ -2,7 +2,7 @@
 titre: Cerveau moteur — cartographie de .claude/
 type: dat
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-04
 ---
 
 # Cerveau moteur
@@ -18,13 +18,17 @@ projet, à committer et à refléter ici. Seul `.claude/settings.local.json` res
 | Skill | Quand l'utiliser | Fichier |
 |---|---|---|
 | `capitalize` | En fin de session ayant produit un apprentissage : décide ce qui rejoint la KB et ce qui mérite un outil. À ne pas lancer sur une session sans acquis — la KB ne doit grossir que de ce qui sert | `.claude/skills/capitalize/SKILL.md` |
+| `cloture` | Pour **refermer** une session de travail, pas seulement pour capitaliser : il appelle `/capitalize`, committe et pousse, puis arrête les conteneurs. Sa vraie valeur ici est la dernière étape — sur ce projet les conteneurs viennent des **livrables audités**, et un working tree propre ne prouve pas qu'il n'en traîne aucun | `.claude/skills/cloture/SKILL.md` |
+
+Les deux forment une chaîne : `/capitalize` transforme la session en acquis, `/cloture` s'assure
+que cet acquis est committé, poussé, et que rien ne tourne encore.
 
 ## Sous-agents
 
 | Agent | Pourquoi il est isolé du contexte principal | Fichier |
 |---|---|---|
 | `audit-runner` | Un audit complet est long et très bavard (sortie Docker, make, E2E). L'isoler évite de noyer le contexte principal sous des logs dont seul le récap final compte. Il porte aussi les gestes de préparation faciles à oublier (droits `faro`, prérequis Docker) | `.claude/agents/audit-runner.md` |
-| `kb-builder` | Le rebuild de la KB est mécanique et vérifiable seul : on veut le résultat (entrées régénérées, rebuild web nécessaire ou non), pas le déroulé | `.claude/agents/kb-builder.md` |
+| `kb-builder` | Le rebuild de la KB est mécanique et vérifiable seul : on veut le résultat (entrées régénérées, rebuild web nécessaire ou non), pas le déroulé. Il lui est explicitement interdit de contourner le refus de rebuild avec `--allow-drop` — la perte d'une entrée publiée est une décision d'opérateur | `.claude/agents/kb-builder.md` |
 
 Les deux correspondent aux deux moitiés du workflow d'audit décrit dans
 [`REGLES/workflows.md`](REGLES/workflows.md) : produire le rapport, puis le publier.
