@@ -2,7 +2,7 @@
 titre: Frontend de consultation de la KB
 type: dat
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-04
 ---
 
 # Frontend de la knowledge base
@@ -18,7 +18,16 @@ vers `knowledge_base/`.
 - modifier `src/` → il faut `npm run build:kb:web`.
 
 C'est ce qui rend l'ajout d'un run peu coûteux, et c'est pourquoi les scripts npm distinguent
-`build:kb:data`, `build:kb:web` et `build:kb` (les deux).
+`build:kb:data`, `build:kb:web` et `build:kb` (les deux). `dev:kb` régénère les données puis lance
+le serveur de dev — le raccourci pour itérer sur l'affichage d'un run qui vient de tomber.
+
+## Ce que le front affiche, et ce qu'il n'affiche pas
+
+Le détail d'une entrée expose le modèle de scoring (`Modèle scoring : fib_v1|fib_v2`), le cap
+éventuel (chip « Cap appliqué »), le coût et les corrections manuelles. Le **classement**, lui, ne
+montre que le score : deux runs notés sur des barèmes différents (v1 / v2) y apparaissent côte à
+côte sans distinction. C'est une limite connue — voir la loi n°9 dans
+[`../REGLES/lois.md`](../REGLES/lois.md).
 
 ## Sortie versionnée
 

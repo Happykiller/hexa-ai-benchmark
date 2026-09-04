@@ -2,14 +2,19 @@
 titre: Traçabilité de l'agent — ce qui est auto-déclaré
 type: daf
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-04
 ---
 
 # Traçabilité de l'agent
 
 L'agent évalué dépose un `audit_trace.json` à la racine de son livrable (format dans
-[`README.md`](../../../README.md)). Il vaut 10 % du score : présence, validité, cohérence
-summary ↔ phases (±10 %), et métriques d'efficacité (turns, tool calls, wall time).
+[`README.md`](../../../README.md)). Il vaut 10 % du score au titre de la phase 3 : présence,
+validité, cohérence summary ↔ phases (±10 %), et métriques d'efficacité (turns, tool calls,
+wall time).
+
+**Mais sa portée réelle est de 22 %.** Depuis le pilier Coût (scoring v2), les compteurs de tokens
+du même fichier pilotent aussi les 12 % de la phase 6. Un fichier absent ou menteur ne coûte donc
+plus 10 % mais 22 % — près d'un quart du score total repose sur du déclaratif.
 
 ## L'invariant à ne jamais oublier
 
@@ -28,7 +33,21 @@ Conséquences opérationnelles :
 Ne pas « corriger » ce design en supprimant la phase 3 : la discipline déclarative est justement
 ce qu'on veut mesurer. Mais ne jamais présenter ces chiffres comme des faits mesurés.
 
+## Le cas particulier du coût
+
+Le pilier Coût mélange déclaré et mesuré, et la nuance compte :
+
+- **les tokens sont déclarés** par l'agent — donc falsifiables comme le reste du fichier ;
+- **le prix vient de la table de l'auditeur** (`MODEL_PRICING`) — donc le montant $ ne peut pas
+  être auto-déclaré, seulement le volume qui l'alimente.
+
+Un agent qui sous-déclare ses tokens gagne des points sur ce pilier. Le garde-fou n'est pas
+technique : les compteurs sont **vérifiables par l'opérateur** dans les outils de session, et
+c'est à lui de recouper avant de publier un run frugal suspect.
+
 ## À COMPLÉTER
 
 - Existe-t-il une intention de mesurer côté auditeur (wall time réel du run) pour recouper la
   déclaration ?
+- Faut-il un contrôle de vraisemblance tokens ↔ tool calls ↔ wall time, pour détecter une
+  sous-déclaration grossière sans exiger de mesure externe ?

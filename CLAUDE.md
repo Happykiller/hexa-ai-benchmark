@@ -2,7 +2,7 @@
 
 Framework d'évaluation de la capacité des agents IA à livrer une application **opérationnelle** :
 un auditeur Python note un livrable soumis par un agent (Todo List hexagonale multi-bases,
-TypeScript/GraphQL) sur quatre piliers, et publie le résultat dans une knowledge base web.
+TypeScript/GraphQL) sur cinq piliers, et publie le résultat dans une knowledge base web.
 
 Ce fichier est le **point d'entrée unique** des instructions agent de ce dépôt. Il n'y a plus de
 `AGENTS.md` / `CODEX.md` / `GEMINI.md` : le projet est unifié sur Claude Code.

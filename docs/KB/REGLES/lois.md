@@ -2,7 +2,7 @@
 titre: Lois — invariants non négociables
 type: regle
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-04
 ---
 
 # Lois du projet
@@ -30,6 +30,9 @@ Publier sans vérifier, c'est diffamer un modèle.
 ## 4. Ne jamais présenter les métriques d'`audit_trace.json` comme mesurées
 
 Elles sont **auto-déclarées par l'agent audité**. Elles mesurent la discipline, pas la performance.
+Depuis le pilier Coût (scoring v2), cela couvre aussi les **compteurs de tokens**, donc 22 % du
+score et non plus 10 %. Le montant $ affiché, lui, vient de la table de prix de l'auditeur : il est
+calculé, pas déclaré — mais il est calculé *sur* une déclaration.
 → [`../DAF/tracabilite-agent.md`](../DAF/tracabilite-agent.md)
 
 ## 5. Ne jamais recopier du code dans la KB
@@ -52,3 +55,20 @@ permissions propres à la machine.
 Conséquence : ajouter ou modifier un skill/agent/hook est un **changement de projet**, à committer
 et à refléter dans [`../MOTEUR.md`](../MOTEUR.md). Ne rien y mettre de spécifique à une machine
 (chemins absolus, secrets, préférences personnelles).
+
+## 8. Ne jamais faire disparaître une entrée publiée de la KB
+
+`data.json` est versionné, `cr_audits/` ne l'est pas : une entrée dont le rapport brut a disparu
+n'est récupérable **nulle part**. Un rebuild complet qui la supprimerait est refusé par le builder ;
+`--allow-drop` n'est légitime qu'après avoir relu le diff et décidé de la perte.
+
+Un run publié est un résultat opposable à un modèle. Le retirer sans trace, c'est réécrire le
+palmarès.
+→ [`../DAT/kb-magasin-donnees.md`](../DAT/kb-magasin-donnees.md)
+
+## 9. Ne jamais comparer des scores v1 et v2 sans le dire
+
+Les barèmes diffèrent (50/25/15/10 sans coût, contre 43/22/13/10/12) et les règles de plafond aussi.
+Le modèle de scoring est affiché dans le détail de chaque entrée ; c'est à celui qui commente le
+palmarès de ne pas mettre deux barèmes sur la même ligne.
+→ [`../DAF/piliers-notation.md`](../DAF/piliers-notation.md)

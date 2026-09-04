@@ -6,16 +6,26 @@ Framework d'évaluation industrielle de la capacité des agents IA à livrer des
 
 ## Objectifs
 
-Le benchmark mesure quatre piliers :
+Le benchmark mesure cinq piliers (scoring **v2**, défaut depuis le 2026-06-08) :
 
 | Pilier | Poids | Ce qui est évalué |
 |---|---|---|
-| Opérationnalité | 50% | Build, tests, Docker, E2E fonctionnel, auth E2E, couverture |
-| Architecture | 25% | Hexagonal, auth statique, injection de dépendances, double persistance |
-| Qualité logicielle | 15% | Typage TypeScript (`any`), documentation README |
+| Opérationnalité | 43% | Build, tests, Docker, E2E fonctionnel, auth E2E, couverture |
+| Architecture | 22% | Hexagonal, auth statique, injection de dépendances, double persistance |
+| Qualité logicielle | 13% | Typage TypeScript (`any`), documentation README |
 | Discipline & Traçabilité | 10% | `audit_trace.json` valide, efficacité de session |
+| Coût & Efficience | 12% | Coût $ de la session = tokens déclarés × table de prix de l'auditeur |
 
-Un bonus/malus (+5 max / -10 max) s'applique en sus pour les initiatives proactives et les over-engineering détectés.
+Les poids historiques **50 / 25 / 15 / 10 sans pilier Coût** sont le scoring **v1**, conservé pour
+rejouer à l'identique les runs d'avant juin : `--scoring v1`. Les deux jeux de poids sont dans
+`auditor/scoring_config.py`, et chaque entrée de la KB porte le modèle qui l'a produite
+(`fib_v1` / `fib_v2`) — **des scores v1 et v2 ne sont pas directement comparables**.
+
+Un bonus/malus s'applique par-dessus les piliers (+5 max / -10 max) pour les initiatives proactives
+et l'over-engineering détecté. En v2 il n'est **pas** symétrique : les malus se soustraient en
+plein, puis le bonus ne comble que **la moitié de l'écart restant à 100 %**
+(`BONUS_HEADROOM_FRACTION`). Un livrable imparfait s'approche de 100 % sans jamais l'atteindre —
+100 % est réservé à une base sans défaut.
 
 ---
 
@@ -57,13 +67,15 @@ hexa-ai-benchmark/
 ├── src/                  # Frontend React/Vite pour l'affichage de la KB
 ├── package.json          # Scripts npm de build du frontend KB
 ├── vite.config.js        # Build du frontend vers knowledge_base/
-├── cr_audits/            # Rapports JSON/MD des audits lancés depuis la racine
+├── cr_audits/            # Rapports JSON/MD des audits lancés depuis la racine (NON versionné)
 ├── knowledge_base/
 │   ├── index.html        # Build React statique
 │   ├── assets/           # Bundles front générés par Vite
-│   └── data.json         # Entrées normalisées de tous les audits
-├── livrables/            # Dossiers soumis par les agents
-└── prompts/              # Prompt d'évaluation remis aux agents
+│   └── data.json         # Entrées normalisées de tous les audits (versionné)
+├── livrables/            # Dossiers soumis par les agents (NON versionné)
+├── prompts/              # Prompt d'évaluation remis aux agents
+├── docs/KB/              # Base de connaissance du projet (mémoire longue)
+└── .claude/              # Outillage agent versionné : skills/, agents/, hooks/
 ```
 
 ---
@@ -77,15 +89,30 @@ pip install -r auditor/requirements.txt
 
 # Audit complet (démarre Docker, exécute l'E2E)
 python3 auditor/main.py analyze livrables/<NOM_DU_LIVRABLE>
-
-# Audit statique uniquement (sans Docker)
-python3 auditor/main.py analyze livrables/<NOM_DU_LIVRABLE> --skip-dynamic
 ```
+
+**Options de `analyze` :**
+
+| Option | Effet |
+|---|---|
+| `--skip-dynamic` | Saute Docker, E2E, auth E2E et benchmark de perf |
+| `--force-dynamic` | Lance `make test`, Docker, E2E et perf **même si `make build` échoue** |
+| `--fresh-docker` | `docker compose down -v` avant `make start` (repart de volumes vides) |
+| `--scoring v1\|v2` | Règle de plafond du score final (défaut `v2` ; `v1` rejoue les scores historiques) |
+
+> ⚠️ **`--skip-dynamic` n'est pas un mode « sans Docker ».** `make setup`, `make lint`, `make build`
+> et `make test` s'exécutent quand même — or ces cibles passent par Docker dans le contrat livrable.
+> Sur une machine sans démon Docker, `make build` échoue et **le run est plafonné à 40 %**, ce qui
+> ressemble à un mauvais livrable. `--skip-dynamic` ne saute que la stack démarrée, l'E2E et la perf.
 
 **Sorties générées :**
 - `cr_audits/cr_<nom>_<timestamp>.md` — rapport lisible
 - `cr_audits/cr_<nom>_<timestamp>.json` — données brutes d'audit
 - `<livrable>/audit_report_<timestamp>.md` — copie dans le dossier du livrable
+
+`HEXA_AUDIT_OUTPUT_DIR` redirige les deux premières sorties ailleurs que dans `cr_audits/` (utile
+pour un run de test qu'on ne veut pas voir remonter dans la KB) ; `HEXA_AUDIT_LOG_LEVEL` règle la
+verbosité.
 
 ---
 
@@ -101,9 +128,16 @@ La KB est un **magasin de données** dérivé, pas un simple snapshot :
   à l'unité. Le coût estimé ($, tokens, pts/$) y est surfacé et affiché dans le détail ;
   les entrées corrigées portent une section « Corrections manuelles ».
 
+> ⚠️ **`cr_audits/` n'est pas versionné, `data.json` l'est.** Un rapport brut supprimé, ou produit
+> sur une autre machine, rend son entrée publiée irrécupérable par un rebuild complet. Le builder
+> **refuse donc d'écrire** si le rebuild ferait disparaître des entrées déjà publiées, et liste
+> lesquelles. Dans ce cas : restaurer les `cr_*.json` manquants, ou passer par `--add`. `--allow-drop`
+> force la suppression — à ne faire qu'après avoir relu `git diff knowledge_base/data.json`.
+
 ```bash
 python3 scripts/build_kb.py                     # rebuild complet (tous les cr_audits)
 python3 scripts/build_kb.py --add cr_audits/cr_<...>.json   # ajout/maj d'UNE entrée (upsert par id)
+python3 scripts/build_kb.py --allow-drop        # rebuild complet EN ACCEPTANT de perdre des entrées
 
 # Corriger une métadonnée : éditer knowledge_base/overrides.json, ex.
 #   { "cr_20260529_1322_GPT5.5-medium_20260529_161440": { "model": "gpt-5.4-codex" } }
@@ -162,6 +196,16 @@ Chaque vérification produit un **indicateur** pondéré selon la séquence de F
 - Bonus : gestion d'erreurs centralisée, validation d'env (zod/envalid), healthcheck, pagination Relay, logger structuré
 - Malus : AbstractFactory (over-abstraction), fragmentation extrême (>30% de fichiers < 10 lignes), attribut `version` Docker obsolète, fichiers vides/placeholder, tests sans assertion ou non exécutés, secrets/`.env` commités, vulnérabilités npm high/critical
 
+**Phase 5 — Statistiques techniques**
+- Mesures du codebase rangées en bandes : nombre de fichiers, fichiers TS, LOC, fichiers de tests
+- Ces indicateurs sont **hors buckets** : ils informent le rapport sans peser sur les cinq piliers
+
+**Phase 6 — Coût & Efficience** (scoring v2)
+- Coût $ de la session = tokens déclarés dans `audit_trace.json` × `MODEL_PRICING`
+- Bandes : ≤ $0.50 = 100 %, ≤ $1.50 = 75 %, ≤ $3 = 50 %, ≤ $6 = 25 %, au-delà 0
+- Modèle absent de la table de prix ⇒ repli sur le **nombre total de tokens** (mêmes paliers en volume), pour ne pas pénaliser l'agent d'une lacune de l'opérateur
+- Tokens absents du `audit_trace.json` ⇒ **0 sur les 12 %** du pilier
+
 ---
 
 ## Format `audit_trace.json`
@@ -171,13 +215,16 @@ L'agent doit fournir un fichier `audit_trace.json` à la racine de son livrable 
 ```json
 {
   "meta": {
-    "prompt_version": "2605291055",
+    "prompt_version": "2606082200",
     "model": "claude-sonnet-4-6"
   },
   "summary": {
     "total_turns": 12,
     "total_tool_calls": 45,
-    "total_wall_time_seconds": 1240
+    "total_wall_time_seconds": 1240,
+    "total_input_tokens": 200000,
+    "total_output_tokens": 50000,
+    "total_cached_input_tokens": 0
   },
   "phases": [
     {
@@ -191,6 +238,15 @@ L'agent doit fournir un fichier `audit_trace.json` à la racine de son livrable 
 ```
 
 Les valeurs du `summary` doivent être cohérentes avec la somme des phases (tolérance ±10%).
+
+`total_input_tokens` / `total_output_tokens` / `total_cached_input_tokens` alimentent le pilier
+Coût : **les omettre coûte les 12 % de ce pilier**. C'est l'agent qui déclare ces compteurs — le
+prix, lui, vient de la table de l'auditeur, donc le montant $ n'est pas auto-déclarable. Voir
+[`docs/KB/DAF/tracabilite-agent.md`](docs/KB/DAF/tracabilite-agent.md) sur la portée exacte de
+l'auto-déclaration.
+
+La référence normative remise aux agents reste [`prompts/evaluation_prompt.md`](prompts/evaluation_prompt.md) :
+en cas de divergence avec ce README, c'est l'énoncé qui fait foi.
 
 ---
 

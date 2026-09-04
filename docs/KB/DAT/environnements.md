@@ -2,7 +2,7 @@
 titre: Environnements — installer, lancer, tester
 type: dat
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-04
 ---
 
 # Environnements
@@ -17,8 +17,17 @@ succès réelles.
 - **Docker + Docker Compose** fonctionnels : l'audit dynamique démarre la stack du livrable
   (API + MongoDB + MySQL) et sonde `http://localhost:4000/graphql`.
 - Le **port 4000 libre** : l'endpoint est en dur dans le profil de défi, pas configurable.
-- `--skip-dynamic` retire la totalité de ces prérequis (analyse statique seule) — c'est le mode à
-  utiliser pour itérer sur les checkers sans payer 10 minutes de Docker.
+- `--skip-dynamic` **ne retire pas le besoin de Docker.** Il saute la stack démarrée, l'E2E et la
+  perf, mais `make setup|lint|build|test` s'exécutent quand même — et ces cibles passent par Docker
+  dans le contrat livrable. Sans démon Docker, `make build` échoue et le run est plafonné à 40 %.
+  C'est le mode pour itérer sur les checkers sans payer les minutes d'E2E, pas un mode hors-ligne.
+
+## Piège n°0 — un cap à 40 % venu de l'environnement
+
+Trois mécanismes distincts produisent un 40 % qui ne dit rien du livrable : l'absence de Docker
+avec `--skip-dynamic` (ci-dessus), les bind-mounts `root:root` (piège n°2), et un port 4000 déjà
+occupé. Avant de publier un run à 40 %, écarter les trois — c'est une loi du projet, voir
+[`../REGLES/lois.md`](../REGLES/lois.md).
 
 ## Piège n°1 — propriété des livrables
 

@@ -2,7 +2,7 @@
 titre: Le défi imposé aux agents
 type: daf
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-04
 ---
 
 # Le défi imposé aux agents
@@ -29,9 +29,12 @@ est le cœur fonctionnel : c'est la seule partie du sujet qu'aucun scaffolding n
 
 ## Version du prompt
 
-L'énoncé est versionné (`prompt_version`, ex. `2605291055`) et cette version est attendue dans
-l'`audit_trace.json`. Deux runs de prompts différents ne sont **pas comparables** : c'est ce champ
-qui permet de le savoir.
+L'énoncé est versionné (`prompt_version`) et cette version est attendue dans l'`audit_trace.json`.
+Deux runs de prompts différents ne sont **pas comparables** : c'est ce champ qui permet de le savoir.
+
+La version courante est **`2606082200`**, déclarée à deux endroits qui doivent rester alignés :
+l'en-tête de `prompts/evaluation_prompt.md` et `prompt_version` dans le `ChallengeProfile`
+(`auditor/challenges.py`). Ne pas recopier ce numéro ailleurs dans la KB — il se périme.
 
 ## À COMPLÉTER
 

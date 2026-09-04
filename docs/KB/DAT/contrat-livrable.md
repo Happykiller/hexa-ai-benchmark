@@ -2,7 +2,7 @@
 titre: Contrat du livrable — ce que l'auditeur exige
 type: dat
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-04
 ---
 
 # Contrat du livrable
@@ -20,6 +20,7 @@ diagnostiquer.
 | `make build` | Compilation TypeScript via Docker |
 | `make test` | Tests Jest unitaires/intégration via Docker |
 | `make start` | Démarrer Docker Compose (API + MongoDB + MySQL) |
+| `down` / `stop` / `clean` / `teardown` / `destroy` | Cible de **teardown** contenant `docker compose down` — scorée par `MakefileTeardownChecker` |
 
 `make build` en échec ⇒ score plafonné à 40 % (voir
 [`../DAF/piliers-notation.md`](../DAF/piliers-notation.md)).
@@ -28,16 +29,30 @@ diagnostiquer.
 
 ```
 livrables/<HORODATAGE_MODELE_EFFORT>/
-├── audit_trace.json
-├── Makefile
-├── docker-compose.yml        # services : api, mongo, mysql
+├── audit_trace.json          # dont les compteurs de tokens (pilier Coût)
+├── Makefile                  # + une cible de teardown
+├── docker-compose.yml        # services : api, mongodb, mysql (sans champ version:)
 ├── package.json
 ├── tsconfig.json             # strict requis — et réellement activé, pas juste présent
 ├── src/{core,adapters,infrastructure,entrypoints}/
 └── README.md                 # sections Architecture, Installation, API, Docker
 ```
 
-## Les quatre hypothèses dures
+## Ports hôte imposés
+
+`ComposePortsChecker` vérifie le mapping exact déclaré dans le profil de défi
+(`db_port_contract`) :
+
+| Service | Mapping attendu |
+|---|---|
+| `mongodb` | `47017:27017` |
+| `mysql` | `43306:3306` |
+
+Ces ports décalés évitent de heurter une base déjà lancée sur la machine d'audit. L'API, elle,
+joint les bases par **nom de service compose** sur le réseau interne (`mongodb:27017`,
+`mysql:3306`) — jamais par `localhost`.
+
+## Les cinq hypothèses dures
 
 1. **`src/core/` n'importe rien** de `adapters/`, `infrastructure/` ou `entrypoints/`. C'est *la*
    mesure de conformité hexagonale ; toute violation est comptée comme échec architectural.
@@ -48,6 +63,10 @@ livrables/<HORODATAGE_MODELE_EFFORT>/
    [`../DAF/tracabilite-agent.md`](../DAF/tracabilite-agent.md).
 4. **Le README a du contenu réel** sous chaque section requise — un titre vide ne compte pas. Le
    checker vérifie la substance, pas la présence du heading.
+5. **`summary` porte les compteurs de tokens** (`total_input_tokens`, `total_output_tokens`,
+   `total_cached_input_tokens`). Leur absence ⇒ 0 sur le pilier Coût, soit **12 % perdus** sans
+   qu'aucun contrôle technique n'ait échoué. C'est le piège le plus coûteux du contrat, parce
+   qu'il ne ressemble pas à un défaut du code.
 
 ## Détails qui piègent
 

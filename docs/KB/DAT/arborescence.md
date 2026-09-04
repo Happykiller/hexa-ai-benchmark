@@ -2,7 +2,7 @@
 titre: Arborescence — rôle des dossiers de premier niveau
 type: dat
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-04
 ---
 
 # Arborescence
@@ -31,7 +31,12 @@ est la première source d'erreur sur ce dépôt.
 Le fait que `livrables/` et `cr_audits/` soient hors dépôt est structurant : **les données brutes
 d'audit ne survivent que sur la machine qui a lancé l'audit**. Ce qui est partagé, c'est le dérivé
 (`knowledge_base/data.json`). D'où l'importance de la chaîne décrite dans
-[kb-magasin-donnees.md](kb-magasin-donnees.md).
+[kb-magasin-donnees.md](kb-magasin-donnees.md), et du garde-fou qui empêche un rebuild d'effacer
+une entrée dont le brut a disparu.
+
+Le builder scanne **deux** emplacements de rapports (`kb/constants.py:SCAN_DIRS`) : `cr_audits/` à
+la racine et `auditor/cr_audits/`, un vestige des premiers runs lancés depuis `auditor/`. Le second
+est vide aujourd'hui mais reste lu — un `cr_*.json` qui y traîne remonterait dans la KB.
 
 ## Divers
 
@@ -40,3 +45,5 @@ d'audit ne survivent que sur la machine qui a lancé l'audit**. Ce qui est parta
 - `CLAUDE.md` — **le** point d'entrée des instructions agent, versionné. Il a remplacé `AGENTS.md`
   (unification sur Claude Code, 2026-07-27) : voir [`../REGLES/lois.md`](../REGLES/lois.md).
 - `docs/KB/` — cette base de connaissance, versionnée.
+- `.claude/` — outillage agent versionné (`skills/`, `agents/`, `hooks/`), sauf
+  `settings.local.json` qui reste local : voir [`../REGLES/lois.md`](../REGLES/lois.md).
