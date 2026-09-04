@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Accueil de session pour un projet Claude Code (hook SessionStart)."""
+
 import json
 import os
 import re
@@ -146,12 +147,16 @@ def main():
     project_dir = resolve_project_dir(stdin_json)
     master, skills, agents, mcp_servers, commands = gather(project_dir)
     context = build_context(master, skills, agents, mcp_servers, commands)
-    print(json.dumps({
-        "hookSpecificOutput": {
-            "hookEventName": "SessionStart",
-            "additionalContext": context,
-        }
-    }))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "SessionStart",
+                    "additionalContext": context,
+                }
+            }
+        )
+    )
 
 
 if __name__ == "__main__":
