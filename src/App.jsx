@@ -11,6 +11,18 @@ const BUCKET_LABELS = {
 const DATA_URL = import.meta.env.DEV ? "/knowledge_base/data.json" : "./data.json";
 const PROMPT_URL = import.meta.env.DEV ? "/knowledge_base/evaluation_prompt.md" : "./evaluation_prompt.md";
 
+// knowledge_base/data.js (écrit par kb/builder.py) embarque entrées + énoncé dans un <script>
+// classique : c'est ce qui permet d'ouvrir index.html en file://, où tout fetch est bloqué.
+// Sans lui (mode dev, ancien build), on retombe sur le fetch HTTP.
+const EMBEDDED = typeof window !== "undefined" ? window.__HEXA_KB__ : undefined;
+
+async function loadPrompt() {
+  if (typeof EMBEDDED?.prompt === "string") return EMBEDDED.prompt;
+  const r = await fetch(PROMPT_URL);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.text();
+}
+
 function parseMarkdown(text) {
   const escHtml = (s) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -102,8 +114,7 @@ function PromptModal({ onClose }) {
   const overlayRef = useRef(null);
 
   useEffect(() => {
-    fetch(PROMPT_URL)
-      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
+    loadPrompt()
       .then(setContent)
       .catch((e) => setError(e.message));
   }, []);
@@ -542,8 +553,7 @@ export function App() {
     try {
       let promptContent = "";
       try {
-        const r = await fetch(PROMPT_URL);
-        if (r.ok) promptContent = await r.text();
+        promptContent = await loadPrompt();
       } catch {}
       const now = new Date();
       const datetime = fmtDatetime(now);
@@ -566,11 +576,14 @@ export function App() {
     async function load() {
       setStatus("loading");
       try {
-        const response = await fetch(DATA_URL, { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+        let payload = EMBEDDED?.entries;
+        if (!Array.isArray(payload)) {
+          const response = await fetch(DATA_URL, { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          payload = await response.json();
         }
-        const payload = await response.json();
         if (cancelled) return;
         setEntries(payload);
         setStatus("ready");

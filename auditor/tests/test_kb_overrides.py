@@ -114,3 +114,19 @@ def test_full_rebuild_refuses_to_drop_published_entries(tmp_path, monkeypatch):
 
     entries = builder.build_knowledge_base(force=True)
     assert [e["id"] for e in entries] == ["cr_local_only"]
+
+
+def test_upsert_also_writes_embedded_js_for_file_protocol(tmp_path, monkeypatch):
+    data_path = tmp_path / "data.json"
+    monkeypatch.setattr(builder, "DATA_PATH", data_path)
+    cr_file = tmp_path / "cr_20990101_0000_test_1.0_20990101_000000.json"
+    cr_file.write_text(json.dumps(_minimal_cr()), encoding="utf-8")
+
+    builder.upsert_entry(str(cr_file))
+
+    js = (tmp_path / "data.js").read_text(encoding="utf-8")
+    prefix = "window.__HEXA_KB__ = "
+    assert js.startswith(prefix) and js.rstrip().endswith(";")
+    payload = json.loads(js[len(prefix) :].rstrip().rstrip(";"))
+    assert payload["entries"] == json.loads(data_path.read_text(encoding="utf-8"))
+    assert "</script" not in js.lower()
