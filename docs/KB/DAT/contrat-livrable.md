@@ -30,7 +30,7 @@ diagnostiquer.
 livrables/<HORODATAGE_MODELE_EFFORT>/
 ├── audit_trace.json
 ├── Makefile
-├── docker-compose.yml        # services : api, mongo, mysql
+├── docker-compose.yml        # services : api, mongodb, mysql (ports hôte 4000 / 47017 / 43306)
 ├── package.json
 ├── tsconfig.json             # strict requis — et réellement activé, pas juste présent
 ├── src/{core,adapters,infrastructure,entrypoints}/

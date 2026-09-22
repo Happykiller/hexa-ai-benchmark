@@ -304,7 +304,9 @@ def normalize_new(
         "id": Path(source_file).stem,
         "source_file": source_file,
         "agent": agent,
-        "model": str(trace_meta.get("model") or agent),
+        # "claude-opus-5[1m]" (Claude Code context-window tag) → "claude-opus-5", so one
+        # model is not split into two rows of the "Modèles" view.
+        "model": re.sub(r"\[[^\]]*\]$", "", str(trace_meta.get("model") or agent)).strip(),
         "effort": str(trace_meta.get("effort") or ""),
         "prompt_version": str(trace_meta.get("prompt_version") or ""),
         "session_id": session_from_path(target),

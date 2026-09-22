@@ -615,16 +615,29 @@ class E2EFunctionalTester:
         )
 
         # C. A dependsOn referencing a non-existent task must be rejected at creation.
-        ghost = self._post(
-            'mutation { createTask(input: {title: "Adv ghost", dependsOn: ["00000000-ghost-id-0000"]}) { id } }'
-        )
-        ghost_id = self._extract_path(ghost, ["data", "createTask", "id"])
-        ghost_ok = ghost_id is None
+        #    The ids are *well-formed* (Mongo ObjectId and UUID shapes) so that a mere
+        #    id-format cast error cannot pass for an existence check; a GraphQL error is
+        #    required as positive evidence (a crashed/unreachable API proves nothing).
+        ghost_ok, ghost_err = True, None
+        for ghost_ref in ("0123456789abcdef01234567", "00000000-0000-4000-8000-000000000000"):
+            ghost = self._post(
+                f'mutation {{ createTask(input: {{title: "Adv ghost", dependsOn: ["{ghost_ref}"]}}) {{ id }} }}'
+            )
+            ghost_id = self._extract_path(ghost, ["data", "createTask", "id"])
+            if ghost_id is not None:
+                ghost_ok, ghost_err = (
+                    False,
+                    f"Tâche créée avec une dépendance inexistante ({ghost_ref})",
+                )
+                break
+            if self._extract_graphql_error_message(ghost) is None:
+                ghost_ok, ghost_err = False, "Aucune erreur GraphQL renvoyée (rejet non prouvé)"
+                break
         results.append(
             {
                 "step": "Adversarial: Dépendance inexistante rejetée",
                 "success": ghost_ok,
-                "error": None if ghost_ok else "Tâche créée avec une dépendance inexistante",
+                "error": ghost_err,
             }
         )
 
@@ -636,8 +649,17 @@ class E2EFunctionalTester:
                 f'mutation {{ updateTaskStatus(id: "{ts}", status: "BANANA") {{ id status }} }}'
             )
             new_status = self._extract_path(resp, ["data", "updateTaskStatus", "status"])
-            status_ok = new_status is None  # rejected rather than accepting an arbitrary status
-            status_err = None if status_ok else f"Statut arbitraire accepté ({new_status})"
+            rejected_with_error = self._extract_graphql_error_message(resp) is not None
+            # rejected rather than accepting an arbitrary status — with a GraphQL error
+            # as evidence (an unreachable API must not pass as "rejected").
+            status_ok = new_status is None and rejected_with_error
+            status_err = (
+                None
+                if status_ok
+                else f"Statut arbitraire accepté ({new_status})"
+                if new_status is not None
+                else "Aucune erreur GraphQL renvoyée (rejet non prouvé)"
+            )
         results.append(
             {
                 "step": "Adversarial: Statut invalide rejeté",
@@ -918,15 +940,35 @@ class AuthTester:
         }
         auth_probe = "{ tasks { id } }"  # requires authentication per the spec
 
+        # Positive control: the very same probe must SUCCEED with the genuine token.
+        # Without it, "forged token rejected" is indistinguishable from "the tasks query
+        # is broken for everyone" (or the API is down) — both would score as secure.
+        control_ok = bool(self.token) and isinstance(
+            self._extract_path(self._post(auth_probe, token=self.token), ["data", "tasks"]),
+            list,
+        )
+        control_err = "Contrôle positif impossible : `tasks` échoue aussi avec un token valide"
+
+        def _forged_rejected(resp: dict[str, Any]) -> bool:
+            return (
+                control_ok
+                and self._extract_path(resp, ["data", "tasks"]) is None
+                and self._extract_graphql_error_message(resp) is not None
+            )
+
         # 6. alg:none token must be rejected (alg-confusion bypass)
         none_token = _mint_jwt(forged_payload, alg="none")
         resp_none = self._post(auth_probe, token=none_token)
-        none_rejected = self._extract_path(resp_none, ["data", "tasks"]) is None
+        none_rejected = _forged_rejected(resp_none)
         results.append(
             {
                 "step": "Auth: Token alg=none rejeté",
                 "success": none_rejected,
-                "error": None if none_rejected else "Token alg=none accepté (faille critique)",
+                "error": None
+                if none_rejected
+                else control_err
+                if not control_ok
+                else "Token alg=none accepté (faille critique)",
             }
         )
 
@@ -935,13 +977,15 @@ class AuthTester:
             forged_payload, alg="HS256", secret="auditor-not-the-real-secret-" + uuid.uuid4().hex
         )
         resp_foreign = self._post(auth_probe, token=foreign_token)
-        foreign_rejected = self._extract_path(resp_foreign, ["data", "tasks"]) is None
+        foreign_rejected = _forged_rejected(resp_foreign)
         results.append(
             {
                 "step": "Auth: Signature étrangère rejetée",
                 "success": foreign_rejected,
                 "error": None
                 if foreign_rejected
+                else control_err
+                if not control_ok
                 else "Token signé avec un secret étranger accepté",
             }
         )
@@ -965,13 +1009,20 @@ class AuthTester:
             f'mutation {{ register(email: "{weak_email}", password: "123") {{ token }} }}'
         )
         weak_token = self._extract_path(resp_weak, ["data", "register", "token"])
+        weak_error = self._extract_graphql_error_message(resp_weak)
+        # Meaningful only if a normal registration works (step 2) and the refusal comes
+        # back as a GraphQL error — a broken/unreachable register must not pass as policy.
+        weak_ok = reg_token is not None and weak_token is None and weak_error is not None
         results.append(
             {
                 "step": "Auth: Mot de passe faible refusé",
-                "success": weak_token is None,
+                "success": weak_ok,
                 "error": "Mot de passe faible accepté"
                 if weak_token is not None
-                else self._extract_graphql_error_message(resp_weak),
+                else None
+                if weak_ok
+                else weak_error
+                or "Rejet non prouvé (inscription de référence en échec ou aucune erreur GraphQL)",
             }
         )
 

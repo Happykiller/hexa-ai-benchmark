@@ -5,6 +5,7 @@ const BUCKET_LABELS = {
   architecture: "Archi",
   quality: "Qual",
   traceability: "Traca",
+  cost: "Coût",
 };
 
 const DATA_URL = import.meta.env.DEV ? "/knowledge_base/data.json" : "./data.json";
@@ -331,7 +332,7 @@ function EntryRow({ entry, expanded, onOpenInfo, onToggle }) {
         <td className={`score ${scoreClass(entry.score_percentage)}`}>{entry.score_percentage}%</td>
         <td>
           <div className="bucket-list">
-            {Object.keys(BUCKET_LABELS).map((bucketKey) => {
+            {Object.keys(BUCKET_LABELS).filter((bucketKey) => entry.bucket_scores?.[bucketKey]).map((bucketKey) => {
               const bucket = formatBucket(entry, bucketKey);
               return (
                 <span
@@ -373,7 +374,7 @@ function buildExportHTML(entries, promptContent, datetime) {
   const entriesJson = JSON.stringify(entries);
   const promptHtml = promptContent ? parseMarkdown(promptContent) : "";
 
-  const BUCKET_LABELS = { operationality: "Opé", architecture: "Archi", quality: "Qual", traceability: "Traca" };
+  const BUCKET_LABELS = { operationality: "Opé", architecture: "Archi", quality: "Qual", traceability: "Traca", cost: "Coût" };
 
   const css = `
 :root{--ok:#1b7f54;--warn:#a15a08;--ko:#bf2f21;--na:#6e6458;--accent:#1f4f8f;
@@ -441,7 +442,7 @@ var BL=${JSON.stringify(BUCKET_LABELS)};
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function sc(p){return p>=70?'ok':p>=40?'warn':'ko';}
 function fmtD(s){var n=parseFloat(s);if(!isFinite(n)||n<=0)return '—';return(Math.round(n/60*10)/10)+' min';}
-function bkts(e){var o='';for(var k in BL){var b=(e.bucket_scores||{})[k]||{};var n=parseFloat(b.normalized_score)||0;var w=parseFloat(b.weight)||0;var p=w?Math.round(n/w*100):0;o+='<span class="bucket '+sc(p)+'" title="'+n.toFixed(1)+'/'+w+'">'+BL[k]+'&nbsp;'+p+'%</span>';}return o;}
+function bkts(e){var o='';for(var k in BL){if(!(e.bucket_scores||{})[k])continue;var b=(e.bucket_scores||{})[k];var n=parseFloat(b.normalized_score)||0;var w=parseFloat(b.weight)||0;var p=w?Math.round(n/w*100):0;o+='<span class="bucket '+sc(p)+'" title="'+n.toFixed(1)+'/'+w+'">'+BL[k]+'&nbsp;'+p+'%</span>';}return o;}
 var _tt=null;
 function showTT(el,lbl,txt){_tt=document.getElementById('tt');_tt.innerHTML='<div class="tt-t">'+esc(lbl)+'</div><pre>'+esc(txt)+'</pre>';_tt.style.display='block';var r=el.getBoundingClientRect();_tt.style.left=(r.right+10)+'px';_tt.style.top=(r.top+window.scrollY-4)+'px';}
 function hideTT(){if(_tt)_tt.style.display='none';}

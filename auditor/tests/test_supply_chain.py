@@ -252,3 +252,28 @@ def test_npm_audit_skips_when_offline(tmp_path: Path) -> None:
         result = NpmAuditChecker(str(project)).audit()
 
     assert result["status"] == "SKIPPED"
+
+
+def test_makefile_teardown_resolves_compose_variable(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+    (project / "Makefile").write_text(
+        "COMPOSE := docker compose\nRUN := $(COMPOSE) run --rm api\n\n"
+        "down: ## stop\n\t$(COMPOSE) down --volumes --remove-orphans\n",
+        encoding="utf-8",
+    )
+
+    result = MakefileTeardownChecker(str(project)).check()
+
+    assert result["has_teardown"] is True
+    assert result["target"] == "down"
+
+
+def test_makefile_teardown_variable_without_down_is_ko(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+    (project / "Makefile").write_text(
+        "DC ?= docker-compose\nstart:\n\t${DC} up -d\n", encoding="utf-8"
+    )
+
+    assert MakefileTeardownChecker(str(project)).check()["has_teardown"] is False

@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .constants import KB_DIR, ROOT_DIR
+from .constants import KB_DIR, ROOT_DIR, SCAN_DIRS
 from .markdown_parser import extract_report_markdown, md_files_by_stem
 from .normalizer import apply_overrides, is_test_artifact, load_all, load_overrides, normalize
 
@@ -18,16 +18,37 @@ PROMPT_SRC = ROOT_DIR / "prompts" / "evaluation_prompt.md"
 PROMPT_DST = KB_DIR / "evaluation_prompt.md"
 
 
-def build_knowledge_base() -> list[dict[str, Any]]:
-    """Rebuild knowledge_base/data.json and return normalized entries."""
+class KnowledgeBaseShrinkError(RuntimeError):
+    """A full rebuild would drop entries already published in data.json."""
+
+
+def build_knowledge_base(force: bool = False) -> list[dict[str, Any]]:
+    """Rebuild knowledge_base/data.json and return normalized entries.
+
+    cr_audits/ is NOT versioned: most published entries may have no raw file on this
+    machine. A full rebuild would then silently erase them from the KB. Unless ``force``
+    is set, refuse to write when entries present in the current data.json would vanish
+    (use ``--add`` to ingest a single new audit instead)."""
     KB_DIR.mkdir(exist_ok=True)
     entries = load_all()
     if not entries:
         print("[WARN] no audit JSON found", file=sys.stderr)
 
-    data_path = KB_DIR / "data.json"
-    data_path.write_text(json.dumps(entries, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"[OK] {data_path}  ({len(entries)} entries)")
+    if DATA_PATH.exists() and not force:
+        existing = json.loads(DATA_PATH.read_text(encoding="utf-8"))
+        rebuilt_ids = {e.get("id") for e in entries}
+        lost = sorted(e.get("id", "?") for e in existing if e.get("id") not in rebuilt_ids)
+        if lost:
+            preview = "\n  - ".join(lost[:10]) + ("\n  - …" if len(lost) > 10 else "")
+            raise KnowledgeBaseShrinkError(
+                f"full rebuild would drop {len(lost)} published entr(y/ies) whose raw "
+                f"cr_*.json is absent from {', '.join(str(d) for d in SCAN_DIRS)}:\n  - "
+                f"{preview}\nUse `--add cr_audits/<file>.json` to add one audit, or "
+                "`--force` if dropping them is intended."
+            )
+
+    DATA_PATH.write_text(json.dumps(entries, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"[OK] {DATA_PATH}  ({len(entries)} entries)")
 
     if PROMPT_SRC.exists():
         shutil.copy2(PROMPT_SRC, PROMPT_DST)
@@ -68,8 +89,17 @@ def main() -> None:
         metavar="CR_JSON",
         help="Upsert a single cr_*.json into data.json (by id) instead of a full rebuild.",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Full rebuild even if it drops published entries whose raw cr_*.json is absent.",
+    )
     args = parser.parse_args()
     if args.add:
         upsert_entry(args.add)
-    else:
-        build_knowledge_base()
+        return
+    try:
+        build_knowledge_base(force=args.force)
+    except KnowledgeBaseShrinkError as exc:
+        print(f"[ERROR] {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc

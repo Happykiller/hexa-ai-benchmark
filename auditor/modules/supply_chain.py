@@ -370,7 +370,19 @@ class MakefileTeardownChecker:
                 "detail": "Makefile introuvable",
             }
 
-        has_down_cmd = re.search(r"docker[\s-]compose\s+down", content) is not None
+        has_down_cmd = re.search(r"docker[\s-]compose\b[^\n]*?\s+down\b", content) is not None
+        if not has_down_cmd:
+            # Resolve compose aliases: `COMPOSE := docker compose -f x.yml` then
+            # `$(COMPOSE) down` / `${COMPOSE} down` is the idiomatic Makefile form.
+            aliases = re.findall(
+                r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?::?=|\?=|::=)\s*[^\n]*docker[\s-]compose\b",
+                content,
+                re.MULTILINE,
+            )
+            has_down_cmd = any(
+                re.search(rf"\$[({{]{re.escape(alias)}[)}}][^\n]*?\s+down\b", content)
+                for alias in aliases
+            )
         target = next(
             (
                 m.group(1)

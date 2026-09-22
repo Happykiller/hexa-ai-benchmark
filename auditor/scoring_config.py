@@ -72,11 +72,15 @@ COST_SCORE_STEP_LABEL = "Coût de la session"
 # sont surtout consommés via abonnement (Claude Code, Codex, AGY) où le coût marginal au
 # token n'est pas le prix API — ces valeurs servent de PROXY relatif pour comparer
 # l'intensité/efficience entre modèles, pas de facturation exacte. Ajuster si besoin.
-# Sonnet 5 est en prix d'introduction ($2/$10) jusqu'au 2026-08-31, puis passe à $3/$15 —
-# revoir cette entrée après cette date (source: platform.claude.com/docs/en/about-claude/pricing).
-PRICING_UPDATED = "2026-07-02 (tarifs officiels Anthropic, platform.claude.com/docs/en/about-claude/pricing)"
+# Sonnet 5 : le prix d'introduction $2/$10 est devenu le prix standard (la hausse à $3/$15
+# prévue au 2026-09-01 n'a pas eu lieu). Les successeurs tarifés différemment de leur
+# famille ont leur propre clé (voir _normalize_model_id) : Opus 5.5 est moins cher
+# qu'Opus 5, et le cache de Fable 5.1 coûte 0.025x au lieu de 0.1x.
+PRICING_UPDATED = "2026-09-22 (tarifs officiels Anthropic, platform.claude.com/docs/en/about-claude/pricing)"
 MODEL_PRICING = {
+    "claude-fable-5-1": {"input": 10.0, "output": 50.0, "cached_input": 0.25},
     "claude-fable": {"input": 10.0, "output": 50.0, "cached_input": 1.0},
+    "claude-opus-5-5": {"input": 4.0, "output": 20.0, "cached_input": 0.20},
     "claude-opus": {"input": 5.0, "output": 25.0, "cached_input": 0.50},
     "claude-sonnet": {"input": 2.0, "output": 10.0, "cached_input": 0.20},
     "claude-haiku": {"input": 1.0, "output": 5.0, "cached_input": 0.10},

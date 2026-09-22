@@ -2,7 +2,7 @@
 titre: Magasin de données KB — brut, overrides, dérivé
 type: dat
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-22
 ---
 
 # Magasin de données de la knowledge base
@@ -36,6 +36,17 @@ Conséquence directe : **ne jamais hand-editer un `cr_*.json`** — c'est une lo
 les entrées, ou n'ajouter/mettre à jour qu'une entrée par son id. L'upsert existe parce qu'un
 rebuild complet relit et re-parse tous les rapports markdown — inutile quand un seul audit vient
 de tomber. Commandes exactes : [`README.md`](../../../README.md).
+
+**L'upsert est la voie par défaut, pas une optimisation.** `cr_audits/` n'est pas versionné : au
+2026-09-22, 17 des 19 entrées publiées n'avaient leur `cr_*.json` que sur une autre machine. Un
+rebuild complet les aurait effacées de `data.json` sans erreur. `build_knowledge_base` refuse
+désormais toute reconstruction qui perd des ids déjà publiés (`--force` pour passer outre).
+Question ouverte : versionner les bruts (p. ex. `knowledge_base/raw/`) pour rendre la KB
+réellement régénérable.
+
+**Limites des overrides.** Ils sont cosmétiques : surcharger `model` ne recalcule ni le coût ni le
+score (figés dans le cr par l'auditeur), et le merge shallow remplace un objet imbriqué en entier
+(`cost`). Une erreur de tarif ne se corrige que par un nouvel audit.
 
 ## Le package `kb/`
 

@@ -2,7 +2,7 @@
 titre: Environnements — installer, lancer, tester
 type: dat
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-22
 ---
 
 # Environnements
@@ -13,10 +13,16 @@ succès réelles.
 
 ## Prérequis d'un audit complet
 
-- Un **venv Python** activé avec `auditor/requirements.txt` installé.
+- Un **venv Python ≥ 3.10** activé avec `auditor/requirements.txt` installé. Le code utilise la
+  syntaxe `X | None` : sous le `python3` 3.9 de Debian, **toute** la suite de tests échoue à la
+  collecte (`TypeError: unsupported operand type(s) for |`). Créer le venv avec `python3.11`.
 - **Docker + Docker Compose** fonctionnels : l'audit dynamique démarre la stack du livrable
   (API + MongoDB + MySQL) et sonde `http://localhost:4000/graphql`.
 - Le **port 4000 libre** : l'endpoint est en dur dans le profil de défi, pas configurable.
+- **Aucune session d'agent en cours** : un benchmark qui tourne encore occupe 4000 / 47017 / 43306
+  pour tester sa propre stack. Auditer à ce moment-là sonde l'API de l'agent (ou casse son
+  `make start`). `--skip-dynamic` ne protège pas : `make lint/build/test` passent par
+  `docker compose run`, qui démarre mongodb/mysql.
 - `--skip-dynamic` retire la totalité de ces prérequis (analyse statique seule) — c'est le mode à
   utiliser pour itérer sur les checkers sans payer 10 minutes de Docker.
 

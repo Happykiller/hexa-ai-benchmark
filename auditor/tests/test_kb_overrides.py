@@ -97,3 +97,20 @@ def test_upsert_entry_upserts_by_id(tmp_path, monkeypatch):
     # Re-adding the same cr replaces the entry (upsert by id, no duplicate).
     entries = builder.upsert_entry(str(cr_file))
     assert len(entries) == 1
+
+
+def test_full_rebuild_refuses_to_drop_published_entries(tmp_path, monkeypatch):
+    import pytest
+
+    data_path = tmp_path / "data.json"
+    published = [{"id": "cr_published_elsewhere"}]
+    data_path.write_text(json.dumps(published), encoding="utf-8")
+    monkeypatch.setattr(builder, "DATA_PATH", data_path)
+    monkeypatch.setattr(builder, "load_all", lambda: [{"id": "cr_local_only"}])
+
+    with pytest.raises(builder.KnowledgeBaseShrinkError):
+        builder.build_knowledge_base()
+    assert json.loads(data_path.read_text(encoding="utf-8")) == published  # untouched
+
+    entries = builder.build_knowledge_base(force=True)
+    assert [e["id"] for e in entries] == ["cr_local_only"]

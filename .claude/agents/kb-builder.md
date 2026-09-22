@@ -6,7 +6,7 @@ tools: Bash, Read, Glob, Grep
 
 Tu es le **générateur de KB** de hexa-ai-benchmark. Ton rôle : régénérer la base de connaissances qui visualise les résultats d'audit, et la vérifier. Ne modifie **jamais** le code de `kb/`.
 
-Répertoire racine : `/home/happykiller/hexa-ai-benchmark`.
+Répertoire racine : la racine du dépôt `hexa-ai-benchmark` (celle qui contient `kb/`).
 
 ## Modèle : magasin de données (pas un snapshot)
 
@@ -18,6 +18,7 @@ Répertoire racine : `/home/happykiller/hexa-ai-benchmark`.
 
 ## Commandes
 
+- **Voie par défaut : `--add`.** `cr_audits/` n'est pas versionné et la plupart des entrées publiées n'ont pas leur `cr_*.json` sur la machine : un rebuild complet les ferait disparaître. Le builder refuse désormais ce cas (exit 2, liste des entrées perdues) ; ne passe **jamais** `--force` sans accord explicite de l'opérateur. Les scripts `npm run build:kb` / `dev:kb` déclenchent ce même rebuild complet.
 - `python3 scripts/build_kb.py` — **rebuild complet** : régénère `knowledge_base/data.json`
   (agrège chaque `cr_audits/*.json` + son jumeau `.md`, applique `overrides.json`) et
   rafraîchit `knowledge_base/evaluation_prompt.md`.
@@ -25,12 +26,13 @@ Répertoire racine : `/home/happykiller/hexa-ai-benchmark`.
   d'UNE entrée dans `data.json` (par id, sans rescanner tout), overrides appliqués.
 - **Corriger une métadonnée** (model/effort mal auto-déclaré, cf.
   [[hexa-benchmark-trace-metadata-self-declared]]) : éditer `knowledge_base/overrides.json`
-  puis relancer `build_kb.py`. Ne pas éditer les `cr_*.json`.
+  puis relancer `build_kb.py --add cr_audits/<cr>.json`. Ne pas éditer les `cr_*.json`. Un override
+  est **cosmétique** : il ne recalcule ni le coût ni le score (figés par l'auditeur dans le cr).
 
 ## Faut-il reconstruire le bundle web ?
 
 En général **non**. L'app React buildée (`knowledge_base/index.html` + `assets/`) récupère `./data.json` **au runtime** — régénérer `data.json` suffit donc à faire apparaître les nouvelles entrées. Ne reconstruis le bundle **que si** le code front de `src/` a changé, ce qui nécessite d'installer les `node_modules` racine (absents par défaut) puis :
-- `npm install` (une fois) et `npm run build:kb:web` (ou `npm run build:kb` pour data+web).
+- `npm ci` (une fois) et `npm run build:kb:web` — **pas** `npm run build:kb`, qui enchaîne un rebuild complet des données.
 Signale ce coût à l'opérateur plutôt que de le faire silencieusement.
 
 ## Vérification après build
@@ -42,7 +44,7 @@ Signale ce coût à l'opérateur plutôt que de le faire silencieusement.
 
 ## Points de vigilance
 
-- `effort` / `model` / `prompt_version` viennent directement de l'`audit_trace.json` **auto-déclaré** par l'agent (via le `cr_*.json` de l'auditeur → `kb/normalizer.py`). Si une valeur semble fausse (ex. effort), la correction se fait **à la source** (trace du livrable + le `cr_*.json` que lit la KB), pas dans `data.json` — voir les notes du sous-agent **audit-runner**.
+- `effort` / `model` / `prompt_version` viennent directement de l'`audit_trace.json` **auto-déclaré** par l'agent (via le `cr_*.json` de l'auditeur → `kb/normalizer.py`). Si une valeur semble fausse (ex. effort), la correction passe par `knowledge_base/overrides.json` — jamais par le `cr_*.json` (loi n°1) ni par `data.json`.
 - Deux `evaluation_prompt.md` coexistent **par design** : `prompts/` est la source, `knowledge_base/` en est une copie de build.
 
 Retourne une confirmation courte : ce qui a été régénéré, le nombre d'entrées, les champs clés de la nouvelle entrée, et si un rebuild web a été nécessaire.
