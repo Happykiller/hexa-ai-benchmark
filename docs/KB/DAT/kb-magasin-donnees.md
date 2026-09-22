@@ -2,7 +2,7 @@
 titre: Magasin de données KB — brut, overrides, dérivé
 type: dat
 statut: actif
-maj: 2026-09-04
+maj: 2026-09-22
 ---
 
 # Magasin de données de la knowledge base
@@ -73,6 +73,22 @@ en un seul endroit, pour les deux chemins de code.
 À retenir pour la suite : **aucun chemin machine ne doit entrer dans `data.json`**. Les chemins
 qui apparaissent dans les *sorties capturées* (logs npm, erreurs make) sont une autre affaire —
 ce sont des preuves de ce que le run a affiché, on n'y touche pas.
+
+**Ampleur selon la machine.** Sur la machine `admin` (2026-09-22), ce n'étaient pas 2 mais 17 des
+19 entrées publiées qui n'avaient pas leur `cr_*.json` local : l'upsert (`--add`) est la **voie par
+défaut**, pas une optimisation. Question ouverte : versionner les bruts (p. ex.
+`knowledge_base/raw/`) pour rendre la KB réellement régénérable.
+
+**Ré-audit d'un même livrable ≠ perte d'entrée.** Quand un correctif de l'auditeur impose de
+ré-auditer un livrable, le nouveau cr porte un nouvel id : l'ancienne entrée est retirée de
+`data.json` pour ne pas publier deux fois le même run, et ses overrides sont reportés sur le nouvel
+id. Le run reste publié ; la trace est le cr brut d'origine (conservé) et le commit `kb(...)` qui
+donne ancien → nouveau score. Cas du 2026-09-22 : claude-opus-5 75,78 → 82,0 %, gpt-5.6-sol
+88,51 → 89,19 %.
+
+**Limites des overrides.** Ils sont cosmétiques : surcharger `model` ne recalcule ni le coût ni le
+score (figés dans le cr par l'auditeur), et le merge shallow remplace un objet imbriqué en entier
+(`cost`). Une erreur de tarif ne se corrige que par un nouvel audit.
 
 ## Le package `kb/`
 

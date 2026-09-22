@@ -97,3 +97,36 @@ def test_upsert_entry_upserts_by_id(tmp_path, monkeypatch):
     # Re-adding the same cr replaces the entry (upsert by id, no duplicate).
     entries = builder.upsert_entry(str(cr_file))
     assert len(entries) == 1
+
+
+def test_full_rebuild_refuses_to_drop_published_entries(tmp_path, monkeypatch):
+    import pytest
+
+    data_path = tmp_path / "data.json"
+    published = [{"id": "cr_published_elsewhere"}]
+    data_path.write_text(json.dumps(published), encoding="utf-8")
+    monkeypatch.setattr(builder, "DATA_PATH", data_path)
+    monkeypatch.setattr(builder, "load_all", lambda: [{"id": "cr_local_only"}])
+
+    with pytest.raises(builder.KnowledgeBaseShrinkError):
+        builder.build_knowledge_base()
+    assert json.loads(data_path.read_text(encoding="utf-8")) == published  # untouched
+
+    entries = builder.build_knowledge_base(allow_drop=True)
+    assert [e["id"] for e in entries] == ["cr_local_only"]
+
+
+def test_upsert_also_writes_embedded_js_for_file_protocol(tmp_path, monkeypatch):
+    data_path = tmp_path / "data.json"
+    monkeypatch.setattr(builder, "DATA_PATH", data_path)
+    cr_file = tmp_path / "cr_20990101_0000_test_1.0_20990101_000000.json"
+    cr_file.write_text(json.dumps(_minimal_cr()), encoding="utf-8")
+
+    builder.upsert_entry(str(cr_file))
+
+    js = (tmp_path / "data.js").read_text(encoding="utf-8")
+    prefix = "window.__HEXA_KB__ = "
+    assert js.startswith(prefix) and js.rstrip().endswith(";")
+    payload = json.loads(js[len(prefix) :].rstrip().rstrip(";"))
+    assert payload["entries"] == json.loads(data_path.read_text(encoding="utf-8"))
+    assert "</script" not in js.lower()

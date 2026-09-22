@@ -2,7 +2,7 @@
 titre: Pipeline d'audit — phases, checkers et parti pris
 type: dat
 statut: actif
-maj: 2026-09-04
+maj: 2026-09-22
 ---
 
 # Pipeline d'audit
@@ -95,7 +95,30 @@ Toute évolution des tests E2E doit préserver ce type de contre-épreuve.
 
 **Le cap E2E est du tout-ou-rien** : `_functional_e2e_failed()` se déclenche dès qu'**une seule**
 étape du scénario échoue, et plafonne tout le run à 40 %. Un livrable correct qui rate la dernière
-étape tombe au même niveau qu'un livrable qui ne répond pas.
+étape tombe au même niveau qu'un livrable qui ne répond pas. Depuis le 2026-09-22, une stack qui **ne démarre pas** est
+traitée de même (cap `runtime_not_started`) : avant, elle échappait au cap et pouvait dépasser un
+livrable qui démarre mais rate une étape.
+
+**Règle des contrôles positifs.** Un test « doit être rejeté » ne prouve rien si l'API est cassée
+ou injoignable : l'absence de données passe alors pour une rejection. Chaque sonde négative exige
+donc une preuve positive :
+
+- `alg=none` / signature étrangère : la même requête `tasks` doit **réussir** avec le vrai token ;
+- mot de passe faible : une inscription normale doit avoir réussi ;
+- dépendance inexistante / statut invalide : une **erreur GraphQL** doit être renvoyée. Les ids
+  fantômes sont bien formés (ObjectId *et* UUID) : un simple échec de cast d'id ne vaut pas
+  contrôle d'existence.
+
+## Pièges de mesure déjà rencontrés
+
+- **Jest** imprime `Test Suites:` avant `Tests:` : les compteurs se lisent sur la ligne `Tests:`,
+  sinon on prend le nombre de fichiers pour le nombre de tests (faux malus « tests déclarés non
+  exécutés »).
+- **Makefile** : la cible de teardown est souvent `$(COMPOSE) down` avec `COMPOSE := docker compose`
+  — le checker résout ces alias.
+- **Regex statiques** : un signal (guard d'auth, healthcheck, fichier vide) doit reconnaître les
+  formes idiomatiques (`requireUser`, `throw new UnauthenticatedError`, champ SDL `health: String!`,
+  code écrit sur une ligne). Avant d'ajouter un motif, le confronter aux livrables présents.
 
 ## Où vivent les seuils
 

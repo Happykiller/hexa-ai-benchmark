@@ -246,3 +246,45 @@ def test_codesmell_flags_empty_placeholder_files(tmp_path: Path) -> None:
     empty = next(m for m in result["all_maluses"] if m["id"] == "empty_source_files")
     assert empty["status"] == "DETECTE"
     assert empty["count"] >= 2
+
+
+def test_code_smell_one_liner_is_not_empty_and_sdl_health_detected(tmp_path: Path) -> None:
+    project = tmp_path / "deliverable"
+    src = project / "src"
+    src.mkdir(parents=True)
+    # Dense one-liner starting with an import: real code, not a placeholder.
+    (src / "dense.ts").write_text(
+        "import bcrypt from 'bcryptjs'; export class H { hash(v: string) { return bcrypt.hash(v, 12); } }\n",
+        encoding="utf-8",
+    )
+    (src / "empty1.ts").write_text("import 'reflect-metadata';\n// nothing\n", encoding="utf-8")
+    (src / "empty2.ts").write_text("import {\n  a,\n  b,\n} from './x';\n\n", encoding="utf-8")
+    (src / "schema.ts").write_text(
+        "export const typeDefs = `\n  type Query {\n    health: String!\n    tasks: [Task!]!\n  }\n`;\n",
+        encoding="utf-8",
+    )
+
+    result = CodeSmellAnalyzer(str(project)).analyze()
+    empty = next(m for m in result["all_maluses"] if m["id"] == "empty_source_files")
+    assert empty["count"] == 2
+    health = next(b for b in result["all_bonuses"] if "Healthcheck" in b["reason"])
+    assert health["status"] == "OK"
+
+
+def test_auth_guard_detects_resolver_helpers_and_thrown_auth_errors(tmp_path: Path) -> None:
+    for body in (
+        "export function requireUser(ctx: Ctx) { return ctx.user; }",
+        "if (!ctx.user) { throw new UnauthenticatedError('missing token'); }",
+    ):
+        project = tmp_path / body[:12].replace(" ", "_")
+        (project / "src").mkdir(parents=True)
+        (project / "src" / "guard.ts").write_text(body + "\n", encoding="utf-8")
+        result = AuthImplementationChecker(str(project)).check()
+        assert result["indicators"]["auth_guard_present"] is True, body
+
+    bare = tmp_path / "bare"
+    (bare / "src").mkdir(parents=True)
+    (bare / "src" / "codes.ts").write_text(
+        "export const CODE = 'UNAUTHENTICATED';\n", encoding="utf-8"
+    )
+    assert AuthImplementationChecker(str(bare)).check()["indicators"]["auth_guard_present"] is False

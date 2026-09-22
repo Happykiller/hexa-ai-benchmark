@@ -131,19 +131,28 @@ def _parse_iso_datetime(value: str) -> datetime | None:
 
 
 def _parse_test_results(output: str) -> dict[str, int]:
-    """Parses Jest-style test output for passed/failed/total counts."""
+    """Parses Jest-style test output for passed/failed/total counts.
+
+    Jest prints a "Test Suites:" summary line *before* the "Tests:" one; counts are read
+    from the "Tests:" line (test cases), never from the suites line — otherwise the
+    number of files is taken for the number of executed tests. Falls back to the first
+    occurrence anywhere for runners that print no "Tests:" line."""
     res = {"passed": 0, "failed": 0, "total": 0}
 
+    # Last "Tests:" line wins (watch/retry output may print several summaries).
+    tests_lines = re.findall(r"^\s*Tests:\s*(.+)$", output, re.MULTILINE)
+    scope = tests_lines[-1] if tests_lines else output
+
     # Matches "5 passed", "1 failed", "6 total" independently to be robust
-    passed_match = re.search(r"(\d+)\s+passed", output)
+    passed_match = re.search(r"(\d+)\s+passed", scope)
     if passed_match:
         res["passed"] = int(passed_match.group(1))
 
-    failed_match = re.search(r"(\d+)\s+failed", output)
+    failed_match = re.search(r"(\d+)\s+failed", scope)
     if failed_match:
         res["failed"] = int(failed_match.group(1))
 
-    total_match = re.search(r"(\d+)\s+total", output)
+    total_match = re.search(r"(\d+)\s+total", scope)
     if total_match:
         res["total"] = int(total_match.group(1))
 
@@ -270,8 +279,14 @@ def _normalize_model_id(model_id: str | None) -> str | None:
     if not model_id:
         return None
     s = str(model_id).lower()
+    # Versioned entries first: a successor priced differently from its family must not
+    # fall into the generic family key (Opus 5.5 ≠ Opus 5, Fable 5.1 cache ≠ Fable 5).
+    if "fable" in s and re.search(r"fable[-_ ]?5[-_.]1", s):
+        return "claude-fable-5-1"
     if "fable" in s:
         return "claude-fable"
+    if "opus" in s and re.search(r"opus[-_ ]?5[-_.]5", s):
+        return "claude-opus-5-5"
     if "opus" in s:
         return "claude-opus"
     if "sonnet" in s:
@@ -1661,6 +1676,18 @@ def analyze(
                 "reason": "functional E2E scenario failed",
             }
         )
+    elif not skip_dynamic and docker_start["status"] != "OK":
+        # A stack that never starts cannot pass the functional scenario: without this
+        # cap, a deliverable whose `make start` fails would out-score one that starts
+        # but misses a single E2E step (which is capped above). --skip-dynamic is an
+        # operator choice, not a deliverable failure, so it stays uncapped.
+        audit_db["meta"]["score_cap_reasons"].append(
+            {
+                "id": "runtime_not_started",
+                "max_percentage": 40,
+                "reason": "make start / GraphQL endpoint not healthy: functional E2E not executed",
+            }
+        )
 
     trace_valid = traceability["status"] == "OK"
     _append_indicator(
@@ -1843,26 +1870,29 @@ def analyze(
     except Exception as e:
         tree_output = f"Erreur lors de l'exécution de tree: {e}"
 
-    audit_db["artifacts"] = {
-        "make_targets": op_results,
-        "docker_start": docker_start,
-        "exposed_containers": exposed_containers,
-        "e2e_results": e2e_results,
-        "auth_e2e_results": auth_e2e_results,
-        "auth_token_obtained": auth_token is not None,
-        "performance": performance,
-        "hexagonal": static_results.get("hexagonal", {}),
-        "quality": static_results.get("quality", {}),
-        "auth_static": static_results.get("auth_static", {}),
-        "dual_persistence": static_results.get("dual_persistence", {}),
-        "injection": static_results.get("injection", {}),
-        "devex": static_results.get("devex", {}),
-        "coverage": coverage_data,
-        "traceability": traceability,
-        "trace_metrics": trace_metrics,
-        "smells": smells,
-        "project_tree": tree_output,
-    }
+    # Merge (not replace): compose_ports / makefile_teardown were stored earlier.
+    audit_db.setdefault("artifacts", {}).update(
+        {
+            "make_targets": op_results,
+            "docker_start": docker_start,
+            "exposed_containers": exposed_containers,
+            "e2e_results": e2e_results,
+            "auth_e2e_results": auth_e2e_results,
+            "auth_token_obtained": auth_token is not None,
+            "performance": performance,
+            "hexagonal": static_results.get("hexagonal", {}),
+            "quality": static_results.get("quality", {}),
+            "auth_static": static_results.get("auth_static", {}),
+            "dual_persistence": static_results.get("dual_persistence", {}),
+            "injection": static_results.get("injection", {}),
+            "devex": static_results.get("devex", {}),
+            "coverage": coverage_data,
+            "traceability": traceability,
+            "trace_metrics": trace_metrics,
+            "smells": smells,
+            "project_tree": tree_output,
+        }
+    )
 
     env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "templates")))
     env.filters["md_cell"] = _md_cell

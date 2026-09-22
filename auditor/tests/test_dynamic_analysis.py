@@ -669,3 +669,141 @@ def test_precreate_bind_mount_dirs_noop_without_compose(tmp_path: Path) -> None:
     deliverable = tmp_path / "deliverable"
     deliverable.mkdir()
     assert precreate_bind_mount_dirs(str(deliverable)) == []
+
+
+# --------------------------------------------------------------------------- #
+# Revue 2026-09-22 — non-régressions
+# --------------------------------------------------------------------------- #
+_JEST_OUTPUT = """
+PASS src/core/a.test.ts
+Test Suites: 28 passed, 28 total
+Tests:       241 passed, 241 total
+Snapshots:   0 total
+"""
+
+
+def test_parse_test_results_reads_tests_line_not_suites() -> None:
+    from main import _parse_test_results
+
+    assert _parse_test_results(_JEST_OUTPUT) == {"passed": 241, "failed": 0, "total": 241}
+    mixed = (
+        "Test Suites: 1 failed, 11 passed, 12 total\nTests:       2 failed, 80 passed, 82 total\n"
+    )
+    assert _parse_test_results(mixed) == {"passed": 80, "failed": 2, "total": 82}
+    # No "Tests:" line (other runner): legacy first-occurrence behaviour is kept.
+    assert _parse_test_results("5 passed, 5 total")["passed"] == 5
+
+
+def test_normalize_model_id_prices_successors_separately() -> None:
+    assert _normalize_model_id("claude-opus-5-5") == "claude-opus-5-5"
+    assert _normalize_model_id("Claude Opus 5.5") == "claude-opus-5-5"
+    assert _normalize_model_id("claude-opus-5[1m]") == "claude-opus"
+    assert _normalize_model_id("claude-fable-5-1") == "claude-fable-5-1"
+    assert _normalize_model_id("claude-fable-5") == "claude-fable"
+
+
+def test_compute_session_cost_opus_5_5_rates() -> None:
+    trace = {
+        "total_input_tokens": 6_800_000,
+        "total_output_tokens": 158_000,
+        "total_cached_input_tokens": 5_900_000,
+    }
+    # 0.9M*4 + 5.9M*0.20 + 0.158M*20 = 3.6 + 1.18 + 3.16
+    assert _compute_session_cost(trace, "claude-opus-5-5")["cost_usd"] == 7.94
+    # Same tokens at Opus 5 rates stay unchanged (historical comparability).
+    assert _compute_session_cost(trace, "claude-opus-5[1m]")["cost_usd"] == 11.4
+
+
+def _run_analyze_with_docker_start(tmp_path: Path, monkeypatch, docker_status: str) -> dict:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+    out_dir = tmp_path / "cr_audits"
+    monkeypatch.setenv("HEXA_AUDIT_OUTPUT_DIR", str(out_dir))
+    with (
+        patch(
+            "main.MakefileRunner.run_target",
+            return_value={"status": "OK", "output": "", "error": "", "exit_code": 0},
+        ),
+        patch(
+            "main.DockerOrchestrator.start",
+            return_value={"status": docker_status, "error": "GraphQL endpoint not healthy"},
+        ),
+        patch("main.DockerOrchestrator.stop", return_value={"status": "OK"}),
+        patch("main.NpmAuditChecker.audit", return_value={"status": "SKIPPED"}),
+        patch("main.Environment.get_template") as get_template,
+    ):
+        get_template.return_value.render.return_value = "report"
+        analyze.callback(str(project), False, False, False)
+    return json.loads(next(out_dir.glob("*.json")).read_text(encoding="utf-8"))
+
+
+def test_runtime_not_started_caps_score_like_a_failed_e2e(tmp_path: Path, monkeypatch) -> None:
+    audit = _run_analyze_with_docker_start(tmp_path, monkeypatch, "KO")
+    cap_ids = [c["id"] for c in audit["summary"]["score_caps"]]
+    assert cap_ids == ["runtime_not_started"]
+    assert audit["summary"]["percentage_net"] <= 40
+    # compose_ports / makefile_teardown artifacts survive the final artifacts merge.
+    assert "compose_ports" in audit["artifacts"]
+    assert "makefile_teardown" in audit["artifacts"]
+
+
+def test_skip_dynamic_is_not_capped(tmp_path: Path, monkeypatch) -> None:
+    project = tmp_path / "deliverable"
+    project.mkdir()
+    out_dir = tmp_path / "cr_audits"
+    monkeypatch.setenv("HEXA_AUDIT_OUTPUT_DIR", str(out_dir))
+    with (
+        patch(
+            "main.MakefileRunner.run_target",
+            return_value={"status": "OK", "output": "", "error": "", "exit_code": 0},
+        ),
+        patch("main.Environment.get_template") as get_template,
+    ):
+        get_template.return_value.render.return_value = "report"
+        analyze.callback(str(project), True, False, False)
+    audit = json.loads(next(out_dir.glob("*.json")).read_text(encoding="utf-8"))
+    assert audit["summary"]["score_caps"] == []
+
+
+def test_auth_forged_tokens_need_positive_control() -> None:
+    """A server whose `tasks` query fails for everyone must not score as rejecting
+    alg=none / foreign signatures, nor pass the weak-password probe when register is
+    broken."""
+
+    def broken(query, token=None):
+        if "register(" in query or "login(" in query:
+            return {"errors": [{"message": "internal error"}]}
+        return {"errors": [{"message": "Cannot query field tasks"}]}
+
+    tester = AuthTester("http://example.test/graphql")
+    with patch.object(tester, "_post", side_effect=broken):
+        results = {r["step"]: r["success"] for r in tester.run_scenario()}
+    assert results["Auth: Token alg=none rejeté"] is False
+    assert results["Auth: Signature étrangère rejetée"] is False
+    assert results["Auth: Mot de passe faible refusé"] is False
+
+
+def test_adversarial_probes_require_graphql_error_evidence() -> None:
+    tester = E2EFunctionalTester("http://example.test/graphql", token="pre.baked.token0123456789")
+    with patch.object(tester, "_post", return_value={"_request_failed": True}):
+        results = {r["step"]: r["success"] for r in tester.run_adversarial_scenario()}
+    assert results["Adversarial: Dépendance inexistante rejetée"] is False
+
+
+def test_adversarial_ghost_dependency_uses_well_formed_ids() -> None:
+    """A Mongo engine that only rejects malformed ObjectIds (cast error) but never
+    checks existence must fail the ghost-dependency probe."""
+    state = {"n": 0}
+
+    def cast_only(query):
+        block = re.search(r"dependsOn:\s*\[([^\]]*)\]", query)
+        deps = re.findall(r'"([^"]+)"', block.group(1)) if block else []
+        if any(not re.fullmatch(r"[0-9a-f]{24}", d) for d in deps):
+            return {"errors": [{"message": "Cast to ObjectId failed"}]}
+        state["n"] += 1
+        return {"data": {"createTask": {"id": f"{state['n']:024x}"}}}
+
+    tester = E2EFunctionalTester("http://example.test/graphql", token="pre.baked.token0123456789")
+    with patch.object(tester, "_post", side_effect=cast_only):
+        results = {r["step"]: r for r in tester.run_adversarial_scenario()}
+    assert results["Adversarial: Dépendance inexistante rejetée"]["success"] is False

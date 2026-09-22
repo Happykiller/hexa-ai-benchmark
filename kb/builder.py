@@ -18,6 +18,21 @@ PROMPT_SRC = ROOT_DIR / "prompts" / "evaluation_prompt.md"
 PROMPT_DST = KB_DIR / "evaluation_prompt.md"
 
 
+def write_embedded_js(entries: list[dict[str, Any]]) -> Path:
+    """Write knowledge_base/data.js next to data.json: the same entries (plus the
+    evaluation prompt) as a classic script setting ``window.__HEXA_KB__``. It is what makes
+    index.html usable from file://, where browsers block fetch(). Always written together
+    with data.json so the two never diverge."""
+    prompt_path = PROMPT_DST if PROMPT_DST.exists() else PROMPT_SRC
+    prompt = prompt_path.read_text(encoding="utf-8") if prompt_path.exists() else None
+    payload = json.dumps({"entries": entries, "prompt": prompt}, ensure_ascii=False)
+    # "</" would close the <script> element if the payload ever held "</script>".
+    payload = payload.replace("</", "<\\/")
+    js_path = DATA_PATH.with_suffix(".js")
+    js_path.write_text(f"window.__HEXA_KB__ = {payload};\n", encoding="utf-8")
+    return js_path
+
+
 class KnowledgeBaseShrinkError(RuntimeError):
     """A full rebuild would drop entries already published in data.json.
 
@@ -87,15 +102,15 @@ def build_knowledge_base(allow_drop: bool = False) -> list[dict[str, Any]]:
             file=sys.stderr,
         )
 
-    data_path = KB_DIR / "data.json"
-    data_path.write_text(json.dumps(entries, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"[OK] {data_path}  ({len(entries)} entries)")
+    DATA_PATH.write_text(json.dumps(entries, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"[OK] {DATA_PATH}  ({len(entries)} entries)")
 
     if PROMPT_SRC.exists():
         shutil.copy2(PROMPT_SRC, PROMPT_DST)
         print(f"[OK] {PROMPT_DST}")
     else:
         print(f"[WARN] prompt not found: {PROMPT_SRC}", file=sys.stderr)
+    print(f"[OK] {write_embedded_js(entries)}")
 
     return entries
 
@@ -118,6 +133,7 @@ def upsert_entry(cr_json_path: str) -> list[dict[str, Any]]:
     KB_DIR.mkdir(exist_ok=True)
     DATA_PATH.write_text(json.dumps(entries, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"[OK] upsert {entry['id']} -> {DATA_PATH} ({len(entries)} entries)")
+    print(f"[OK] {write_embedded_js(entries)}")
     return entries
 
 

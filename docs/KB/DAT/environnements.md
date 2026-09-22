@@ -2,7 +2,7 @@
 titre: Environnements — installer, lancer, tester
 type: dat
 statut: actif
-maj: 2026-09-04
+maj: 2026-09-22
 ---
 
 # Environnements
@@ -13,10 +13,16 @@ succès réelles.
 
 ## Prérequis d'un audit complet
 
-- Un **venv Python** activé avec `auditor/requirements.txt` installé.
+- Un **venv Python ≥ 3.10** activé avec `auditor/requirements.txt` installé. Le code utilise la
+  syntaxe `X | None` : sous le `python3` 3.9 de Debian, **toute** la suite de tests échoue à la
+  collecte (`TypeError: unsupported operand type(s) for |`). Créer le venv avec `python3.11`.
 - **Docker + Docker Compose** fonctionnels : l'audit dynamique démarre la stack du livrable
   (API + MongoDB + MySQL) et sonde `http://localhost:4000/graphql`.
 - Le **port 4000 libre** : l'endpoint est en dur dans le profil de défi, pas configurable.
+- **Aucune session d'agent en cours** : un benchmark qui tourne encore occupe 4000 / 47017 / 43306
+  pour tester sa propre stack. Auditer à ce moment-là sonde l'API de l'agent (ou casse son
+  `make start`). `--skip-dynamic` ne protège pas : `make lint/build/test` passent par
+  `docker compose run`, qui démarre mongodb/mysql.
 - `--skip-dynamic` **ne retire pas le besoin de Docker.** Il saute la stack démarrée, l'E2E et la
   perf, mais `make setup|lint|build|test` s'exécutent quand même — et ces cibles passent par Docker
   dans le contrat livrable. Sans démon Docker, `make build` échoue et le run est plafonné à 40 %.
@@ -26,7 +32,8 @@ succès réelles.
 
 Trois mécanismes distincts produisent un 40 % qui ne dit rien du livrable : l'absence de Docker
 avec `--skip-dynamic` (ci-dessus), les bind-mounts `root:root` (piège n°2), et un port 4000 déjà
-occupé. Avant de publier un run à 40 %, écarter les trois — c'est une loi du projet, voir
+occupé (qui fait échouer `make start` et déclenche, depuis le 2026-09-22, le cap
+`runtime_not_started`). Avant de publier un run à 40 %, écarter les trois — c'est une loi du projet, voir
 [`../REGLES/lois.md`](../REGLES/lois.md).
 
 ## Piège n°1 — propriété des livrables

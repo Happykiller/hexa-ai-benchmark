@@ -31,7 +31,7 @@ diagnostiquer.
 livrables/<HORODATAGE_MODELE_EFFORT>/
 ├── audit_trace.json          # dont les compteurs de tokens (pilier Coût)
 ├── Makefile                  # + une cible de teardown
-├── docker-compose.yml        # services : api, mongodb, mysql (sans champ version:)
+├── docker-compose.yml        # services : api, mongodb, mysql (sans champ version:, ports hôte 4000 / 47017 / 43306)
 ├── package.json
 ├── tsconfig.json             # strict requis — et réellement activé, pas juste présent
 ├── src/{core,adapters,infrastructure,entrypoints}/

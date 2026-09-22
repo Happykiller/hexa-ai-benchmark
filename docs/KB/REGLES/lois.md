@@ -2,7 +2,7 @@
 titre: Lois — invariants non négociables
 type: regle
 statut: actif
-maj: 2026-09-04
+maj: 2026-09-22
 ---
 
 # Lois du projet
@@ -72,3 +72,11 @@ Les barèmes diffèrent (50/25/15/10 sans coût, contre 43/22/13/10/12) et les r
 Le modèle de scoring est affiché dans le détail de chaque entrée ; c'est à celui qui commente le
 palmarès de ne pas mettre deux barèmes sur la même ligne.
 → [`../DAF/piliers-notation.md`](../DAF/piliers-notation.md)
+
+## 10. Ne jamais lancer un audit pendant qu'une session d'agent tourne
+
+Même en `--skip-dynamic` : `make lint/build/test` passent par `docker compose run`, qui démarre
+mongodb/mysql. Un agent en cours teste sa propre stack sur les ports mêmes de l'auditeur
+(4000 / 47017 / 43306). Auditer à ce moment-là fausse **les deux** mesures : l'auditeur note l'API
+de l'agent, et son teardown détruit la stack d'un run en cours.
+→ [`../DAT/environnements.md`](../DAT/environnements.md)

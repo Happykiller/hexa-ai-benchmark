@@ -36,10 +36,13 @@ def section_scores(entry: dict[str, Any]) -> dict[str, Any] | None:
         "architecture": "Architecture",
         "quality": "Qualité logicielle",
         "traceability": "Traçabilité",
+        "cost": "Coût & Efficience",  # scoring v2 only
     }
     items = []
     for key, label in labels.items():
-        bucket = entry["bucket_scores"].get(key, {})
+        if key not in entry["bucket_scores"]:
+            continue  # e.g. no cost pillar before scoring v2
+        bucket = entry["bucket_scores"][key]
         norm = float(bucket.get("normalized_score", 0))
         weight = float(bucket.get("weight", 0))
         pct = round(norm / weight * 100) if weight else 0

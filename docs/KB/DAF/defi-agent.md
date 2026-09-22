@@ -2,7 +2,7 @@
 titre: Le défi imposé aux agents
 type: daf
 statut: actif
-maj: 2026-09-04
+maj: 2026-09-22
 ---
 
 # Le défi imposé aux agents
@@ -35,6 +35,14 @@ Deux runs de prompts différents ne sont **pas comparables** : c'est ce champ qu
 La version courante est **`2606082200`**, déclarée à deux endroits qui doivent rester alignés :
 l'en-tête de `prompts/evaluation_prompt.md` et `prompt_version` dans le `ChallengeProfile`
 (`auditor/challenges.py`). Ne pas recopier ce numéro ailleurs dans la KB — il se périme.
+
+## Où tournent les runs
+
+Les agents produisent leur livrable dans `/home/admin/test/<AAAAMMJJ_HHMM_modèle_temp>/`, pas
+dans `livrables/` : l'opérateur l'y dépose une fois la session terminée. Pour un run Claude Code,
+le transcript est dans `~/.claude/projects/-home-admin-test/<session>.jsonl` — c'est la source de
+la mesure réelle (tokens, effort, durée) via `scripts/session_usage.py`. Le suffixe du nom de
+dossier est la **température**, pas l'effort.
 
 ## À COMPLÉTER
 

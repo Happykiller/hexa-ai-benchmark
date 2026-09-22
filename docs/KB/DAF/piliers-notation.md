@@ -2,7 +2,7 @@
 titre: Piliers de notation et seuils
 type: daf
 statut: actif
-maj: 2026-09-04
+maj: 2026-09-22
 ---
 
 # Piliers de notation
@@ -47,6 +47,11 @@ modèles se tassaient tous sur 100. Le 100 % est désormais réservé à une bas
 |---|---|
 | `make build` échoue | 40 % |
 | Scénario E2E fonctionnel échoue | 40 % |
+| Stack non démarrée : scénario E2E non exécutable (`runtime_not_started`) | 40 % |
+
+Le troisième cap ferme une inversion : sans lui, un livrable dont `make start` échoue (toutes les
+étapes E2E en `SKIPPED`, aucun cap) dépassait un livrable qui démarre mais rate **une** étape E2E.
+`--skip-dynamic` reste non plafonné : c'est un choix de l'opérateur, pas un échec du livrable.
 
 Le cap n'est pas une pénalité graduée : c'est un verdict. Il existe parce qu'au-delà d'un certain
 point, les autres mesures perdent leur sens — noter la qualité du typage d'un projet qui ne

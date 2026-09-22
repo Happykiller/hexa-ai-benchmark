@@ -84,11 +84,15 @@ hexa-ai-benchmark/
 
 ```bash
 # Installation (une seule fois)
-python3 -m venv venv && source venv/bin/activate
+python3.11 -m venv venv && source venv/bin/activate   # Python ≥ 3.10 requis
 pip install -r auditor/requirements.txt
 
 # Audit complet (démarre Docker, exécute l'E2E)
 python3 auditor/main.py analyze livrables/<NOM_DU_LIVRABLE>
+
+# Recouper les métriques auto-déclarées (tokens, modèle, effort, durée) avec le transcript
+python3 scripts/session_usage.py ~/.claude/projects/<cwd-encodé>/<session>.jsonl \
+  --trace livrables/<NOM_DU_LIVRABLE>/audit_trace.json
 ```
 
 **Options de `analyze` :**
@@ -104,6 +108,10 @@ python3 auditor/main.py analyze livrables/<NOM_DU_LIVRABLE>
 > et `make test` s'exécutent quand même — or ces cibles passent par Docker dans le contrat livrable.
 > Sur une machine sans démon Docker, `make build` échoue et **le run est plafonné à 40 %**, ce qui
 > ressemble à un mauvais livrable. `--skip-dynamic` ne saute que la stack démarrée, l'E2E et la perf.
+
+> ⚠️ **Ne jamais lancer un audit pendant qu'une session d'agent tourne encore** sur la machine :
+> elle occupe les mêmes ports (4000 / 47017 / 43306) et l'auditeur sonderait l'API de l'agent,
+> puis détruirait sa stack au teardown (loi n°10).
 
 **Sorties générées :**
 - `cr_audits/cr_<nom>_<timestamp>.md` — rapport lisible
@@ -135,19 +143,23 @@ La KB est un **magasin de données** dérivé, pas un simple snapshot :
 > force la suppression — à ne faire qu'après avoir relu `git diff knowledge_base/data.json`.
 
 ```bash
-python3 scripts/build_kb.py                     # rebuild complet (tous les cr_audits)
-python3 scripts/build_kb.py --add cr_audits/cr_<...>.json   # ajout/maj d'UNE entrée (upsert par id)
+python3 scripts/build_kb.py --add cr_audits/cr_<...>.json   # VOIE PAR DÉFAUT : ajout/maj d'UNE entrée (upsert par id)
+python3 scripts/build_kb.py                     # rebuild complet — refusé s'il ferait perdre des entrées publiées
 python3 scripts/build_kb.py --allow-drop        # rebuild complet EN ACCEPTANT de perdre des entrées
 
 # Corriger une métadonnée : éditer knowledge_base/overrides.json, ex.
 #   { "cr_20260529_1322_GPT5.5-medium_20260529_161440": { "model": "gpt-5.4-codex" } }
-# puis relancer build_kb.py (complet ou --add).
+# puis relancer build_kb.py --add. Un override est cosmétique : il ne recalcule ni coût ni score.
 
-npm install                      # une seule fois (rendu web ; data.json est lu au runtime)
+npm ci                           # une seule fois (rendu web ; data.json est lu au runtime)
 npm run dev                      # serveur React/Vite en dev avec autoreload
 npm run build:kb:web             # régénère knowledge_base/index.html et assets/
 git add knowledge_base/ && git commit -m "kb: add run <agent> <date>"
 ```
+
+`cr_audits/` n'est **pas versionné** : sur une machine donnée, la plupart des entrées publiées n'ont
+pas leur `cr_*.json`. Un rebuild complet les effacerait de `data.json` — le builder le refuse
+(exit 1 + liste des entrées concernées, `--allow-drop` pour passer outre). `npm run build:kb` / `dev:kb` enchaînent ce même rebuild.
 
 Format d'`overrides.json` : `{ "<id_entrée>": { "<champ>": "<valeur>" } }` — merge shallow
 au niveau top de l'entrée (`model`, `effort`, `prompt_version`, …). Le rendu web lit
@@ -165,6 +177,7 @@ Chaque vérification produit un **indicateur** pondéré selon la séquence de F
 |---|---|
 | `make build` échoue | 40% |
 | Scénario E2E fonctionnel échoue | 40% |
+| Stack non démarrée (`make start` / santé GraphQL KO) : scénario E2E non exécuté | 40% |
 
 ### Ce que l'auditeur vérifie
 

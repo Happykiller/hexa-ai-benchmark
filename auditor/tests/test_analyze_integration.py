@@ -78,7 +78,7 @@ _TRACE = {
         "total_turns": 10,
         "total_tool_calls": 40,
         "total_wall_time_seconds": 1200,
-        # $1.35 at claude-sonnet pricing ($3/$15) → cost band ratio 0.75 (a *partial* band),
+        # $0.90 at claude-sonnet pricing ($2/$10) → cost band ratio 0.75 (a *partial* band),
         # so the cost pillar must score > 0 (guards the graduated-scoring regression).
         "total_input_tokens": 200000,
         "total_output_tokens": 50000,

@@ -2,7 +2,7 @@
 titre: Process de livraison
 type: regle
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-22
 ---
 
 # Process de livraison
@@ -10,7 +10,9 @@ maj: 2026-07-27
 ## Branches
 
 Le dépôt travaille sur **`develop`** (seule branche locale, suivie par `origin/develop`). `main`
-est la branche principale déclarée. Pas de branches de fonctionnalité observées dans l'historique.
+est la branche principale déclarée. Les évolutions d'outillage passent par une branche dédiée (`fix/…`, `feat/…`) quand l'utilisateur
+le demande — première occurrence : `fix/revue-avant-opus-5-5` (2026-09-22). Les ajouts de run
+(`kb(...)`) restent sur `develop`.
 
 ## Messages de commit
 

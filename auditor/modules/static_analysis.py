@@ -6,6 +6,13 @@ from typing import Any  # List used in HexagonalComplianceChecker._scan_layer
 # Globals for filtering
 EXCLUDED_DIRS = {"node_modules", "dist", "build", ".git", ".idea", ".vscode", "coverage", "venv"}
 
+# One TS/JS import statement (side-effect, default, named, namespace, `import type`),
+# possibly spanning several lines for multi-line named imports.
+_IMPORT_STATEMENT_RE = re.compile(
+    r"""\bimport\s+(?:type\s+)?(?:[\w*{}\s,]+?\s+from\s+)?['"][^'"]+['"]\s*;?""",
+    re.MULTILINE,
+)
+
 
 def strip_ts_comments(code: str) -> str:
     """Remove JS/TS comments while preserving strings and template literals."""
@@ -241,7 +248,12 @@ class CodeSmellAnalyzer:
         # Patterns for bonuses
         err_pattern = re.compile(r"class\s+\w*Error\s+extends\s+Error")
         env_pattern = re.compile(r'from\s+[\'"](envalid|zod|joi)[\'"]')
-        health_pattern = re.compile(r"(health|ping).*Query")
+        # Either a line naming the Query type, or an SDL field declaration
+        # (`health: String!`, `ping: Boolean`) — schemas list fields one per line, so the
+        # historical same-line "…Query" form alone missed every multi-line schema.
+        health_pattern = re.compile(
+            r"(health|ping).*Query|\b(?:health|healthcheck|ping)\s*(?:\([^)]*\))?\s*:\s*\[?[A-Z]\w*"
+        )
         relay_pattern = re.compile(r"PageInfo|edges.*node")
         logger_pattern = re.compile(r'from\s+[\'"](winston|pino)[\'"]')
 
@@ -249,6 +261,17 @@ class CodeSmellAnalyzer:
             dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
 
             for file in files:
+                if file.endswith((".graphql", ".gql")):
+                    # SDL-first schemas carry the health field / Relay types outside .ts.
+                    try:
+                        sdl = read_text_file(os.path.join(root, file))
+                    except (UnicodeDecodeError, OSError):
+                        continue
+                    if health_pattern.search(sdl):
+                        flags["healthcheck"] = True
+                    if relay_pattern.search(sdl):
+                        flags["relay_pagination"] = True
+                    continue
                 if file.endswith((".ts", ".tsx")):
                     total_ts_files += 1
                     file_path = os.path.join(root, file)
@@ -266,7 +289,10 @@ class CodeSmellAnalyzer:
                         if len(code_lines) < 10:
                             tiny_files_count += 1
                         # Empty/placeholder: nothing but imports/comments/blank lines.
-                        if not code_lines:
+                        # Strip import *statements* (not lines starting with "import"),
+                        # so a dense one-liner `import x from 'y'; export class …` is
+                        # not mistaken for an empty file.
+                        if not _IMPORT_STATEMENT_RE.sub("", content).strip(" \t\r\n;"):
                             empty_files_count += 1
 
                         if err_pattern.search(content):
@@ -735,8 +761,14 @@ class AuthImplementationChecker:
 
     _JWT_IMPORT_TARGETS = {"jsonwebtoken", "jose", "@nestjs/jwt", "passport-jwt"}
     _auth_mutation = re.compile(r"\b(?:register|login|signup|signin)\b\s*(?::|\()", re.IGNORECASE)
+    # Guard = code that *enforces* authentication: named middleware/guards, resolver
+    # helpers (requireAuth / requireUser / ensureAuthenticated / assertAuth…), or a
+    # resolver path throwing an authentication error. The bare literal UNAUTHENTICATED is
+    # deliberately not enough (it can sit in a constant or a test).
     _auth_guard = re.compile(
-        r"(isAuthenticated|authGuard|AuthGuard|verifyToken|checkAuth|@Authorized|authenticate\b)",
+        r"(isAuthenticated|authGuard|AuthGuard|verifyToken|checkAuth|@Authorized|authenticate\b"
+        r"|\b(?:require|ensure|assert)(?:Auth|User|Authenticated)\w*"
+        r"|throw\s+new\s+\w*(?:Unauthenticated|Authentication)\w*Error\b)",
         re.IGNORECASE,
     )
     _HASH_IMPORT_TARGETS = {"bcrypt", "bcryptjs", "argon2"}
