@@ -14,6 +14,11 @@ est la branche principale déclarée. Les évolutions d'outillage passent par un
 le demande — première occurrence : `fix/revue-avant-opus-5-5` (2026-09-22). Les ajouts de run
 (`kb(...)`) restent sur `develop`.
 
+**Le dépôt est travaillé depuis plusieurs machines** (`admin`, `happykiller`) : `git fetch` avant de
+démarrer et avant tout merge. Le 2026-09-22, `origin/develop` avait reçu 5 commits pendant la
+session (garde-fou KB en doublon, tarif Sonnet contradictoire, 16 fichiers en conflit) — un fetch
+en début de session aurait évité le travail en double.
+
 ## Messages de commit
 
 Convention constatée dans l'historique : **Conventional Commits, sujet en français**.

@@ -40,6 +40,11 @@ Le rebuild du bundle web n'est nécessaire **que** si `src/` a changé.
 - Itérer sur les checkers → toujours `--skip-dynamic`, sinon chaque essai coûte plusieurs minutes
   de Docker.
 - Toucher au template `report.md` → vérifier `kb/markdown_parser.py`, qui en dépend.
+- **Un tarif (`MODEL_PRICING`) se vérifie sur la page officielle, jamais sur une échéance écrite
+  dans le code.** Le 2026-09-04, Sonnet 5 a été passé à $3/$15 parce que le commentaire annonçait
+  la fin du prix d'introduction ; la page officielle disait au contraire que la hausse n'aurait
+  pas lieu, et il a fallu revenir à $2/$10 le 2026-09-22. Une date dans un commentaire est une
+  alerte de revérification, pas une source.
 - Un nouveau motif de checker (regex statique) se **valide contre les livrables présents** dans
   `livrables/` avant d'être adopté : c'est ce qui a prouvé les faux négatifs du 2026-09-22 (guard
   d'auth, teardown, healthcheck), là où un test synthétique seul aurait confirmé le biais.
