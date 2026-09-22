@@ -2,7 +2,7 @@
 titre: Le défi imposé aux agents
 type: daf
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-22
 ---
 
 # Le défi imposé aux agents
@@ -32,6 +32,14 @@ est le cœur fonctionnel : c'est la seule partie du sujet qu'aucun scaffolding n
 L'énoncé est versionné (`prompt_version`, ex. `2605291055`) et cette version est attendue dans
 l'`audit_trace.json`. Deux runs de prompts différents ne sont **pas comparables** : c'est ce champ
 qui permet de le savoir.
+
+## Où tournent les runs
+
+Les agents produisent leur livrable dans `/home/admin/test/<AAAAMMJJ_HHMM_modèle_temp>/`, pas
+dans `livrables/` : l'opérateur l'y dépose une fois la session terminée. Pour un run Claude Code,
+le transcript est dans `~/.claude/projects/-home-admin-test/<session>.jsonl` — c'est la source de
+la mesure réelle (tokens, effort, durée) via `scripts/session_usage.py`. Le suffixe du nom de
+dossier est la **température**, pas l'effort.
 
 ## À COMPLÉTER
 

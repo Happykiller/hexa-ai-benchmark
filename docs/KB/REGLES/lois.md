@@ -2,7 +2,7 @@
 titre: Lois — invariants non négociables
 type: regle
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-22
 ---
 
 # Lois du projet
@@ -52,3 +52,11 @@ permissions propres à la machine.
 Conséquence : ajouter ou modifier un skill/agent/hook est un **changement de projet**, à committer
 et à refléter dans [`../MOTEUR.md`](../MOTEUR.md). Ne rien y mettre de spécifique à une machine
 (chemins absolus, secrets, préférences personnelles).
+
+## 8. Ne jamais lancer un audit pendant qu'une session d'agent tourne
+
+Même en `--skip-dynamic` : `make lint/build/test` passent par `docker compose run`, qui démarre
+mongodb/mysql. Un agent en cours teste sa propre stack sur les ports mêmes de l'auditeur
+(4000 / 47017 / 43306). Auditer à ce moment-là fausse **les deux** mesures : l'auditeur note l'API
+de l'agent, et son teardown détruit la stack d'un run en cours.
+→ [`../DAT/environnements.md`](../DAT/environnements.md)
