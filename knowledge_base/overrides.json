@@ -1,5 +1,5 @@
 {
-  "cr_20260711_0958_gpt-5.6-sol_medium_20260711_133633": {
+  "cr_20260711_0958_gpt-5.6-sol_medium_20260922_213123": {
     "model": "gpt-5.6-sol",
     "effort": "medium"
   },
@@ -15,8 +15,11 @@
   "cr_20260702_0705_claude-fable-5_1.0_20260702_104846": {
     "effort": "high"
   },
-  "cr_20260726_1445_claude-opus-5_1_20260726_155534": {
+  "cr_20260726_1445_claude-opus-5_1_20260922_212954": {
     "model": "claude-opus-5",
     "effort": "high"
+  },
+  "cr_20260922_1856_claude-opus-5-5_1.0_20260922_212838": {
+    "effort": "medium"
   }
 }
