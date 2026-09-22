@@ -15,7 +15,7 @@ trois est fausse, la session n'est pas close — et tu le dis au lieu de conclur
 
 | Dépôt | Chemin | Branche de travail | Remarque |
 | --- | --- | --- | --- |
-| `hexa-ai-benchmark` | `.` (racine) | `develop` | **Dépôt unique.** Pas de sous-module, pas de dépôt frère : les autres dépôts de `~/` sont d'autres projets, hors périmètre |
+| `hexa-ai-benchmark` | `.` (racine) | `develop` | **Dépôt unique.** Pas de sous-module, pas de dépôt frère : les autres dépôts de `~/` sont d'autres projets, hors périmètre. Un `.git` sous `livrables/<LIVRABLE>/` est le dépôt **créé par l'agent audité** : donnée auditée, gitignorée, ne jamais y committer |
 
 | Stack | Fichier compose | Services |
 | --- | --- | --- |
