@@ -22,11 +22,11 @@ Sorties : `cr_audits_blender/cr_<nom>_<ts>.{json,md}` + `cr_<nom>_<ts>_media/`, 
 1. Le livrable contient `build.py`, `README.md`, `audit_trace.json`. Son origine est une de nos sessions d'agent : sinon STOP (loi n°11 — l'auditeur exécute le code sur l'hôte).
 2. **Droits** : les livrables appartiennent souvent à `faro`. Teste `touch <livrable>/.w && rm <livrable>/.w` et `mkdir -p cr_audits_blender && touch cr_audits_blender/.w && rm cr_audits_blender/.w`. Si refusé : STOP, demande à l'opérateur `! sudo chown -R happykiller:happykiller <chemin-abs-livrable>` (ne tente pas `sudo` toi-même).
 3. Blender répond : `"${HEXA_BLENDER_BIN:-$HOME/.local/bin/blender45}" --version | head -1`.
-4. Aucun audit Blender déjà en cours : `pgrep -af "blender_bench/cli.py analyze"`.
+4. Aucun audit Blender déjà en cours : `pgrep -af "[b]lender_bench/cli.py analyze"`.
 
 ## Exécution
 
-Lance en arrière-plan avec sortie vers un log, puis attends via un veilleur (`until ! pgrep -f "blender_bench/cli.py analyze"; do sleep 3; done`) — jamais de `sleep` long au premier plan. Si l'audit est interrompu, vérifie qu'aucun `blender -b` orphelin ne reste (`pgrep -af "blender -b"`).
+Lance en arrière-plan avec sortie vers un log, puis attends via un veilleur (`until ! pgrep -f "[b]lender_bench/cli.py analyze"; do sleep 3; done` — le crochet empêche `pgrep` de reconnaître la ligne de commande du veilleur lui-même) — jamais de `sleep` long au premier plan. Si l'audit est interrompu, vérifie qu'aucun `blender -b` orphelin ne reste (`pgrep -af "blender -b"`).
 
 ## Rapport
 

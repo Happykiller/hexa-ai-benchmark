@@ -44,7 +44,17 @@ gardent les poids de la Todo List pour que « efficience d'une session » veuill
 chose dans les deux benchmarks — les **scores**, eux, ne se comparent pas d'un benchmark à
 l'autre (loi n°9, étendue).
 
+## Premier run (2026-09-23)
+
+Opus 5.5, effort `low`, 15 minutes : **88,5 %**. Créature crédible, propre et animée, mais
+visiblement loin de la planche (faux antérieures peu lisibles, pattes raides, détail pauvre).
+Opérationnalité, géométrie et rig sont à 100 % : les contrôles techniques sont des **seuils
+d'hygiène**, et un agent compétent les franchit tous. Seule la fidélité visuelle discrimine
+(18,9 / 24, IoU 0,46 à 0,53). Décision : publier en b1 et durcir en b2 après 2 ou 3 runs
+supplémentaires, pour ne pas calibrer sur un seul modèle.
+
 ## À COMPLÉTER
 
+- b2 : rendre les piliers techniques moins binaires (densité de détail, nombre d'os par membre, richesse des actions) et donner plus de poids à la fidélité visuelle.
 - Recaler `DETAIL_BANDS` (calibré sur la seule fixture) et les bandes d'IoU après les premiers runs :
   toute modification → barème b2 et ré-audit (loi n°2).
