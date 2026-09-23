@@ -2,7 +2,7 @@
 titre: Workflows outillés
 type: regle
 statut: actif
-maj: 2026-09-22
+maj: 2026-09-23
 ---
 
 # Workflows
@@ -26,12 +26,40 @@ L'ordre compte : chaque étape suppose la précédente réussie.
    <livrable>/audit_trace.json`. Les tokens pilotent le pilier Coût ; un écart qui fait changer de
    bande se signale avant publication (le 2026-09-22, Opus 5.5 avait sous-estimé ses tokens de
    20-30 %, avec un changement de bande à la clé).
-6. **Intégrer à la KB** : `build_kb.py --add` depuis le `runs/todo/cr_audits/*.json` produit — jamais de
+6. **Intégrer à la KB** : `python3 -m hexa kb todo --add` depuis le `runs/todo/cr_audits/*.json` produit — jamais de
    rebuild complet (voir [`../DAT/kb-magasin-donnees.md`](../DAT/kb-magasin-donnees.md)).
 7. **Corriger les métadonnées si besoin** via `overrides.json`, puis rejouer le build.
 8. **Committer** `sites/todo/` avec un message `kb(...)` portant modèle et score.
 
 Le rebuild du bundle web n'est nécessaire **que** si `web/src/` a changé.
+
+## Intégrer un run Blender
+
+Les sessions d'agent tournent dans `~/test/` ; l'agent y crée son dossier
+`AAAAMMJJ_HHMM_<modèle>_<effort>/` (imposé depuis le prompt `2609231500`).
+
+1. **Copier** (pas déplacer) le dossier dans `runs/blender/livrables/` et vérifier la copie
+   (`diff -r`). L'original reste la trace de la session.
+2. **Scanner le code** : imports réseau / sous-processus, chemins absolus, dans **tous** les `.py`
+   du livrable (le contrôle statique les lit tous, scripts annexes compris). Loi n°11 : on n'audite
+   que nos propres sessions.
+3. **Recouper la trace** : `python3 -m hexa usage <transcript> --trace <livrable>/audit_trace.json`
+   (Claude Code : `~/.claude/projects/-home-happykiller-test/<session>.jsonl` ; Codex :
+   `~/.codex/sessions/AAAA/MM/JJ/rollout-*.jsonl`). Modèle et effort doivent correspondre.
+4. **Corriger les tokens depuis le transcript**, avant l'audit, quand ils divergent — décision du
+   2026-09-23, appliquée aux trois premiers runs pour qu'ils soient notés sur la même base : les
+   agents écrivent leur trace **avant la fin** de session (−6 à −62 % observés). Remplacer les trois
+   compteurs de tokens dans `summary`, tracer l'opération dans `meta.config.operator_correction`
+   (valeurs déclarées, source, raison). Ne pas corriger la durée si elle casse la cohérence avec les
+   phases (±10 %) : on n'invente pas de bornes de phase.
+5. **Auditer** : `python3 -m hexa blender analyze runs/blender/livrables/<NOM> --keep-work`
+   (≈ 2 min ; sous-agent [`blender-audit-runner`](../MOTEUR.md)).
+6. **Lire avant de publier** : les 6 exécutions Blender OK, aucun cap dû à l'environnement, puis
+   regarder les visuels. Un indicateur qui surprend se creuse : le 2026-09-23, « palette 1/8 » chez
+   GPT-6 Astra venait d'une vraie erreur de l'agent (valeurs linéaires écrites dans une texture
+   sRGB), pas de l'auditeur.
+7. **Publier** : `python3 -m hexa kb blender --add runs/blender/cr_audits/cr_<…>.json`, commit
+   `kb(blender): ajoute le run <modèle> <effort> (<score> %)`.
 
 ## Faire évoluer l'auditeur
 

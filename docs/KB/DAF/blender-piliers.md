@@ -53,6 +53,17 @@ d'hygiène**, et un agent compétent les franchit tous. Seule la fidélité visu
 (18,9 / 24, IoU 0,46 à 0,53). Décision : publier en b1 et durcir en b2 après 2 ou 3 runs
 supplémentaires, pour ne pas calibrer sur un seul modèle.
 
+## Trois runs (2026-09-23)
+
+| Run | Opé / Géo / Rig | Visuel | Traça | Coût | Total |
+|---|---|---|---|---|---|
+| Opus 5.5 medium | 18 / 18 / 18 | 18,9 | 6,7 | 6 (2,37 $) | 88,54 % |
+| Fable 5.1 high | 18 / 18 / 18 | 15,0 | 6,0 | 0 (8,88 $) | 78,02 % |
+| GPT-6 Astra medium | 18 / 18 / 18 | 14,1 | 6,7 | 3 (tokens, non tarifé) | 77,75 % |
+
+La saturation des piliers techniques se confirme sur trois modèles : b2 doit rendre ces piliers
+discriminants avant d'ajouter des runs.
+
 ## À COMPLÉTER
 
 - b2 : rendre les piliers techniques moins binaires (densité de détail, nombre d'os par membre, richesse des actions) et donner plus de poids à la fidélité visuelle.
