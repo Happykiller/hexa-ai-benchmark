@@ -26,6 +26,7 @@ outillage ([`MOTEUR.md`](docs/KB/MOTEUR.md)) et historique des sujets
 | Comprendre le pipeline d'audit | [`docs/KB/DAT/auditeur-pipeline.md`](docs/KB/DAT/auditeur-pipeline.md) |
 | Ce qu'un livrable doit fournir | [`docs/KB/DAT/contrat-livrable.md`](docs/KB/DAT/contrat-livrable.md) |
 | Pièges d'exécution (droits, bind-mounts) | [`docs/KB/DAT/environnements.md`](docs/KB/DAT/environnements.md) |
+| Benchmark Blender 3D (second défi) | [`docs/KB/DAT/blender-pipeline.md`](docs/KB/DAT/blender-pipeline.md) |
 | Ne rien casser | [`docs/KB/REGLES/lois.md`](docs/KB/REGLES/lois.md) |
 
 Le projet et ses documents sont en **français**.

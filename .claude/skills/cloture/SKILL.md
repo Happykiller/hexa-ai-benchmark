@@ -36,6 +36,11 @@ stack du livrable qu'il analyse, et le nom du projet compose est le nom du dossi
   passent par Docker (voir `docs/KB/DAT/environnements.md`). Ne jamais supposer qu'un audit
   statique n'a rien démarré — vérifier.
 
+L'auditeur Blender (`blender_bench/`) ne lance **aucun conteneur**, mais un audit interrompu
+peut laisser des processus `blender -b` (et leur dossier `/tmp/hexa_blender_*`). Les recenser par
+`pgrep -af "blender -b"` et les arrêter nommément (`kill <pid>`) s'ils viennent d'un audit —
+jamais un Blender que l'utilisateur aurait ouvert lui-même.
+
 `livrables/` et `cr_audits/` étant gitignorés, un audit ne salit jamais le working tree : un dépôt
 propre ne prouve donc **pas** qu'aucun conteneur ne traîne. Les deux contrôles sont indépendants.
 

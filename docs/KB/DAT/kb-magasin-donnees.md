@@ -2,7 +2,7 @@
 titre: Magasin de données KB — brut, overrides, dérivé
 type: dat
 statut: actif
-maj: 2026-09-22
+maj: 2026-09-23
 ---
 
 # Magasin de données de la knowledge base
@@ -89,6 +89,15 @@ donne ancien → nouveau score. Cas du 2026-09-22 : claude-opus-5 75,78 → 82,0
 **Limites des overrides.** Ils sont cosmétiques : surcharger `model` ne recalcule ni le coût ni le
 score (figés dans le cr par l'auditeur), et le merge shallow remplace un objet imbriqué en entier
 (`cost`). Une erreur de tarif ne se corrige que par un nouvel audit.
+
+## Deux magasins, un builder
+
+`kb/builder.py` travaille sur un `KbStore` (dossier, chargement de toutes les entrées ou d'une
+seule, action après écriture). Le magasin par défaut est celui de la Todo List ;
+`kb_blender/builder.py` déclare `knowledge_base_blender/` et publie ses visuels dans `media/<id>/`
+après chaque écriture. Upsert, garde-fou anti-perte et overrides sont donc **les mêmes** pour les
+deux KB. Les visuels suivent la loi n°8 : jamais supprimés, même si le rapport brut disparaît.
+Commande : `python3 scripts/build_kb_blender.py [--add cr_audits_blender/cr_<…>.json]`.
 
 ## Le package `kb/`
 

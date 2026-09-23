@@ -2,7 +2,7 @@
 titre: Frontend de consultation de la KB
 type: dat
 statut: actif
-maj: 2026-09-22
+maj: 2026-09-23
 ---
 
 # Frontend de la knowledge base
@@ -44,6 +44,17 @@ En `file://`, Chrome bloque les scripts `type="module"`, tout attribut `crossori
 
 Vérifier un changement du front : Chrome headless Windows
 (`chrome.exe --headless=new --dump-dom` ou `--screenshot`) sur l'URL `file:///…` **et** en HTTP.
+
+## Deux sites, un seul code
+
+`src/` sert les deux KB. `vite.blender.config.js` fixe `VITE_KB_VARIANT=blender` et sort dans
+`knowledge_base_blender/` (`npm run build:kb:blender:web`). Les piliers affichés viennent de
+l'entrée (`bucket_scores[k].short`), avec repli sur la table Todo pour les entrées publiées avant ;
+un bandeau de visuels s'affiche quand l'entrée a des `media`. Une ancre `#<id>` dans l'URL ouvre
+ce run (lien partageable, et moyen de vérifier une ligne dépliée en Chrome headless).
+
+Chrome côté Windows ne peut pas écrire sa capture dans un `/tmp` WSL : copier le site dans
+`%TEMP%` Windows et y écrire le `--screenshot`.
 
 ## Sortie versionnée
 

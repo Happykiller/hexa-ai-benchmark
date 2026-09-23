@@ -2,7 +2,7 @@
 titre: Lois — invariants non négociables
 type: regle
 statut: actif
-maj: 2026-09-22
+maj: 2026-09-23
 ---
 
 # Lois du projet
@@ -80,3 +80,11 @@ mongodb/mysql. Un agent en cours teste sa propre stack sur les ports mêmes de l
 (4000 / 47017 / 43306). Auditer à ce moment-là fausse **les deux** mesures : l'auditeur note l'API
 de l'agent, et son teardown détruit la stack d'un run en cours.
 → [`../DAT/environnements.md`](../DAT/environnements.md)
+
+## 11. Ne jamais auditer un `build.py` d'origine inconnue hors d'une machine jetable
+
+L'auditeur Blender **exécute** le code du livrable sur l'hôte. Ses garde-fous (réseau,
+sous-processus neutralisés, environnement réduit, copie du livrable) attrapent les tentatives
+ordinaires, pas un script hostile qui les défait. Tant que le rejeu n'est pas conteneurisé, on
+n'audite que des livrables produits par nos propres sessions d'agent.
+→ [`../DAT/blender-pipeline.md`](../DAT/blender-pipeline.md)

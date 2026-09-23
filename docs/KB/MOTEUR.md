@@ -2,7 +2,7 @@
 titre: Cerveau moteur — cartographie de .claude/
 type: dat
 statut: actif
-maj: 2026-09-04
+maj: 2026-09-23
 ---
 
 # Cerveau moteur
@@ -29,6 +29,7 @@ que cet acquis est committé, poussé, et que rien ne tourne encore.
 |---|---|---|
 | `audit-runner` | Un audit complet est long et très bavard (sortie Docker, make, E2E). L'isoler évite de noyer le contexte principal sous des logs dont seul le récap final compte. Il porte aussi les gestes de préparation faciles à oublier (droits `faro`, prérequis Docker) | `.claude/agents/audit-runner.md` |
 | `kb-builder` | Le rebuild de la KB est mécanique et vérifiable seul : on veut le résultat (entrées régénérées, rebuild web nécessaire ou non), pas le déroulé. Il lui est explicitement interdit de contourner le refus de rebuild avec `--allow-drop` — la perte d'une entrée publiée est une décision d'opérateur | `.claude/agents/kb-builder.md` |
+| `blender-audit-runner` | Un audit Blender enchaîne cinq lancements de Blender et des rendus de plusieurs minutes : seul le récap compte. Il porte les gestes propres à ce benchmark (binaire hors PATH, pas d'audit d'un `build.py` d'origine inconnue — loi n°11, processus `blender -b` orphelins). Séparé d'`audit-runner` : aucun pré-vol commun (Docker, ports) | `.claude/agents/blender-audit-runner.md` |
 
 Les deux correspondent aux deux moitiés du workflow d'audit décrit dans
 [`REGLES/workflows.md`](REGLES/workflows.md) : produire le rapport, puis le publier.

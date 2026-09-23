@@ -2,7 +2,7 @@
 titre: Stack technique
 type: dat
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-23
 ---
 
 # Stack technique
@@ -18,6 +18,10 @@ Déclaré dans `auditor/requirements.txt` et `pyproject.toml`.
 - Runtime : `click` (CLI), `jinja2` (rendu du rapport), `requests` (sondes GraphQL),
   `pyyaml` (lecture des `docker-compose.yml` des livrables), `rich` (sortie console).
 - Dev : `pytest`, `ruff`.
+- Benchmark Blender : `numpy` (1.26.4, aligné sur le Python embarqué de Blender) et `Pillow`
+  pour l'analyse d'images côté hôte, et **Blender 4.5 LTS** (hors PATH :
+  `~/.local/bin/blender45`, ou `HEXA_BLENDER_BIN`), dont le Python embarqué n'a pas Pillow —
+  d'où le partage « bpy mesure, l'hôte note ». `ffmpeg` (facultatif) assemble le turntable.
 
 Les versions sont **épinglées à l'exact** (`==`), pas en plage. Un audit doit rester reproductible
 dans le temps : une montée de version silencieuse d'une dépendance peut déplacer un score.

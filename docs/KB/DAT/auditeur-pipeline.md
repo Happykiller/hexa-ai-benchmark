@@ -2,7 +2,7 @@
 titre: Pipeline d'audit — phases, checkers et parti pris
 type: dat
 statut: actif
-maj: 2026-09-22
+maj: 2026-09-23
 ---
 
 # Pipeline d'audit
@@ -82,6 +82,12 @@ poids des étapes E2E, noms de couches) dans un `ChallengeProfile`. `TODO_STATIC
 Conséquence pratique, et c'est le point à retenir : **ajouter un contrôle statique = une entrée de
 registre, sans toucher à `main.py`**. Un changement qui modifie `main.py` pour ajouter un checker
 rate l'intention de l'architecture.
+
+Le moteur de notation lui-même (indicateurs Fibonacci, piliers, caps, traçabilité, coût) vit
+dans `auditor/engine/`, sans rien de propre au défi : `_finalize_audit_db` reçoit un barème en
+paramètre. C'est ce qui permet au benchmark Blender ([blender-pipeline](blender-pipeline.md)) de
+réutiliser phases 3 et 6 à l'identique. `auditor/tests/test_engine_regression.py` rejoue des
+rapports publiés (v1, v2, v2 plafonné) : toute modification du moteur doit le laisser vert.
 
 ## Anti-triche
 

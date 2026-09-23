@@ -124,6 +124,37 @@ verbosité.
 
 ---
 
+## Benchmark Blender 3D (second défi)
+
+Un agent reçoit une planche concept (`blender_bench/challenges/<défi>/concept.png`) et un
+énoncé (`enonce.md`), et livre un `build.py` qui construit dans Blender une créature riggée et
+animée. L'auditeur le rejoue dans Blender 4.5 headless puis note le résultat (barème b1).
+Détails : [`docs/KB/DAT/blender-pipeline.md`](docs/KB/DAT/blender-pipeline.md).
+
+```bash
+# Audit (Blender : --blender, $HEXA_BLENDER_BIN, `blender` du PATH ou ~/.local/bin/blender45)
+python3 blender_bench/cli.py analyze livrables_blender/<NOM_DU_LIVRABLE>
+
+# Itérer sans rendus (score non publiable) / réanalyser sans relancer Blender
+python3 blender_bench/cli.py analyze livrables_blender/<NOM> --skip-render --keep-work
+python3 blender_bench/cli.py analyze livrables_blender/<NOM> --reuse-work /tmp/hexa_blender_xxx
+
+# KB Blender (site séparé : knowledge_base_blender/)
+python3 scripts/build_kb_blender.py --add cr_audits_blender/cr_<...>.json
+npm run build:kb:blender:web
+
+# Tests de rendu (≈ 1 min) en plus de la suite
+HEXA_BLENDER_SLOW=1 pytest -q blender_bench
+```
+
+Sorties : `cr_audits_blender/cr_<nom>_<ts>.{json,md}` + `cr_<…>_media/` (rendus, silhouettes
+superposées au concept, turntable MP4, planches d'animation).
+
+> ⚠️ L'auditeur **exécute** `build.py` sur l'hôte, sous garde-fous mais sans isolation forte :
+> n'auditer que des livrables issus de nos propres sessions (loi n°11).
+
+---
+
 ## Mettre à jour la knowledge base
 
 La KB est un **magasin de données** dérivé, pas un simple snapshot :

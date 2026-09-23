@@ -2,7 +2,7 @@
 titre: DAT — index de l'architecture technique
 type: index
 statut: actif
-maj: 2026-07-27
+maj: 2026-09-23
 ---
 
 # DAT — Dossier d'Architecture Technique
@@ -15,4 +15,6 @@ maj: 2026-07-27
 | [auditeur-pipeline.md](auditeur-pipeline.md) | Les 3 phases, l'inventaire des checkers, le parti pris « challenge-agnostique » | actif | 2026-07-27 |
 | [contrat-livrable.md](contrat-livrable.md) | Ce que l'auditeur exige de tout livrable : cibles make, structure, hypothèses dures | actif | 2026-07-27 |
 | [kb-magasin-donnees.md](kb-magasin-donnees.md) | Brut immuable → overrides → dérivé : pourquoi cette chaîne | actif | 2026-07-27 |
-| [frontend-kb.md](frontend-kb.md) | Le rendu web React/Vite et sa relation à `data.json` | actif | 2026-07-27 |
+| [frontend-kb.md](frontend-kb.md) | Le rendu web React/Vite et sa relation à `data.json` | actif | 2026-09-23 |
+| [blender-pipeline.md](blender-pipeline.md) | Benchmark Blender : rejeu de `build.py`, inspection, rendus déterministes | actif | 2026-09-23 |
+| [blender-contrat-livrable.md](blender-contrat-livrable.md) | Ce que l'auditeur Blender exige et suppose d'un livrable | actif | 2026-09-23 |

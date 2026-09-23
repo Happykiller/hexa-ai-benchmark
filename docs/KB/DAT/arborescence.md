@@ -2,7 +2,7 @@
 titre: Arborescence — rôle des dossiers de premier niveau
 type: dat
 statut: actif
-maj: 2026-09-04
+maj: 2026-09-23
 ---
 
 # Arborescence
@@ -14,7 +14,9 @@ est la première source d'erreur sur ce dépôt.
 
 | Dossier | Rôle |
 |---|---|
-| `auditor/` | Moteur d'audit Python. CLI (`main.py`), scoring, profil de défi, `modules/`, `templates/report.md`, `tests/` |
+| `auditor/` | Moteur d'audit Python. CLI (`main.py`), noyau de notation commun (`engine/`), scoring, profil de défi, `modules/`, `templates/report.md`, `tests/` |
+| `blender_bench/` | Second benchmark (Blender 3D) : CLI, scripts exécutés dans Blender (`bpy_scripts/`), analyses, catalogue `challenges/`, tests |
+| `kb_blender/` | Normalisation et publication de la KB Blender (s'appuie sur `kb/`) |
 | `kb/` | Package Python de construction du magasin de données KB (normalisation, parsing markdown, rendu des sections) |
 | `scripts/` | Points d'entrée CLI fins (`build_kb.py` n'est qu'un wrapper de `kb/builder.py`) |
 | `src/` | Application React de consultation de la KB (`App.jsx`, `main.jsx`, `styles.css`) |
@@ -26,6 +28,9 @@ est la première source d'erreur sur ce dépôt.
 | `livrables/` | Dossiers soumis par les agents évalués — l'entrée de l'audit | **Non** (`.gitignore`) |
 | `cr_audits/` | Rapports d'audit `.json` + `.md` — la source brute immuable | **Non** (`.gitignore`) |
 | `knowledge_base/` | Sortie publiée : `data.json`, `overrides.json`, bundle web | Oui |
+| `livrables_blender/` | Livrables du benchmark Blender | **Non** (`.gitignore`) |
+| `cr_audits_blender/` | Rapports Blender `.json` + `.md` + `_media/` | **Non** (`.gitignore`) |
+| `knowledge_base_blender/` | KB Blender publiée : `data.json`, `media/`, bundle web | Oui |
 | `prompts/` | `evaluation_prompt.md` — l'énoncé remis aux agents | Oui |
 
 Le fait que `livrables/` et `cr_audits/` soient hors dépôt est structurant : **les données brutes
