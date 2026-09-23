@@ -18,7 +18,7 @@ autonome : seul le noyau `auditor/engine/` est partagé avec la Todo List.
 | Rejeu du build | `bpy_scripts/run_build.py` (dans Blender) | `build_log.json`, `scene.blend`, `model.glb` |
 | Inspection | `bpy_scripts/inspect_scene.py` | `inspection.json` (géométrie, UV, skin, os, actions) |
 | Aller-retour glTF | `bpy_scripts/reimport_gltf.py` | `reimport.json` |
-| Rendus | `bpy_scripts/render_views.py` (3 modes) | vues ortho albédo + beauty, turntable, planches d'animation |
+| Rendus | `bpy_scripts/render_views.py` (3 modes) | vues ortho albédo + beauty, turntable, chaque image de chaque action (≤ 48, ≤ 4 actions) |
 | Analyses | `blender_bench/analysis/` (hôte, numpy + Pillow) | des `Check` → indicateurs (`emit.py`) |
 | Score | `auditor/engine` avec le barème `bench_config.py` | `cr_audits_blender/cr_<livrable>_<ts>.{json,md}` + `_media/` |
 

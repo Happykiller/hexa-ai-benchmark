@@ -176,7 +176,9 @@
         320
       ],
       "samples": 16,
-      "frames_per_action": 6
+      "max_frames": 48,
+      "sheet_frames": 6,
+      "max_actions": 4
     },
     "seed": 0,
     "threads": 8

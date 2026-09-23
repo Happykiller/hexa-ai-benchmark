@@ -348,21 +348,54 @@ function DetailCard({ onOpenInfo, section }) {
   );
 }
 
-function MediaStrip({ entry }) {
+function MediaFigure({ item, className = "" }) {
+  if (!item) return <div className="media-item empty" />;
+  const src = `${BASE_URL}${item.src}`;
   return (
-    <div className="media-strip" onClick={(e) => e.stopPropagation()}>
-      {entry.media.map((item) => (
-        <figure className={`media-item ${item.kind}`} key={item.src}>
-          {item.kind === "video" ? (
-            <video autoPlay controls loop muted playsInline src={`${BASE_URL}${item.src}`} />
-          ) : (
-            <a href={`${BASE_URL}${item.src}`} rel="noreferrer" target="_blank">
-              <img alt={item.label} loading="lazy" src={`${BASE_URL}${item.src}`} />
-            </a>
-          )}
-          <figcaption>{item.label}</figcaption>
-        </figure>
-      ))}
+    <figure className={`media-item ${item.kind} ${className}`}>
+      {item.kind === "video" ? (
+        <video autoPlay controls loop muted playsInline src={src} />
+      ) : (
+        <a href={src} rel="noreferrer" target="_blank">
+          <img alt={item.label} loading="lazy" src={src} />
+        </a>
+      )}
+      <figcaption>{item.label}</figcaption>
+    </figure>
+  );
+}
+
+// Visuels d'un audit Blender, groupés pour comparer : par vue, l'attendu (vignette du
+// turnaround), le rendu de l'auditeur et la superposition des silhouettes ; puis les vidéos.
+function MediaStrip({ entry }) {
+  const byFile = (name) => entry.media.find((item) => item.file === name);
+  const planche = entry.media.find((item) => item.shared);
+  const rows = ["front", "side", "back"]
+    .map((view) => [byFile(`concept_${view}.jpg`), byFile(`view_${view}.jpg`), byFile(`silhouette_${view}.png`)])
+    .filter((row) => row.some(Boolean));
+  const videos = entry.media.filter((item) => item.kind === "video");
+  const sheets = entry.media.filter((item) => item.kind === "sheet");
+  return (
+    <div className="media-block" onClick={(e) => e.stopPropagation()}>
+      {rows.length ? (
+        <div className="media-compare">
+          {planche ? <MediaFigure className="planche" item={planche} /> : null}
+          {rows.flat().map((item, index) => (
+            <MediaFigure item={item} key={item?.src || `empty-${index}`} />
+          ))}
+        </div>
+      ) : null}
+      {videos.length ? (
+        <div className="media-videos">
+          {videos.map((item) => <MediaFigure item={item} key={item.src} />)}
+        </div>
+      ) : null}
+      {sheets.length ? (
+        <details className="media-sheets">
+          <summary>Images clés des animations</summary>
+          {sheets.map((item) => <MediaFigure item={item} key={item.src} />)}
+        </details>
+      ) : null}
     </div>
   );
 }

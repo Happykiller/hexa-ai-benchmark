@@ -36,7 +36,8 @@ def test_normalize_blender_entry():
     assert entry["id"] == "cr_x_20260923_100000"
     assert entry["model"] == "claude-fable-5-1" and entry["admission_status"] == "ADMIS"
     assert entry["bucket_scores"]["visual"]["short"] == "Visuel"
-    assert entry["media"][0]["src"] == "media/cr_x_20260923_100000/view_front.jpg"
+    assert entry["media"][0]["src"] == "challenges/dreadhive_drone_mk1/concept.jpg"  # l'attendu
+    assert entry["media"][1]["src"] == "media/cr_x_20260923_100000/view_front.jpg"
     titles = [section["title"] for section in entry["sections"]]
     assert "Fidélité visuelle" in titles and "Score détaillé" in titles
 

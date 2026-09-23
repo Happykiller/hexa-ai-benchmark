@@ -188,8 +188,15 @@ def _skipped(checks: list[Check], reason: str) -> list[Check]:
 
 
 def _publish_media(
-    workdir: Path, media_dir: Path, spec: dict[str, Any], overlays: dict[str, Any]
+    workdir: Path,
+    media_dir: Path,
+    spec: dict[str, Any],
+    overlays: dict[str, Any],
+    concept: Path,
+    animation_log: dict[str, Any],
 ) -> list[dict[str, str]]:
+    """Par vue : l'attendu (vignette du turnaround), le rendu, la silhouette superposée.
+    Puis le turntable et, par action, une vidéo à vitesse réelle et une planche d'images."""
     renders = workdir / "renders"
     items: list[dict[str, str]] = []
     if not renders.exists():
@@ -197,15 +204,21 @@ def _publish_media(
     media_dir.mkdir(parents=True, exist_ok=True)
     labels = {"front": "FACE", "side": "PROFIL", "back": "DOS"}
     for view_id, view in spec["turnaround"]["views"].items():
+        label = labels[view_id]
+        if not view.get("source"):
+            media.concept_view(concept, view["box_px"], media_dir / f"concept_{view_id}.jpg")
+            items.append(
+                {
+                    "kind": "image",
+                    "file": f"concept_{view_id}.jpg",
+                    "label": f"Attendu {label} (turnaround)",
+                }
+            )
         source = renders / f"view_{view['camera']}_beauty.png"
         if source.exists():
             media.save_view(source, media_dir / f"view_{view_id}.jpg")
             items.append(
-                {
-                    "kind": "image",
-                    "file": f"view_{view_id}.jpg",
-                    "label": f"Rendu {labels[view_id]}",
-                }
+                {"kind": "image", "file": f"view_{view_id}.jpg", "label": f"Rendu {label}"}
             )
         overlay = (overlays.get(view_id) or {}).get("overlay")
         if overlay and Path(overlay).exists():
@@ -214,21 +227,46 @@ def _publish_media(
                 {
                     "kind": "image",
                     "file": f"silhouette_{view_id}.png",
-                    "label": f"Silhouette {labels[view_id]} (ambre : concept seul, bleu : rendu seul)",
+                    "label": f"Silhouette {label} (ambre : concept seul, bleu : rendu seul)",
                 }
             )
     video = media.turntable_video(renders, media_dir / "turntable.mp4")
     if video["status"] == "OK":
         items.append({"kind": "video", "file": "turntable.mp4", "label": "Turntable 360°"})
-    for action in spec["animations"]["required"]:
+    settings = spec["render"]["animation"]
+    for action, info in (animation_log.get("actions") or {}).items():
+        video = media.frames_video(
+            renders, f"anim_{action}", media_dir / f"anim_{action}.mp4", info["fps"]
+        )
+        if video["status"] == "OK":
+            items.append(
+                {
+                    "kind": "video",
+                    "file": f"anim_{action}.mp4",
+                    "label": f"Animation « {action} » ({info['duration_s']:g} s)",
+                }
+            )
+        frames = sorted(renders.glob(f"anim_{action}_[0-9][0-9][0-9].png"))
         sheet = media.contact_sheet(
-            sorted(renders.glob(f"anim_{action}_*.png")), media_dir / f"anim_{action}.jpg"
+            media.evenly(frames, settings["sheet_frames"]), media_dir / f"anim_{action}.jpg"
         )
         if sheet:
             items.append(
-                {"kind": "sheet", "file": f"anim_{action}.jpg", "label": f"Action « {action} »"}
+                {
+                    "kind": "sheet",
+                    "file": f"anim_{action}.jpg",
+                    "label": f"Action « {action} » (images clés)",
+                }
             )
     return items
+
+
+def _actions_to_render(inspection: dict[str, Any], spec: dict[str, Any]) -> list[str]:
+    """Actions requises d'abord, puis les actions supplémentaires qui animent le squelette."""
+    required = list(spec["animations"]["required"])
+    names = [a["name"] for a in inspection.get("actions", []) if a.get("targets_pose_bones")]
+    ordered = [name for name in required if name in names] + sorted(set(names) - set(required))
+    return ordered[: spec["render"]["animation"]["max_actions"]]
 
 
 def _stats(
@@ -366,11 +404,7 @@ def analyze(
     if renderable and not skip_render and not (reuse_work and (workdir / "renders").exists()):
         for mode in ("normalized", "turntable", "animation"):
             _log(f"Rendu {mode}…")
-            actions = [
-                a["name"]
-                for a in inspection.get("actions", [])
-                if a["name"] in spec["animations"]["required"]
-            ]
+            actions = _actions_to_render(inspection, spec)
             render_logs[mode] = pipeline.render(mode, actions if mode == "animation" else None)
 
     timestamp = started.strftime("%Y%m%d_%H%M%S")
@@ -420,7 +454,14 @@ def analyze(
     )
 
     media_dir = output_dir / f"{stem}_media"
-    media_items = _publish_media(workdir, media_dir, spec, imagery.get("silhouettes") or {})
+    media_items = _publish_media(
+        workdir,
+        media_dir,
+        spec,
+        imagery.get("silhouettes") or {},
+        defi.concept_path,
+        render_logs.get("animation") or _read_json(workdir / "render_animation.json") or {},
+    )
     audit_db["artifacts"] = {
         "static": static,
         "build": build,

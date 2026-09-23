@@ -1,8 +1,8 @@
 [
   {
-    "id": "cr_20260923_1123_claude-opus-5-5_low_20260923_140600",
+    "id": "cr_20260923_1123_claude-opus-5-5_low_20260923_143535",
     "benchmark": "blender",
-    "source_file": "cr_audits_blender/cr_20260923_1123_claude-opus-5-5_low_20260923_140600.json",
+    "source_file": "cr_audits_blender/cr_20260923_1123_claude-opus-5-5_low_20260923_143535.json",
     "challenge": "dreadhive_drone_mk1",
     "challenge_label": "DREADHIVE — Unité Xéno, Drone Ravageur Mk.I",
     "agent": "claude-opus-5-5_low",
@@ -11,8 +11,8 @@
     "prompt_version": "2609231100",
     "session_id": "20260923_1123",
     "target_path": "/home/happykiller/hexa-ai-benchmark/livrables_blender/20260923_1123_claude-opus-5-5_low",
-    "audit_started_at": "2026-09-23T14:06:00.263678",
-    "audit_finished_at": "2026-09-23T14:07:05.881337",
+    "audit_started_at": "2026-09-23T14:35:35.497046",
+    "audit_finished_at": "2026-09-23T14:37:23.232982",
     "scoring_model": "blender_indicator_fibonacci_b1",
     "score_percentage": 88.54,
     "admission_status": "ADMIS",
@@ -199,7 +199,7 @@
         "idle",
         "walk"
       ],
-      "build_seconds": 4.05,
+      "build_seconds": 4.68,
       "glb_mb": 10.427,
       "height_m": 2.33139,
       "iou": {
@@ -288,8 +288,8 @@
             "polarity": "positive",
             "score": 3.0,
             "max_score": 3,
-            "measured_value": 4.05,
-            "remarks": "secondes=4.05; value=4.05; tranche=-inf..120; label=≤ 2 min"
+            "measured_value": 4.68,
+            "remarks": "secondes=4.68; value=4.68; tranche=-inf..120; label=≤ 2 min"
           },
           {
             "code": "1-2-5",
@@ -1059,61 +1059,109 @@
     "media": [
       {
         "kind": "image",
-        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_140600/view_front.jpg",
+        "src": "challenges/dreadhive_drone_mk1/concept.jpg",
+        "label": "Planche concept (l'attendu)",
+        "shared": true
+      },
+      {
+        "kind": "image",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/concept_front.jpg",
+        "label": "Attendu FACE (turnaround)",
+        "file": "concept_front.jpg"
+      },
+      {
+        "kind": "image",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/view_front.jpg",
         "label": "Rendu FACE",
         "file": "view_front.jpg"
       },
       {
         "kind": "image",
-        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_140600/silhouette_front.png",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/silhouette_front.png",
         "label": "Silhouette FACE (ambre : concept seul, bleu : rendu seul)",
         "file": "silhouette_front.png"
       },
       {
         "kind": "image",
-        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_140600/view_side.jpg",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/concept_side.jpg",
+        "label": "Attendu PROFIL (turnaround)",
+        "file": "concept_side.jpg"
+      },
+      {
+        "kind": "image",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/view_side.jpg",
         "label": "Rendu PROFIL",
         "file": "view_side.jpg"
       },
       {
         "kind": "image",
-        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_140600/silhouette_side.png",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/silhouette_side.png",
         "label": "Silhouette PROFIL (ambre : concept seul, bleu : rendu seul)",
         "file": "silhouette_side.png"
       },
       {
         "kind": "image",
-        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_140600/view_back.jpg",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/concept_back.jpg",
+        "label": "Attendu DOS (turnaround)",
+        "file": "concept_back.jpg"
+      },
+      {
+        "kind": "image",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/view_back.jpg",
         "label": "Rendu DOS",
         "file": "view_back.jpg"
       },
       {
         "kind": "image",
-        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_140600/silhouette_back.png",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/silhouette_back.png",
         "label": "Silhouette DOS (ambre : concept seul, bleu : rendu seul)",
         "file": "silhouette_back.png"
       },
       {
         "kind": "video",
-        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_140600/turntable.mp4",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/turntable.mp4",
         "label": "Turntable 360°",
         "file": "turntable.mp4"
       },
       {
-        "kind": "sheet",
-        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_140600/anim_idle.jpg",
-        "label": "Action « idle »",
-        "file": "anim_idle.jpg"
+        "kind": "video",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/anim_idle.mp4",
+        "label": "Animation « idle » (3.042 s)",
+        "file": "anim_idle.mp4"
       },
       {
         "kind": "sheet",
-        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_140600/anim_walk.jpg",
-        "label": "Action « walk »",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/anim_idle.jpg",
+        "label": "Action « idle » (images clés)",
+        "file": "anim_idle.jpg"
+      },
+      {
+        "kind": "video",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/anim_walk.mp4",
+        "label": "Animation « walk » (1.375 s)",
+        "file": "anim_walk.mp4"
+      },
+      {
+        "kind": "sheet",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/anim_walk.jpg",
+        "label": "Action « walk » (images clés)",
         "file": "anim_walk.jpg"
+      },
+      {
+        "kind": "video",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/anim_attack.mp4",
+        "label": "Animation « attack » (1.542 s)",
+        "file": "anim_attack.mp4"
+      },
+      {
+        "kind": "sheet",
+        "src": "media/cr_20260923_1123_claude-opus-5-5_low_20260923_143535/anim_attack.jpg",
+        "label": "Action « attack » (images clés)",
+        "file": "anim_attack.jpg"
       }
     ],
     "report_markdown": {
-      "source_file": "cr_audits_blender/cr_20260923_1123_claude-opus-5-5_low_20260923_140600.md",
+      "source_file": "cr_audits_blender/cr_20260923_1123_claude-opus-5-5_low_20260923_143535.md",
       "summary_metrics": {
         "Points positifs gagnés": "300.40000000000003",
         "Points positifs possibles": "328",
@@ -1306,7 +1354,7 @@
           },
           {
             "label": "Build",
-            "value": "4.05 s · GLB 10.427 Mo",
+            "value": "4.68 s · GLB 10.427 Mo",
             "cls": null
           }
         ]
@@ -1354,7 +1402,7 @@
             "label": "Durée du build",
             "value": "3 / 3",
             "cls": "ok",
-            "tooltip": "secondes=4.05; value=4.05; tranche=-inf..120; label=≤ 2 min"
+            "tooltip": "secondes=4.68; value=4.68; tranche=-inf..120; label=≤ 2 min"
           },
           {
             "label": "Taille du GLB",
@@ -1804,7 +1852,7 @@
             "label": "Rapport MD",
             "value": "rapport",
             "cls": null,
-            "tooltip": "cr_20260923_1123_claude-opus-5-5_low_20260923_140600.md"
+            "tooltip": "cr_20260923_1123_claude-opus-5-5_low_20260923_143535.md"
           },
           {
             "label": "Score rapport",

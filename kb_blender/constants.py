@@ -7,6 +7,7 @@ MEDIA_DIR = KB_DIR / "media"
 SCAN_DIRS = [ROOT_DIR / "cr_audits_blender"]
 
 # Le front charge ./evaluation_prompt.md : même nom que la KB Todo, contenu = énoncé du défi.
+CHALLENGES_DIR = ROOT_DIR / "blender_bench" / "challenges"
 PROMPT_SRC = ROOT_DIR / "blender_bench" / "challenges" / "dreadhive_drone_mk1" / "enonce.md"
 PROMPT_DST = KB_DIR / "evaluation_prompt.md"
 

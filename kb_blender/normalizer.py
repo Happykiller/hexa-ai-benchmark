@@ -49,6 +49,20 @@ def _phases_detail(data: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _challenge_media(challenge: str | None) -> list[dict[str, Any]]:
+    """La planche du défi, en tête des visuels : partagée par toutes les entrées du défi."""
+    if not challenge:
+        return []
+    return [
+        {
+            "kind": "image",
+            "src": f"challenges/{challenge}/concept.jpg",
+            "label": "Planche concept (l'attendu)",
+            "shared": True,
+        }
+    ]
+
+
 def normalize_blender(
     data: dict[str, Any], source_file: str, report_markdown: dict[str, Any] | None
 ) -> dict[str, Any]:
@@ -109,7 +123,8 @@ def normalize_blender(
         "duration_seconds": trace_metrics.get("total_wall_time_seconds"),
         "blender": data.get("stats") or {},
         "phases_detail": _phases_detail(data),
-        "media": [
+        "media": _challenge_media(meta.get("challenge"))
+        + [
             {
                 "kind": item["kind"],
                 "src": f"media/{entry_id}/{item['file']}",

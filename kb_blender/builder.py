@@ -8,17 +8,41 @@ jamais : comme les entrées (loi n°8), un visuel publié survit à la perte du 
 import shutil
 from typing import Any
 
+from PIL import Image
+
 from kb.builder import KbStore
 from kb.builder import main as kb_main
 
-from .constants import DATA_PATH, KB_DIR, MEDIA_DIR, PROMPT_DST, PROMPT_SRC, SCAN_DIRS
+from .constants import (
+    CHALLENGES_DIR,
+    DATA_PATH,
+    KB_DIR,
+    MEDIA_DIR,
+    PROMPT_DST,
+    PROMPT_SRC,
+    SCAN_DIRS,
+)
 from .normalizer import load_all, load_one
+
+
+def _publish_challenge_concept(challenge: str | None) -> int:
+    """Copie (en JPEG) la planche du défi dans knowledge_base_blender/challenges/<id>/."""
+    destination = KB_DIR / "challenges" / str(challenge) / "concept.jpg"
+    source = CHALLENGES_DIR / str(challenge) / "concept.png"
+    if destination.exists() or not source.exists():
+        return 0
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    Image.open(source).convert("RGB").save(destination, quality=88, optimize=True)
+    return 1
 
 
 def publish_media(entries: list[dict[str, Any]]) -> None:
     copied = missing = 0
     for entry in entries:
         for media in entry.get("media") or []:
+            if media.get("shared"):
+                copied += _publish_challenge_concept(entry.get("challenge"))
+                continue
             destination = MEDIA_DIR / entry["id"] / media["file"]
             if destination.exists():
                 continue

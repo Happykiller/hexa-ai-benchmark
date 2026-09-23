@@ -7,7 +7,7 @@ Modes :
                            la palette ; l'alpha donne la silhouette ;
               - `beauty` : éclairage trois points lié à la caméra (visuels KB, netteté).
   turntable   N images en orbite autour de la créature (pose de repos).
-  animation   K images par action, caméra 3/4 fixe.
+  animation   chaque image de chaque action (plafonnée à max_frames), caméra 3/4 fixe.
 
 Déterminisme : Cycles CPU, échantillons / seed / threads figés, échantillonnage adaptatif,
 débruitage et path guiding désactivés. Caméras, lumières et monde du livrable sont retirés.
@@ -272,19 +272,30 @@ def main() -> None:
         armatures = [obj for obj in scene.objects if obj.type == "ARMATURE"]
         armature = max(armatures, key=lambda arm: len(arm.data.bones)) if armatures else None
         set_pose_position("POSE")
-        count = settings["frames_per_action"]
+        log["actions"] = {}
         for name in [name for name in args.actions.split(",") if name]:
             action = bpy.data.actions.get(name)
             if action is None or armature is None:
                 continue
             assign_action(armature, action)
-            start, end = action.frame_range
-            for index in range(count):
-                frame = round(start + (end - start) * index / max(1, count - 1))
-                scene.frame_set(int(frame))
-                path = os.path.join(args.out_dir, f"anim_{name}_{index:02d}.png")
+            start, end = (int(round(value)) for value in action.frame_range)
+            frames = list(range(start, end + 1))
+            if len(frames) > settings["max_frames"]:  # sous-échantillonnage régulier
+                step = len(frames) / settings["max_frames"]
+                frames = [frames[int(index * step)] for index in range(settings["max_frames"])]
+            for index, frame in enumerate(frames):
+                scene.frame_set(frame)
+                path = os.path.join(args.out_dir, f"anim_{name}_{index:03d}.png")
                 render_to(scene, path)
                 outputs.append(path)
+            fps = scene.render.fps / (scene.render.fps_base or 1.0)
+            duration = (end - start + 1) / fps
+            # Cadence de lecture qui restitue la durée réelle de l'action.
+            log["actions"][name] = {
+                "frames": len(frames),
+                "duration_s": round(duration, 3),
+                "fps": round(len(frames) / duration, 3) if duration > 0 else 24,
+            }
 
     write_json(args.log, log)
 
