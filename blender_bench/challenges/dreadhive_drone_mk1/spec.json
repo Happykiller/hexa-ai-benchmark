@@ -1,0 +1,190 @@
+{
+  "id": "dreadhive_drone_mk1",
+  "label": "DREADHIVE — Unité Xéno, Drone Ravageur Mk.I",
+  "prompt_version": "2609231100",
+  "concept": "concept.png",
+  "enonce": "enonce.md",
+  "turnaround": {
+    "comment": "Boîtes [x0, y0, x1, y1] (px, x1/y1 exclus) des vignettes FACE / PROFIL / DOS de concept.png, mesurées le 2026-09-23. Le profil montre la tête à droite de l'image : caméra en -X pour une créature qui regarde -Y. `source` (optionnel) désignera un jour une vue orthographique dédiée, prioritaire sur box_px.",
+    "background_rgb": [
+      234,
+      234,
+      234
+    ],
+    "foreground_threshold": 40,
+    "views": {
+      "front": {
+        "box_px": [
+          574,
+          132,
+          721,
+          402
+        ],
+        "camera": "front"
+      },
+      "side": {
+        "box_px": [
+          721,
+          132,
+          881,
+          402
+        ],
+        "camera": "left",
+        "allow_mirror": true
+      },
+      "back": {
+        "box_px": [
+          884,
+          132,
+          1028,
+          402
+        ],
+        "camera": "back"
+      }
+    }
+  },
+  "palette": {
+    "chitine_noire": "#171318",
+    "os": "#CFC0A5",
+    "chair_sombre": "#5C2731",
+    "voile_necrose": "#603C70",
+    "ambre_acide": "#C7982A",
+    "vert_bile": "#657A38",
+    "bleu_froid": "#31566B",
+    "ichor_clair": "#DCFEAE"
+  },
+  "required_parts": {
+    "carapace_dorsale": [
+      "carapace_dorsale",
+      "carapace"
+    ],
+    "sac_acide": [
+      "sac_acide",
+      "sac"
+    ],
+    "noeud_sensoriel": [
+      "noeud_sensoriel",
+      "noeud"
+    ],
+    "mandibule": [
+      "mandibule"
+    ],
+    "faisceau_musculaire": [
+      "faisceau_musculaire",
+      "muscle"
+    ],
+    "membrane_ventrale": [
+      "membrane_ventrale",
+      "membrane"
+    ],
+    "serre": [
+      "serre"
+    ],
+    "patte": [
+      "patte"
+    ]
+  },
+  "limbs": {
+    "comment": "Chaîne d'os d'un membre : <membre>_<NN>.<L|R>, NN = 01 à la racine du membre.",
+    "names": [
+      "serre",
+      "patte_1",
+      "patte_2"
+    ],
+    "bone_pattern": "^(serre|patte_1|patte_2)_(\\d{2})\\.(L|R)$",
+    "min_bones_per_limb": 2,
+    "ground_contacts_expected": 6
+  },
+  "translucent_parts": [
+    "sac_acide",
+    "membrane_ventrale"
+  ],
+  "scale": {
+    "target_height_m": 2.2,
+    "height_range_m": [
+      1.6,
+      3.0
+    ],
+    "ground_tolerance_ratio": 0.03
+  },
+  "budget": {
+    "triangles_bands": [
+      {
+        "min": 20000,
+        "max": 150000,
+        "score_ratio": 1.0,
+        "status": "OK",
+        "label": "dans le budget"
+      },
+      {
+        "min": 8000,
+        "max": 300000,
+        "score_ratio": 0.5,
+        "status": "PARTIEL",
+        "label": "hors budget, raisonnable"
+      },
+      {
+        "min": null,
+        "max": null,
+        "score_ratio": 0.0,
+        "status": "KO",
+        "label": "hors budget"
+      }
+    ],
+    "max_glb_mb": 60
+  },
+  "animations": {
+    "fps": 24,
+    "required": {
+      "idle": {
+        "min_frames": 48
+      },
+      "walk": {
+        "min_frames": 24
+      }
+    },
+    "motion_threshold_ratio": 0.01,
+    "leg_motion_threshold_ratio": 0.02,
+    "loop_tolerance_ratio": 0.01
+  },
+  "render": {
+    "beauty": {
+      "resolution": [
+        768,
+        768
+      ],
+      "samples": 64
+    },
+    "flat": {
+      "resolution": [
+        384,
+        384
+      ],
+      "samples": 16
+    },
+    "turntable": {
+      "resolution": [
+        320,
+        320
+      ],
+      "samples": 16,
+      "frames": 24
+    },
+    "animation": {
+      "resolution": [
+        320,
+        320
+      ],
+      "samples": 16,
+      "frames_per_action": 6
+    },
+    "seed": 0,
+    "threads": 8
+  },
+  "timeouts_s": {
+    "build": 900,
+    "inspect": 300,
+    "reimport": 180,
+    "render": 1200
+  }
+}

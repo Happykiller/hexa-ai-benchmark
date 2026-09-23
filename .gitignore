@@ -1,5 +1,7 @@
 livrables/*
 cr_audits/
+livrables_blender/*
+cr_audits_blender/
 __pycache__/
 *.pyc
 .claude/settings.local.json

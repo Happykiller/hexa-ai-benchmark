@@ -1,0 +1,10 @@
+{
+  "meta": {"prompt_version": "2609231100", "model": "claude-fable-5-1", "temperature": 1.0, "effort": "high", "config": {}},
+  "summary": {"total_turns": 12, "total_tool_calls": 48, "total_wall_time_seconds": 1500,
+              "total_input_tokens": 400000, "total_output_tokens": 60000, "total_cached_input_tokens": 300000},
+  "phases": [
+    {"phase": 1, "label": "Modélisation", "start_time": "2026-09-23T09:00:00Z", "end_time": "2026-09-23T09:10:00Z", "turns_in_phase": 5, "tool_calls_in_phase": 20},
+    {"phase": 2, "label": "UV & Matériaux", "start_time": "2026-09-23T09:10:00Z", "end_time": "2026-09-23T09:15:00Z", "turns_in_phase": 3, "tool_calls_in_phase": 12},
+    {"phase": 3, "label": "Rig & Animation", "start_time": "2026-09-23T09:15:00Z", "end_time": "2026-09-23T09:25:00Z", "turns_in_phase": 4, "tool_calls_in_phase": 16}
+  ]
+}

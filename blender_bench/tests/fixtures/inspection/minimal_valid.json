@@ -1,0 +1,1191 @@
+{
+ "blender_version": "4.5.11 LTS",
+ "scene": {
+  "fps": 24.0,
+  "frame_start": 1,
+  "frame_end": 49,
+  "unit_system": "METRIC",
+  "scale_length": 1.0
+ },
+ "objects": [
+  {
+   "name": "faisceau_musculaire_corps",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "carapace_dorsale",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "membrane_ventrale",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "sac_acide.L",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "sac_acide.R",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "tete",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "noeud_sensoriel",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "mandibule.L",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "mandibule.R",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "serre.L",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "serre.R",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "patte_1.L",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "patte_1.R",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "patte_2.L",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "patte_2.R",
+   "type": "MESH",
+   "parent": "rig_drone",
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  },
+  {
+   "name": "rig_drone",
+   "type": "ARMATURE",
+   "parent": null,
+   "hide_render": false,
+   "collections": [
+    "Scene Collection"
+   ]
+  }
+ ],
+ "collections": [],
+ "bbox": [
+  [
+   -0.9348763227462769,
+   -0.9648717045783997,
+   -0.0026569264009594917
+  ],
+  [
+   0.9348763227462769,
+   0.7644762396812439,
+   1.9722212553024292
+  ]
+ ],
+ "height": 1.97488,
+ "meshes": [
+  {
+   "name": "faisceau_musculaire_corps",
+   "data_name": "faisceau_musculaire_corps",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 962,
+   "edges": 1920,
+   "faces": 960,
+   "tris": 1920,
+   "triangles": 0,
+   "quads": 960,
+   "ngons": 0,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 2.646674,
+   "materials": [
+    "faisceau_musculaire_chair"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "racine"
+   ],
+   "modifiers": [
+    "ARMATURE",
+    "SUBSURF"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 0.0,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.2857,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "carapace_dorsale",
+   "data_name": "carapace_dorsale",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 66,
+   "edges": 128,
+   "faces": 64,
+   "tris": 128,
+   "triangles": 0,
+   "quads": 64,
+   "ngons": 0,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 0.864484,
+   "materials": [
+    "chitine_noire"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "racine"
+   ],
+   "modifiers": [
+    "ARMATURE",
+    "SUBSURF"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 0.0007,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.352,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "membrane_ventrale",
+   "data_name": "membrane_ventrale",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 962,
+   "edges": 1920,
+   "faces": 960,
+   "tris": 1920,
+   "triangles": 0,
+   "quads": 960,
+   "ngons": 0,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 1.040485,
+   "materials": [
+    "membrane_ventrale_voile"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "racine"
+   ],
+   "modifiers": [
+    "ARMATURE",
+    "SUBSURF"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 0.0,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.2857,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "sac_acide.L",
+   "data_name": "sac_acide.L",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 162,
+   "edges": 480,
+   "faces": 320,
+   "tris": 320,
+   "triangles": 320,
+   "quads": 0,
+   "ngons": 0,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 0.628955,
+   "materials": [
+    "sac_acide_ambre"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "racine"
+   ],
+   "modifiers": [
+    "ARMATURE"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 0.0,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.2845,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "sac_acide.R",
+   "data_name": "sac_acide.R",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 162,
+   "edges": 480,
+   "faces": 320,
+   "tris": 320,
+   "triangles": 320,
+   "quads": 0,
+   "ngons": 0,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 0.628955,
+   "materials": [
+    "sac_acide_ambre"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "racine"
+   ],
+   "modifiers": [
+    "ARMATURE"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 0.0,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.2845,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "tete",
+   "data_name": "tete",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 162,
+   "edges": 480,
+   "faces": 320,
+   "tris": 320,
+   "triangles": 320,
+   "quads": 0,
+   "ngons": 0,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 0.809303,
+   "materials": [
+    "chitine_noire"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "tete"
+   ],
+   "modifiers": [
+    "ARMATURE"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 0.0,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.2845,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "noeud_sensoriel",
+   "data_name": "noeud_sensoriel",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 42,
+   "edges": 120,
+   "faces": 80,
+   "tris": 80,
+   "triangles": 80,
+   "quads": 0,
+   "ngons": 0,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 0.041997,
+   "materials": [
+    "noeud_sensoriel_bleu"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "tete"
+   ],
+   "modifiers": [
+    "ARMATURE"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 0.0,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.2792,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "mandibule.L",
+   "data_name": "mandibule.L",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 17,
+   "edges": 32,
+   "faces": 17,
+   "tris": 30,
+   "triangles": 16,
+   "quads": 0,
+   "ngons": 1,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 0.059064,
+   "materials": [
+    "os_griffes"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "tete"
+   ],
+   "modifiers": [
+    "ARMATURE"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 0.0074,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.3524,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "mandibule.R",
+   "data_name": "mandibule.R",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 17,
+   "edges": 32,
+   "faces": 17,
+   "tris": 30,
+   "triangles": 16,
+   "quads": 0,
+   "ngons": 1,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 0.059064,
+   "materials": [
+    "os_griffes"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "tete"
+   ],
+   "modifiers": [
+    "ARMATURE"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 0.0074,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.3524,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "serre.L",
+   "data_name": "serre.L",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 48,
+   "edges": 72,
+   "faces": 28,
+   "tris": 88,
+   "triangles": 0,
+   "quads": 24,
+   "ngons": 4,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 0.607225,
+   "materials": [
+    "os_griffes"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "serre_01.L",
+    "serre_02.L"
+   ],
+   "modifiers": [
+    "ARMATURE"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 1.0,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.4739,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "serre.R",
+   "data_name": "serre.R",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 48,
+   "edges": 72,
+   "faces": 28,
+   "tris": 88,
+   "triangles": 0,
+   "quads": 24,
+   "ngons": 4,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 0.607225,
+   "materials": [
+    "os_griffes"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "serre_01.R",
+    "serre_02.R"
+   ],
+   "modifiers": [
+    "ARMATURE"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 1.0,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.4739,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "patte_1.L",
+   "data_name": "patte_1.L",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 48,
+   "edges": 72,
+   "faces": 28,
+   "tris": 88,
+   "triangles": 0,
+   "quads": 24,
+   "ngons": 4,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 0.539985,
+   "materials": [
+    "chitine_noire"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "patte_1_01.L",
+    "patte_1_02.L"
+   ],
+   "modifiers": [
+    "ARMATURE"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 1.0,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.4739,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "patte_1.R",
+   "data_name": "patte_1.R",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 48,
+   "edges": 72,
+   "faces": 28,
+   "tris": 88,
+   "triangles": 0,
+   "quads": 24,
+   "ngons": 4,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 0.539985,
+   "materials": [
+    "chitine_noire"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "patte_1_01.R",
+    "patte_1_02.R"
+   ],
+   "modifiers": [
+    "ARMATURE"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 1.0,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.4739,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "patte_2.L",
+   "data_name": "patte_2.L",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 48,
+   "edges": 72,
+   "faces": 28,
+   "tris": 88,
+   "triangles": 0,
+   "quads": 24,
+   "ngons": 4,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 0.556334,
+   "materials": [
+    "chitine_noire"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "patte_2_01.L",
+    "patte_2_02.L"
+   ],
+   "modifiers": [
+    "ARMATURE"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 1.0,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.4739,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  },
+  {
+   "name": "patte_2.R",
+   "data_name": "patte_2.R",
+   "parent": "rig_drone",
+   "parent_type": "OBJECT",
+   "verts": 48,
+   "edges": 72,
+   "faces": 28,
+   "tris": 88,
+   "triangles": 0,
+   "quads": 24,
+   "ngons": 4,
+   "non_manifold_edges": 0,
+   "boundary_edges": 0,
+   "wire_edges": 0,
+   "loose_verts": 0,
+   "degenerate_faces": 0,
+   "area": 0.556334,
+   "materials": [
+    "chitine_noire"
+   ],
+   "empty_material_slots": 0,
+   "vertex_groups": [
+    "patte_2_01.R",
+    "patte_2_02.R"
+   ],
+   "modifiers": [
+    "ARMATURE"
+   ],
+   "armature_modifier": true,
+   "shape_keys": 0,
+   "uv_layers": 1,
+   "flipped_faces": 0,
+   "uv_overlap_ratio": 1.0,
+   "uv_oob_ratio": 0.0,
+   "uv_zero_area_ratio": 0.0,
+   "uv_coverage_ratio": 0.4739,
+   "weighted_ratio": 1.0,
+   "over4_ratio": 0.0,
+   "max_influences": 1
+  }
+ ],
+ "ground": {
+  "ground_limbs": [
+   "patte_1.L",
+   "patte_1.R",
+   "patte_2.L",
+   "patte_2.R",
+   "serre.L",
+   "serre.R"
+  ],
+  "ground_clusters": 6
+ },
+ "materials": [
+  {
+   "name": "chitine_noire",
+   "users": 6,
+   "use_nodes": true,
+   "principled": 1,
+   "colors": [
+    "#171318"
+   ],
+   "transmission": 0.0,
+   "subsurface": 0.0,
+   "emission": 0.0,
+   "alpha_min": 1.0,
+   "images": [],
+   "procedural_nodes": 0
+  },
+  {
+   "name": "faisceau_musculaire_chair",
+   "users": 1,
+   "use_nodes": true,
+   "principled": 1,
+   "colors": [
+    "#5C2731"
+   ],
+   "transmission": 0.0,
+   "subsurface": 0.10000000149011612,
+   "emission": 0.0,
+   "alpha_min": 1.0,
+   "images": [],
+   "procedural_nodes": 0
+  },
+  {
+   "name": "membrane_ventrale_voile",
+   "users": 1,
+   "use_nodes": true,
+   "principled": 1,
+   "colors": [
+    "#603C70"
+   ],
+   "transmission": 0.0,
+   "subsurface": 0.30000001192092896,
+   "emission": 0.0,
+   "alpha_min": 1.0,
+   "images": [],
+   "procedural_nodes": 0
+  },
+  {
+   "name": "noeud_sensoriel_bleu",
+   "users": 1,
+   "use_nodes": true,
+   "principled": 1,
+   "colors": [
+    "#31566B"
+   ],
+   "transmission": 0.0,
+   "subsurface": 0.0,
+   "emission": 0.3964408456748849,
+   "alpha_min": 1.0,
+   "images": [],
+   "procedural_nodes": 0
+  },
+  {
+   "name": "os_griffes",
+   "users": 4,
+   "use_nodes": true,
+   "principled": 1,
+   "colors": [
+    "#CFC0A5"
+   ],
+   "transmission": 0.0,
+   "subsurface": 0.0,
+   "emission": 0.0,
+   "alpha_min": 1.0,
+   "images": [],
+   "procedural_nodes": 0
+  },
+  {
+   "name": "sac_acide_ambre",
+   "users": 2,
+   "use_nodes": true,
+   "principled": 1,
+   "colors": [
+    "#C7982A"
+   ],
+   "transmission": 0.699999988079071,
+   "subsurface": 0.0,
+   "emission": 0.07784713622699879,
+   "alpha_min": 1.0,
+   "images": [],
+   "procedural_nodes": 0
+  }
+ ],
+ "images": [],
+ "armatures": [
+  {
+   "name": "rig_drone",
+   "bones": [
+    {
+     "name": "racine",
+     "parent": null,
+     "head": [
+      0.0,
+      0.1,
+      0.9
+     ],
+     "tail": [
+      0.0,
+      0.1,
+      1.3
+     ],
+     "length": 0.4,
+     "use_deform": true
+    },
+    {
+     "name": "tete",
+     "parent": "racine",
+     "head": [
+      0.0,
+      -0.35,
+      1.3
+     ],
+     "tail": [
+      0.0,
+      -0.75,
+      1.3
+     ],
+     "length": 0.4,
+     "use_deform": true
+    },
+    {
+     "name": "serre_01.L",
+     "parent": "racine",
+     "head": [
+      0.3,
+      -0.45,
+      1.25
+     ],
+     "tail": [
+      0.62,
+      -0.85,
+      1.05
+     ],
+     "length": 0.54991,
+     "use_deform": true
+    },
+    {
+     "name": "serre_02.L",
+     "parent": "serre_01.L",
+     "head": [
+      0.62,
+      -0.85,
+      1.05
+     ],
+     "tail": [
+      0.55,
+      -0.95,
+      0.0
+     ],
+     "length": 1.05707,
+     "use_deform": true
+    },
+    {
+     "name": "serre_01.R",
+     "parent": "racine",
+     "head": [
+      -0.3,
+      -0.45,
+      1.25
+     ],
+     "tail": [
+      -0.62,
+      -0.85,
+      1.05
+     ],
+     "length": 0.54991,
+     "use_deform": true
+    },
+    {
+     "name": "serre_02.R",
+     "parent": "serre_01.R",
+     "head": [
+      -0.62,
+      -0.85,
+      1.05
+     ],
+     "tail": [
+      -0.55,
+      -0.95,
+      0.0
+     ],
+     "length": 1.05707,
+     "use_deform": true
+    },
+    {
+     "name": "patte_1_01.L",
+     "parent": "racine",
+     "head": [
+      0.36,
+      -0.1,
+      1.0
+     ],
+     "tail": [
+      0.85,
+      -0.2,
+      0.85
+     ],
+     "length": 0.52211,
+     "use_deform": true
+    },
+    {
+     "name": "patte_1_02.L",
+     "parent": "patte_1_01.L",
+     "head": [
+      0.85,
+      -0.2,
+      0.85
+     ],
+     "tail": [
+      0.92,
+      -0.25,
+      0.0
+     ],
+     "length": 0.85434,
+     "use_deform": true
+    },
+    {
+     "name": "patte_1_01.R",
+     "parent": "racine",
+     "head": [
+      -0.36,
+      -0.1,
+      1.0
+     ],
+     "tail": [
+      -0.85,
+      -0.2,
+      0.85
+     ],
+     "length": 0.52211,
+     "use_deform": true
+    },
+    {
+     "name": "patte_1_02.R",
+     "parent": "patte_1_01.R",
+     "head": [
+      -0.85,
+      -0.2,
+      0.85
+     ],
+     "tail": [
+      -0.92,
+      -0.25,
+      0.0
+     ],
+     "length": 0.85434,
+     "use_deform": true
+    },
+    {
+     "name": "patte_2_01.L",
+     "parent": "racine",
+     "head": [
+      0.36,
+      0.4,
+      1.0
+     ],
+     "tail": [
+      0.85,
+      0.6,
+      0.85
+     ],
+     "length": 0.55009,
+     "use_deform": true
+    },
+    {
+     "name": "patte_2_02.L",
+     "parent": "patte_2_01.L",
+     "head": [
+      0.85,
+      0.6,
+      0.85
+     ],
+     "tail": [
+      0.88,
+      0.75,
+      0.0
+     ],
+     "length": 0.86366,
+     "use_deform": true
+    },
+    {
+     "name": "patte_2_01.R",
+     "parent": "racine",
+     "head": [
+      -0.36,
+      0.4,
+      1.0
+     ],
+     "tail": [
+      -0.85,
+      0.6,
+      0.85
+     ],
+     "length": 0.55009,
+     "use_deform": true
+    },
+    {
+     "name": "patte_2_02.R",
+     "parent": "patte_2_01.R",
+     "head": [
+      -0.85,
+      0.6,
+      0.85
+     ],
+     "tail": [
+      -0.88,
+      0.75,
+      0.0
+     ],
+     "length": 0.86366,
+     "use_deform": true
+    }
+   ],
+   "has_animation_data": true,
+   "nla_tracks": []
+  }
+ ],
+ "actions": [
+  {
+   "name": "idle",
+   "frame_start": 1.0,
+   "frame_end": 49.0,
+   "frames": 49.0,
+   "fcurves": 6,
+   "keyframes": 18,
+   "nan_keyframes": 0,
+   "use_fake_user": true,
+   "users": 2,
+   "targets_pose_bones": true,
+   "use_cyclic": false,
+   "motion": {
+    "max_displacement_ratio": 0.02511,
+    "per_bone": {
+     "racine": 0.015,
+     "tete": 0.02511,
+     "serre_01.L": 0.015,
+     "serre_02.L": 0.015,
+     "serre_01.R": 0.015,
+     "serre_02.R": 0.015,
+     "patte_1_01.L": 0.015,
+     "patte_1_02.L": 0.015,
+     "patte_1_01.R": 0.015,
+     "patte_1_02.R": 0.015,
+     "patte_2_01.L": 0.015,
+     "patte_2_02.L": 0.015,
+     "patte_2_01.R": 0.015,
+     "patte_2_02.R": 0.015
+    },
+    "loop_delta_ratio": 0.0
+   }
+  },
+  {
+   "name": "walk",
+   "frame_start": 1.0,
+   "frame_end": 25.0,
+   "frames": 25.0,
+   "fcurves": 18,
+   "keyframes": 90,
+   "nan_keyframes": 0,
+   "use_fake_user": true,
+   "users": 1,
+   "targets_pose_bones": true,
+   "use_cyclic": false,
+   "motion": {
+    "max_displacement_ratio": 0.20064,
+    "per_bone": {
+     "racine": 0.0,
+     "tete": 0.0,
+     "serre_01.L": 0.05783,
+     "serre_02.L": 0.12117,
+     "serre_01.R": 0.05783,
+     "serre_02.R": 0.12117,
+     "patte_1_01.L": 0.09122,
+     "patte_1_02.L": 0.19745,
+     "patte_1_01.R": 0.09122,
+     "patte_1_02.R": 0.19745,
+     "patte_2_01.L": 0.09611,
+     "patte_2_02.L": 0.20064,
+     "patte_2_01.R": 0.09611,
+     "patte_2_02.R": 0.20064
+    },
+    "loop_delta_ratio": 0.0
+   }
+  }
+ ],
+ "orphans": {
+  "meshes": 0,
+  "materials": 0,
+  "images": 0
+ }
+}
