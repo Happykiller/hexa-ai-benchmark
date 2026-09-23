@@ -1,5 +1,1893 @@
 [
   {
+    "id": "cr_20260923_1510_claude-fable-5-1_high_20260923_154547",
+    "benchmark": "blender",
+    "source_file": "runs/blender/cr_audits/cr_20260923_1510_claude-fable-5-1_high_20260923_154547.json",
+    "challenge": "dreadhive_drone_mk1",
+    "challenge_label": "DREADHIVE — Unité Xéno, Drone Ravageur Mk.I",
+    "agent": "claude-fable-5-1_high",
+    "model": "claude-fable-5-1",
+    "effort": "high",
+    "prompt_version": "2609231500",
+    "session_id": "20260923_1510",
+    "target_path": "/home/happykiller/hexa-ai-benchmark/runs/blender/livrables/20260923_1510_claude-fable-5-1_high",
+    "audit_started_at": "2026-09-23T15:45:47.833879",
+    "audit_finished_at": "2026-09-23T15:47:39.434139",
+    "scoring_model": "blender_indicator_fibonacci_b1",
+    "score_percentage": 78.02,
+    "admission_status": "ADMIS",
+    "score_capped": false,
+    "score_caps": [],
+    "skip_render": false,
+    "blender_version": "4.5.11 LTS",
+    "bucket_scores": {
+      "operationality": {
+        "normalized_score": 18,
+        "weight": 18,
+        "label": "Opérationnalité",
+        "short": "Opé"
+      },
+      "geometry": {
+        "normalized_score": 18,
+        "weight": 18,
+        "label": "Géométrie & Topologie",
+        "short": "Géo"
+      },
+      "visual": {
+        "normalized_score": 15.02,
+        "weight": 24,
+        "label": "Fidélité visuelle",
+        "short": "Visuel"
+      },
+      "rig_animation": {
+        "normalized_score": 18,
+        "weight": 18,
+        "label": "Rig & Animation",
+        "short": "Rig"
+      },
+      "traceability": {
+        "normalized_score": 6.0,
+        "weight": 10,
+        "label": "Discipline & Traçabilité",
+        "short": "Traca"
+      },
+      "cost": {
+        "normalized_score": 0.0,
+        "weight": 12,
+        "label": "Coût & Efficience",
+        "short": "Coût"
+      }
+    },
+    "cost": {
+      "usd": 8.8833,
+      "tokens": 3329191.0,
+      "model_key": "claude-fable-5-1",
+      "priced": true,
+      "efficiency": 8.78
+    },
+    "trace_metrics": {
+      "phases": 3,
+      "turns": 1.0,
+      "tools": 45.0,
+      "wall_s": 1958.0,
+      "errors": 0
+    },
+    "traceability_indicators": [
+      {
+        "code": "3-1-1",
+        "name": "Validation audit_trace.json",
+        "status": "OK",
+        "score": 1.0,
+        "max_score": 1,
+        "measured_value": null,
+        "remarks": "phases_count=3",
+        "step": "Validation audit_trace.json",
+        "details": {
+          "status": "OK",
+          "phases_count": 3,
+          "errors": [],
+          "wall_time_consistency": {
+            "status": "OK",
+            "summary_total_wall_time_seconds": 1958.0,
+            "phases_total_wall_time_seconds": 1959.0,
+            "delta_ratio": 0.0005104645227156713,
+            "remarks": "summary.total_wall_time_seconds coherent with summed phases"
+          }
+        }
+      },
+      {
+        "code": "3-1-2",
+        "name": "Nombre de phases tracées >= 1",
+        "status": "OK",
+        "score": 2.0,
+        "max_score": 2,
+        "measured_value": null,
+        "remarks": "phases_count=3",
+        "step": "Validation audit_trace.json",
+        "details": {
+          "status": "OK",
+          "phases_count": 3,
+          "errors": [],
+          "wall_time_consistency": {
+            "status": "OK",
+            "summary_total_wall_time_seconds": 1958.0,
+            "phases_total_wall_time_seconds": 1959.0,
+            "delta_ratio": 0.0005104645227156713,
+            "remarks": "summary.total_wall_time_seconds coherent with summed phases"
+          }
+        }
+      },
+      {
+        "code": "3-1-3",
+        "name": "Cohérence wall time",
+        "status": "OK",
+        "score": 2.0,
+        "max_score": 2,
+        "measured_value": null,
+        "remarks": "summary.total_wall_time_seconds coherent with summed phases",
+        "step": "Validation audit_trace.json",
+        "details": {
+          "status": "OK",
+          "summary_total_wall_time_seconds": 1958.0,
+          "phases_total_wall_time_seconds": 1959.0,
+          "delta_ratio": 0.0005104645227156713,
+          "remarks": "summary.total_wall_time_seconds coherent with summed phases"
+        }
+      },
+      {
+        "code": "3-2-1",
+        "name": "Nombre total d'échanges (turns)",
+        "status": "KO",
+        "score": 0,
+        "max_score": 5,
+        "measured_value": 1.0,
+        "remarks": "Nombre total de tours de parole User <-> Agent | value=1; tranche=out_of_range",
+        "step": "Efficacité de la session (audit_trace.json)",
+        "details": {
+          "measured_value": 1.0,
+          "bands": "5..15=100%, 2..25=50%, else=0%"
+        }
+      },
+      {
+        "code": "3-2-2",
+        "name": "Nombre total d'appels d'outils",
+        "status": "OK",
+        "score": 3.0,
+        "max_score": 3,
+        "measured_value": 45.0,
+        "remarks": "Nombre total d'actions effectuées (shell, fs, etc.) | value=45; tranche=20..60; label=target",
+        "step": "Efficacité de la session (audit_trace.json)",
+        "details": {
+          "measured_value": 45.0,
+          "bands": "20..60=100%, 10..100=50%, else=0%"
+        }
+      },
+      {
+        "code": "3-2-3",
+        "name": "Temps réel total (secondes)",
+        "status": "PARTIEL",
+        "score": 1.0,
+        "max_score": 2,
+        "measured_value": 1958.0,
+        "remarks": "Temps total d'horloge en secondes | value=1958; tranche=300..3600; label=tolerated",
+        "step": "Efficacité de la session (audit_trace.json)",
+        "details": {
+          "measured_value": 1958.0,
+          "bands": "600..1800=100%, 300..3600=50%, else=0%"
+        }
+      },
+      {
+        "code": "3-3-1",
+        "name": "Version du prompt déclarée",
+        "status": "MESURE",
+        "score": null,
+        "max_score": null,
+        "measured_value": "2609231500",
+        "remarks": "déclarée=2609231500; attendue=2609231500",
+        "step": "Conformité à l'énoncé",
+        "details": {}
+      }
+    ],
+    "duration_seconds": 1958.0,
+    "blender": {
+      "triangles": 53432,
+      "meshes": 23,
+      "materials": 9,
+      "bones": 43,
+      "actions": [
+        "attack",
+        "idle",
+        "walk"
+      ],
+      "build_seconds": 8.24,
+      "glb_mb": 10.28,
+      "height_m": 2.20384,
+      "iou": {
+        "front": 0.3417,
+        "side": 0.2791,
+        "back": 0.3456
+      },
+      "palette_delta_e": 7.14
+    },
+    "phases_detail": [
+      {
+        "number": 1,
+        "label": "Opérationnalité",
+        "indicators": [
+          {
+            "code": "1-1-1",
+            "name": "build.py présent",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 5.0,
+            "max_score": 5,
+            "measured_value": null,
+            "remarks": "build.py à la racine"
+          },
+          {
+            "code": "1-1-2",
+            "name": "README.md documenté",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 2.0,
+            "max_score": 2,
+            "measured_value": 9191,
+            "remarks": "caractères=9191 (min 400)"
+          },
+          {
+            "code": "1-1-3",
+            "name": "Aucun import réseau / sous-processus (statique)",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": 0,
+            "remarks": "aucun"
+          },
+          {
+            "code": "1-2-1",
+            "name": "build.py s'exécute sans erreur",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 21.0,
+            "max_score": 21,
+            "measured_value": null,
+            "remarks": "OK"
+          },
+          {
+            "code": "1-2-2",
+            "name": "Scène sauvegardée (.blend)",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": null,
+            "remarks": "OK"
+          },
+          {
+            "code": "1-2-3",
+            "name": "Export glTF (.glb)",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 8.0,
+            "max_score": 8,
+            "measured_value": null,
+            "remarks": "OK"
+          },
+          {
+            "code": "1-2-4",
+            "name": "Durée du build",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": 8.24,
+            "remarks": "secondes=8.24; value=8.24; tranche=-inf..120; label=≤ 2 min"
+          },
+          {
+            "code": "1-2-5",
+            "name": "Taille du GLB",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": 10.28,
+            "remarks": "Mo=10.28; value=10.28; tranche=-inf..20; label=≤ 20 Mo"
+          },
+          {
+            "code": "1-3-1",
+            "name": "GLB réimportable",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 13.0,
+            "max_score": 13,
+            "measured_value": null,
+            "remarks": "OK"
+          },
+          {
+            "code": "1-3-2",
+            "name": "Skin conservé au réimport",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 5.0,
+            "max_score": 5,
+            "measured_value": null,
+            "remarks": "armatures=1; maillages skinnés=23/23"
+          },
+          {
+            "code": "1-3-3",
+            "name": "Animations requises conservées",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 5.0,
+            "max_score": 5,
+            "measured_value": 3,
+            "remarks": "animations=attack, idle, walk"
+          }
+        ]
+      },
+      {
+        "number": 2,
+        "label": "Géométrie & Topologie",
+        "indicators": [
+          {
+            "code": "2-1-1",
+            "name": "Arêtes non-manifold ≤ 0,1 %",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 8.0,
+            "max_score": 8,
+            "measured_value": 0.0,
+            "remarks": "ratio=0 (0 arêtes)"
+          },
+          {
+            "code": "2-1-2",
+            "name": "Aucune face dégénérée",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 5.0,
+            "max_score": 5,
+            "measured_value": 0,
+            "remarks": "faces dégénérées=0"
+          },
+          {
+            "code": "2-1-3",
+            "name": "Aucun sommet isolé ni arête libre",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": 0,
+            "remarks": "sommets isolés=0; arêtes libres=0"
+          },
+          {
+            "code": "2-1-4",
+            "name": "Normales cohérentes (≥ 99 %)",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 8.0,
+            "max_score": 8,
+            "measured_value": 0.0,
+            "remarks": "faces à retourner=0 (0 %)"
+          },
+          {
+            "code": "2-2-1",
+            "name": "Triangles dans le budget",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 8.0,
+            "max_score": 8,
+            "measured_value": 53432,
+            "remarks": "value=53432; tranche=20000..150000; label=dans le budget"
+          },
+          {
+            "code": "2-2-2",
+            "name": "Topologie à dominante de quads (≥ 70 %)",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": 0.8429,
+            "remarks": "quads=84.3 %"
+          },
+          {
+            "code": "2-2-3",
+            "name": "N-gones ≤ 5 %",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 2.0,
+            "max_score": 2,
+            "measured_value": 0.0,
+            "remarks": "n-gones=0 %"
+          },
+          {
+            "code": "2-3-1",
+            "name": "Tous les maillages ont une UV map",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 5.0,
+            "max_score": 5,
+            "measured_value": 1.0,
+            "remarks": "surface couverte par des UV=100 %"
+          },
+          {
+            "code": "2-3-2",
+            "name": "Chevauchement UV ≤ 10 %",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 5.0,
+            "max_score": 5,
+            "measured_value": 0.0,
+            "remarks": "chevauchement moyen=0"
+          },
+          {
+            "code": "2-3-3",
+            "name": "UV dans [0, 1]",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 2.0,
+            "max_score": 2,
+            "measured_value": 0.0,
+            "remarks": "hors cadre=0"
+          },
+          {
+            "code": "2-4-1",
+            "name": "Hauteur dans [1.6 ; 3.0] m",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 5.0,
+            "max_score": 5,
+            "measured_value": 2.204,
+            "remarks": "hauteur=2.204 m (cible 2.2 m)"
+          },
+          {
+            "code": "2-4-2",
+            "name": "Posée au sol (z min ≈ 0)",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": -0.0002,
+            "remarks": "z min=-0 m"
+          },
+          {
+            "code": "2-4-3",
+            "name": "Centrée et symétrique en X",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": 0.0,
+            "remarks": "décalage |xmin+xmax|/largeur=0"
+          },
+          {
+            "code": "2-4-4",
+            "name": "Parties anatomiques nommées",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 8.0,
+            "max_score": 8,
+            "measured_value": 8,
+            "remarks": "8/8"
+          },
+          {
+            "code": "2-4-5",
+            "name": "6 appuis au sol",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 8.0,
+            "max_score": 8,
+            "measured_value": 6,
+            "remarks": "membres au sol=6/6 (patte_1.L, patte_1.R, patte_2.L, patte_2.R, serre.L, serre.R)"
+          },
+          {
+            "code": "2-4-6",
+            "name": "Aucun objet au nom par défaut",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 2.0,
+            "max_score": 2,
+            "measured_value": 0,
+            "remarks": "noms par défaut=aucun"
+          },
+          {
+            "code": "2-5-1",
+            "name": "Triangles (total, modificateurs appliqués)",
+            "status": "MESURE",
+            "kind": "measured",
+            "polarity": "positive",
+            "score": null,
+            "max_score": null,
+            "measured_value": 53432,
+            "remarks": "53432"
+          },
+          {
+            "code": "2-5-2",
+            "name": "Objets maillés",
+            "status": "MESURE",
+            "kind": "measured",
+            "polarity": "positive",
+            "score": null,
+            "max_score": null,
+            "measured_value": 23,
+            "remarks": "23"
+          },
+          {
+            "code": "2-5-3",
+            "name": "Hauteur (m)",
+            "status": "MESURE",
+            "kind": "measured",
+            "polarity": "positive",
+            "score": null,
+            "max_score": null,
+            "measured_value": 2.204,
+            "remarks": "2.204"
+          }
+        ]
+      },
+      {
+        "number": 3,
+        "label": "Traçabilité",
+        "indicators": [
+          {
+            "code": "3-1-1",
+            "name": "Validation audit_trace.json",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 1.0,
+            "max_score": 1,
+            "measured_value": null,
+            "remarks": "phases_count=3"
+          },
+          {
+            "code": "3-1-2",
+            "name": "Nombre de phases tracées >= 1",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 2.0,
+            "max_score": 2,
+            "measured_value": null,
+            "remarks": "phases_count=3"
+          },
+          {
+            "code": "3-1-3",
+            "name": "Cohérence wall time",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 2.0,
+            "max_score": 2,
+            "measured_value": null,
+            "remarks": "summary.total_wall_time_seconds coherent with summed phases"
+          },
+          {
+            "code": "3-2-1",
+            "name": "Nombre total d'échanges (turns)",
+            "status": "KO",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 0,
+            "max_score": 5,
+            "measured_value": 1.0,
+            "remarks": "Nombre total de tours de parole User <-> Agent | value=1; tranche=out_of_range"
+          },
+          {
+            "code": "3-2-2",
+            "name": "Nombre total d'appels d'outils",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": 45.0,
+            "remarks": "Nombre total d'actions effectuées (shell, fs, etc.) | value=45; tranche=20..60; label=target"
+          },
+          {
+            "code": "3-2-3",
+            "name": "Temps réel total (secondes)",
+            "status": "PARTIEL",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 1.0,
+            "max_score": 2,
+            "measured_value": 1958.0,
+            "remarks": "Temps total d'horloge en secondes | value=1958; tranche=300..3600; label=tolerated"
+          },
+          {
+            "code": "3-3-1",
+            "name": "Version du prompt déclarée",
+            "status": "MESURE",
+            "kind": "measured",
+            "polarity": "positive",
+            "score": null,
+            "max_score": null,
+            "measured_value": "2609231500",
+            "remarks": "déclarée=2609231500; attendue=2609231500"
+          }
+        ]
+      },
+      {
+        "number": 4,
+        "label": "Bonus / Malus",
+        "indicators": [
+          {
+            "code": "4-1-1",
+            "name": "Action supplémentaire animée",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 2.0,
+            "max_score": 2,
+            "measured_value": null,
+            "remarks": "actions=attack"
+          },
+          {
+            "code": "4-1-2",
+            "name": "Shape keys (déformations)",
+            "status": "KO",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 0,
+            "max_score": 1,
+            "measured_value": null,
+            "remarks": "shape keys=0"
+          },
+          {
+            "code": "4-1-3",
+            "name": "Textures générées ≥ 1K",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 1.0,
+            "max_score": 1,
+            "measured_value": null,
+            "remarks": "images ≥ 1024 px=9"
+          },
+          {
+            "code": "4-1-4",
+            "name": "Niveaux de détail (LOD)",
+            "status": "KO",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 0,
+            "max_score": 1,
+            "measured_value": null,
+            "remarks": "aucun"
+          },
+          {
+            "code": "4-2-1",
+            "name": "Chemin absolu dans le code",
+            "status": "NON_DETECTE",
+            "kind": "scored",
+            "polarity": "negative",
+            "score": 0,
+            "max_score": 2,
+            "measured_value": null,
+            "remarks": "aucun"
+          },
+          {
+            "code": "4-2-2",
+            "name": "GLB au-delà du budget de taille",
+            "status": "NON_DETECTE",
+            "kind": "scored",
+            "polarity": "negative",
+            "score": 0,
+            "max_score": 3,
+            "measured_value": null,
+            "remarks": "Mo=10.28; max=60"
+          },
+          {
+            "code": "4-2-3",
+            "name": "Données orphelines laissées dans la scène",
+            "status": "NON_DETECTE",
+            "kind": "scored",
+            "polarity": "negative",
+            "score": 0,
+            "max_score": 1,
+            "measured_value": null,
+            "remarks": "orphelins=0"
+          },
+          {
+            "code": "4-2-4",
+            "name": "Maillages non liés à l'armature",
+            "status": "NON_DETECTE",
+            "kind": "scored",
+            "polarity": "negative",
+            "score": 0,
+            "max_score": 2,
+            "measured_value": null,
+            "remarks": "aucun"
+          }
+        ]
+      },
+      {
+        "number": 5,
+        "label": "Fidélité visuelle",
+        "indicators": [
+          {
+            "code": "5-1-1",
+            "name": "Silhouette FACE",
+            "status": "PARTIEL",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.9,
+            "max_score": 13,
+            "measured_value": 0.3417,
+            "remarks": "IoU=0.342; value=0.34; tranche=0.25..+inf; label=≥ 0,25"
+          },
+          {
+            "code": "5-1-2",
+            "name": "Silhouette PROFIL",
+            "status": "PARTIEL",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.9,
+            "max_score": 13,
+            "measured_value": 0.2791,
+            "remarks": "IoU=0.279; value=0.28; tranche=0.25..+inf; label=≥ 0,25"
+          },
+          {
+            "code": "5-1-3",
+            "name": "Silhouette DOS",
+            "status": "PARTIEL",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.9,
+            "max_score": 13,
+            "measured_value": 0.3456,
+            "remarks": "IoU=0.346; value=0.35; tranche=0.25..+inf; label=≥ 0,25"
+          },
+          {
+            "code": "5-2-1",
+            "name": "Matériaux PBR (Principled BSDF)",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": 9,
+            "remarks": "9/9 matériaux"
+          },
+          {
+            "code": "5-2-2",
+            "name": "Palette XÉNOS dans les matériaux",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 8.0,
+            "max_score": 8,
+            "measured_value": 6,
+            "remarks": "couleurs couvertes=6/8 (ΔE ≤ 15; plein à 6); chitine_noire=1.8, os=7.4, chair_sombre=3.5, voile_necrose=9.3, ambre_acide=4.3, vert_bile=27.3, bleu_froid=5.2, ichor_clair=40.6"
+          },
+          {
+            "code": "5-2-3",
+            "name": "Sacs et membranes translucides",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 5.0,
+            "max_score": 5,
+            "measured_value": 2,
+            "remarks": "translucides=sac_acide, membrane_ventrale / sac_acide, membrane_ventrale"
+          },
+          {
+            "code": "5-2-4",
+            "name": "Aucune texture manquante",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": 0,
+            "remarks": "images=25; manquantes=aucune"
+          },
+          {
+            "code": "5-2-5",
+            "name": "Couleurs rendues proches de la palette",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 5.0,
+            "max_score": 5,
+            "measured_value": 7.14,
+            "remarks": "ΔE moyen=7.14; value=7.14; tranche=-inf..12; label=≤ 12; dominantes=chitine_noire 68.8 %, chair_sombre 9.2 %, bleu_froid 8.4 %, os 7.8 %"
+          },
+          {
+            "code": "5-3-1",
+            "name": "Rendus non vides (3 vues)",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 5.0,
+            "max_score": 5,
+            "measured_value": 3,
+            "remarks": "front=29.5 %; left=15.5 %; back=29.5 %"
+          },
+          {
+            "code": "5-3-2",
+            "name": "Détail de surface",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": 0.016284,
+            "remarks": "variance du laplacien=0.016284; value=0.02; tranche=0.01..+inf; label=détaillé"
+          },
+          {
+            "code": "5-3-3",
+            "name": "Exposition exploitable",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 2.0,
+            "max_score": 2,
+            "measured_value": 0.2641,
+            "remarks": "luminance moyenne=0.264 (attendu 0.03–0.9)"
+          }
+        ]
+      },
+      {
+        "number": 6,
+        "label": "Coût & Efficience",
+        "indicators": [
+          {
+            "code": "6-1-1",
+            "name": "Coût total de la session ($)",
+            "status": "KO",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 0,
+            "max_score": 10,
+            "measured_value": null,
+            "remarks": "cost_usd=8.8833 (modèle=claude-fable-5-1, prix 2026-09-22 (tarifs officiels Anthropic, platform.claude.com/docs/en/about-claude/pricing)); value=8.88; tranche=out_of_range"
+          },
+          {
+            "code": "6-1-2",
+            "name": "Tokens totaux (in+out)",
+            "status": "MESURE",
+            "kind": "measured",
+            "polarity": "positive",
+            "score": null,
+            "max_score": null,
+            "measured_value": 3329191.0,
+            "remarks": "3329191.0"
+          }
+        ]
+      },
+      {
+        "number": 7,
+        "label": "Rig & Animation",
+        "indicators": [
+          {
+            "code": "7-1-1",
+            "name": "Armature présente",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 13.0,
+            "max_score": 13,
+            "measured_value": 43,
+            "remarks": "armatures=1; os=43"
+          },
+          {
+            "code": "7-1-2",
+            "name": "Six membres riggés (serres + pattes, L/R)",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 8.0,
+            "max_score": 8,
+            "measured_value": 6,
+            "remarks": "6/6; manquants=aucun"
+          },
+          {
+            "code": "7-1-3",
+            "name": "≥ 2 os par membre",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": 6,
+            "remarks": "serre.L=3; serre.R=3; patte_1.L=4; patte_1.R=4; patte_2.L=4; patte_2.R=4"
+          },
+          {
+            "code": "7-1-4",
+            "name": "Symétrie L/R des os",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 5.0,
+            "max_score": 5,
+            "measured_value": 15,
+            "remarks": "paires en miroir=15/15"
+          },
+          {
+            "code": "7-2-1",
+            "name": "Sommets pondérés sur l'armature (≥ 99 %)",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 8.0,
+            "max_score": 8,
+            "measured_value": 1.0,
+            "remarks": "pondérés=100 %"
+          },
+          {
+            "code": "7-2-2",
+            "name": "≤ 4 influences par sommet",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": 4,
+            "remarks": "sommets > 4 influences=0 %; max=4"
+          },
+          {
+            "code": "7-3-1",
+            "name": "Action « idle »",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 8.0,
+            "max_score": 8,
+            "measured_value": 73.0,
+            "remarks": "images=73 (min 48); os animés=True"
+          },
+          {
+            "code": "7-3-2",
+            "name": "Action « walk »",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 8.0,
+            "max_score": 8,
+            "measured_value": 33.0,
+            "remarks": "images=33 (min 24); os animés=True"
+          },
+          {
+            "code": "7-3-3",
+            "name": "Cadence 24 fps",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 2.0,
+            "max_score": 2,
+            "measured_value": 24.0,
+            "remarks": "fps=24.0"
+          },
+          {
+            "code": "7-3-4",
+            "name": "Mouvement réel des actions requises",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 8.0,
+            "max_score": 8,
+            "measured_value": 2,
+            "remarks": "idle=0.0482; walk=0.2898 (seuil 0.01 × hauteur)"
+          },
+          {
+            "code": "7-3-5",
+            "name": "Cycle de marche : les 4 pattes bougent",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 5.0,
+            "max_score": 5,
+            "measured_value": 4,
+            "remarks": "pattes en mouvement=4/4 (patte_1.L, patte_1.R, patte_2.L, patte_2.R)"
+          },
+          {
+            "code": "7-3-6",
+            "name": "Actions qui bouclent",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 3.0,
+            "max_score": 3,
+            "measured_value": 2,
+            "remarks": "idle=0; walk=0"
+          },
+          {
+            "code": "7-3-7",
+            "name": "Aucune clé NaN / infinie",
+            "status": "OK",
+            "kind": "scored",
+            "polarity": "positive",
+            "score": 2.0,
+            "max_score": 2,
+            "measured_value": 0,
+            "remarks": "clés invalides=0"
+          },
+          {
+            "code": "7-4-1",
+            "name": "Os (armature principale)",
+            "status": "MESURE",
+            "kind": "measured",
+            "polarity": "positive",
+            "score": null,
+            "max_score": null,
+            "measured_value": 43,
+            "remarks": "43"
+          },
+          {
+            "code": "7-4-2",
+            "name": "Actions",
+            "status": "MESURE",
+            "kind": "measured",
+            "polarity": "positive",
+            "score": null,
+            "max_score": null,
+            "measured_value": 3,
+            "remarks": "attack, idle, walk"
+          }
+        ]
+      }
+    ],
+    "media": [
+      {
+        "kind": "image",
+        "src": "challenges/dreadhive_drone_mk1/concept.jpg",
+        "label": "Planche concept (l'attendu)",
+        "shared": true
+      },
+      {
+        "kind": "image",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/concept_front.jpg",
+        "label": "Attendu FACE (turnaround)",
+        "file": "concept_front.jpg"
+      },
+      {
+        "kind": "image",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/view_front.jpg",
+        "label": "Rendu FACE",
+        "file": "view_front.jpg"
+      },
+      {
+        "kind": "image",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/silhouette_front.png",
+        "label": "Silhouette FACE (ambre : concept seul, bleu : rendu seul)",
+        "file": "silhouette_front.png"
+      },
+      {
+        "kind": "image",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/concept_side.jpg",
+        "label": "Attendu PROFIL (turnaround)",
+        "file": "concept_side.jpg"
+      },
+      {
+        "kind": "image",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/view_side.jpg",
+        "label": "Rendu PROFIL",
+        "file": "view_side.jpg"
+      },
+      {
+        "kind": "image",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/silhouette_side.png",
+        "label": "Silhouette PROFIL (ambre : concept seul, bleu : rendu seul)",
+        "file": "silhouette_side.png"
+      },
+      {
+        "kind": "image",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/concept_back.jpg",
+        "label": "Attendu DOS (turnaround)",
+        "file": "concept_back.jpg"
+      },
+      {
+        "kind": "image",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/view_back.jpg",
+        "label": "Rendu DOS",
+        "file": "view_back.jpg"
+      },
+      {
+        "kind": "image",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/silhouette_back.png",
+        "label": "Silhouette DOS (ambre : concept seul, bleu : rendu seul)",
+        "file": "silhouette_back.png"
+      },
+      {
+        "kind": "video",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/turntable.mp4",
+        "label": "Turntable 360°",
+        "file": "turntable.mp4"
+      },
+      {
+        "kind": "video",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/anim_idle.mp4",
+        "label": "Animation « idle » (3.042 s)",
+        "file": "anim_idle.mp4"
+      },
+      {
+        "kind": "sheet",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/anim_idle.jpg",
+        "label": "Action « idle » (images clés)",
+        "file": "anim_idle.jpg"
+      },
+      {
+        "kind": "video",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/anim_walk.mp4",
+        "label": "Animation « walk » (1.375 s)",
+        "file": "anim_walk.mp4"
+      },
+      {
+        "kind": "sheet",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/anim_walk.jpg",
+        "label": "Action « walk » (images clés)",
+        "file": "anim_walk.jpg"
+      },
+      {
+        "kind": "video",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/anim_attack.mp4",
+        "label": "Animation « attack » (2.042 s)",
+        "file": "anim_attack.mp4"
+      },
+      {
+        "kind": "sheet",
+        "src": "media/cr_20260923_1510_claude-fable-5-1_high_20260923_154547/anim_attack.jpg",
+        "label": "Action « attack » (images clés)",
+        "file": "anim_attack.jpg"
+      }
+    ],
+    "report_markdown": {
+      "source_file": "runs/blender/cr_audits/cr_20260923_1510_claude-fable-5-1_high_20260923_154547.md",
+      "summary_metrics": {
+        "Points positifs gagnés": "282.70000000000005",
+        "Points positifs possibles": "328",
+        "Malus cumulés": "0",
+        "Score brut (Net)": "282.70000000000005",
+        "Score normalisé de base": "75.02/100.0",
+        "Règle de plafond (scoring)": "b1",
+        "Malus appliqué": "0.0",
+        "Bonus effectif (comble du plafond)": "3.0",
+        "Pourcentage brut du score net": "78.02%",
+        "Pourcentage final du score net": "78.02%",
+        "Coût de la session ($)": "8.8833",
+        "Tokens totaux (in+out)": "3329191.0",
+        "Valeur (points de score par $)": "8.78",
+        "Nombre total d'indicateurs": "73"
+      },
+      "findings_count": 14,
+      "top_findings": [
+        {
+          "phase": "Phase 3. Traçabilité (Score: 9.0/15)",
+          "step": "Étape 3-2. Efficacité de la session (audit_trace.json)",
+          "code": "3-2-1",
+          "indicator": "Nombre total d'échanges (turns)",
+          "score": 0.0,
+          "max_score": 5.0,
+          "remarks": "Nombre total de tours de parole User <-> Agent \\",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 3. Traçabilité (Score: 9.0/15)\nÉtape 3-2. Efficacité de la session (audit_trace.json)\nNombre total d'échanges (turns) (0/5)\nNombre total de tours de parole User <-> Agent \\"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 3.0/5)",
+          "step": "Étape 4-1. Initiatives détectées",
+          "code": "4-1-2",
+          "indicator": "Shape keys (déformations)",
+          "score": 0.0,
+          "max_score": 1.0,
+          "remarks": "shape keys=0",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 3.0/5)\nÉtape 4-1. Initiatives détectées\nShape keys (déformations) (0/1)\nshape keys=0"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 3.0/5)",
+          "step": "Étape 4-1. Initiatives détectées",
+          "code": "4-1-4",
+          "indicator": "Niveaux de détail (LOD)",
+          "score": 0.0,
+          "max_score": 1.0,
+          "remarks": "aucun",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 3.0/5)\nÉtape 4-1. Initiatives détectées\nNiveaux de détail (LOD) (0/1)\naucun"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 3.0/5)",
+          "step": "Étape 4-2. Écarts détectés",
+          "code": "4-2-1",
+          "indicator": "Chemin absolu dans le code",
+          "score": 0.0,
+          "max_score": 2.0,
+          "remarks": "aucun",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 3.0/5)\nÉtape 4-2. Écarts détectés\nChemin absolu dans le code (0/2)\naucun"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 3.0/5)",
+          "step": "Étape 4-2. Écarts détectés",
+          "code": "4-2-2",
+          "indicator": "GLB au-delà du budget de taille",
+          "score": 0.0,
+          "max_score": 3.0,
+          "remarks": "Mo=10.28; max=60",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 3.0/5)\nÉtape 4-2. Écarts détectés\nGLB au-delà du budget de taille (0/3)\nMo=10.28; max=60"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 3.0/5)",
+          "step": "Étape 4-2. Écarts détectés",
+          "code": "4-2-3",
+          "indicator": "Données orphelines laissées dans la scène",
+          "score": 0.0,
+          "max_score": 1.0,
+          "remarks": "orphelins=0",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 3.0/5)\nÉtape 4-2. Écarts détectés\nDonnées orphelines laissées dans la scène (0/1)\norphelins=0"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 3.0/5)",
+          "step": "Étape 4-2. Écarts détectés",
+          "code": "4-2-4",
+          "indicator": "Maillages non liés à l'armature",
+          "score": 0.0,
+          "max_score": 2.0,
+          "remarks": "aucun",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 3.0/5)\nÉtape 4-2. Écarts détectés\nMaillages non liés à l'armature (0/2)\naucun"
+        },
+        {
+          "phase": "Phase 6. Coût & Efficience (Score: 0/10)",
+          "step": "Étape 6-1. Coût de la session",
+          "code": "6-1-1",
+          "indicator": "Coût total de la session ($)",
+          "score": 0.0,
+          "max_score": 10.0,
+          "remarks": "cost_usd=8.8833 (modèle=claude-fable-5-1, prix 2026-09-22 (tarifs officiels Anthropic, platform.claude.com/docs/en/about-claude/pricing)); value=8.88; tranche=out_of_range",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 6. Coût & Efficience (Score: 0/10)\nÉtape 6-1. Coût de la session\nCoût total de la session ($) (0/10)\ncost_usd=8.8833 (modèle=claude-fable-5-1, prix 2026-09-22 (tarifs officiels Anthropic, platform.claude.com/docs/en/about-claude/pricing)); value=8.88; tranche=out_of_range"
+        }
+      ]
+    },
+    "sections": [
+      {
+        "title": "Score détaillé",
+        "items": [
+          {
+            "label": "Opérationnalité",
+            "value": "18.0 / 18 (100%)",
+            "cls": "ok"
+          },
+          {
+            "label": "Géométrie & Topologie",
+            "value": "18.0 / 18 (100%)",
+            "cls": "ok"
+          },
+          {
+            "label": "Fidélité visuelle",
+            "value": "15.0 / 24 (63%)",
+            "cls": "warn"
+          },
+          {
+            "label": "Rig & Animation",
+            "value": "18.0 / 18 (100%)",
+            "cls": "ok"
+          },
+          {
+            "label": "Discipline & Traçabilité",
+            "value": "6.0 / 10 (60%)",
+            "cls": "warn"
+          },
+          {
+            "label": "Coût & Efficience",
+            "value": "0.0 / 12 (0%)",
+            "cls": "ko"
+          },
+          {
+            "label": "Défi",
+            "value": "DREADHIVE — Unité Xéno, Drone Ravageur Mk.I",
+            "cls": null
+          },
+          {
+            "label": "Modèle scoring",
+            "value": "blender_indicator_fibonacci_b1",
+            "cls": null
+          }
+        ]
+      },
+      {
+        "title": "Modèle",
+        "items": [
+          {
+            "label": "Triangles",
+            "value": "53 432",
+            "cls": null
+          },
+          {
+            "label": "Os / actions",
+            "value": "43 / attack, idle, walk",
+            "cls": null
+          },
+          {
+            "label": "Hauteur",
+            "value": "2.20384 m",
+            "cls": null
+          },
+          {
+            "label": "IoU FACE / PROFIL / DOS",
+            "value": "0.3417 / 0.2791 / 0.3456",
+            "cls": null
+          },
+          {
+            "label": "ΔE moyen (albédo → palette)",
+            "value": "7.14",
+            "cls": null
+          },
+          {
+            "label": "Build",
+            "value": "8.24 s · GLB 10.28 Mo",
+            "cls": null
+          }
+        ]
+      },
+      {
+        "title": "Opérationnalité",
+        "items": [
+          {
+            "label": "build.py présent",
+            "value": "5 / 5",
+            "cls": "ok",
+            "tooltip": "build.py à la racine"
+          },
+          {
+            "label": "README.md documenté",
+            "value": "2 / 2",
+            "cls": "ok",
+            "tooltip": "caractères=9191 (min 400)"
+          },
+          {
+            "label": "Aucun import réseau / sous-processus (statique)",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "aucun"
+          },
+          {
+            "label": "build.py s'exécute sans erreur",
+            "value": "21 / 21",
+            "cls": "ok",
+            "tooltip": "OK"
+          },
+          {
+            "label": "Scène sauvegardée (.blend)",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "OK"
+          },
+          {
+            "label": "Export glTF (.glb)",
+            "value": "8 / 8",
+            "cls": "ok",
+            "tooltip": "OK"
+          },
+          {
+            "label": "Durée du build",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "secondes=8.24; value=8.24; tranche=-inf..120; label=≤ 2 min"
+          },
+          {
+            "label": "Taille du GLB",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "Mo=10.28; value=10.28; tranche=-inf..20; label=≤ 20 Mo"
+          },
+          {
+            "label": "GLB réimportable",
+            "value": "13 / 13",
+            "cls": "ok",
+            "tooltip": "OK"
+          },
+          {
+            "label": "Skin conservé au réimport",
+            "value": "5 / 5",
+            "cls": "ok",
+            "tooltip": "armatures=1; maillages skinnés=23/23"
+          },
+          {
+            "label": "Animations requises conservées",
+            "value": "5 / 5",
+            "cls": "ok",
+            "tooltip": "animations=attack, idle, walk"
+          }
+        ]
+      },
+      {
+        "title": "Géométrie & Topologie",
+        "items": [
+          {
+            "label": "Arêtes non-manifold ≤ 0,1 %",
+            "value": "8 / 8",
+            "cls": "ok",
+            "tooltip": "ratio=0 (0 arêtes)"
+          },
+          {
+            "label": "Aucune face dégénérée",
+            "value": "5 / 5",
+            "cls": "ok",
+            "tooltip": "faces dégénérées=0"
+          },
+          {
+            "label": "Aucun sommet isolé ni arête libre",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "sommets isolés=0; arêtes libres=0"
+          },
+          {
+            "label": "Normales cohérentes (≥ 99 %)",
+            "value": "8 / 8",
+            "cls": "ok",
+            "tooltip": "faces à retourner=0 (0 %)"
+          },
+          {
+            "label": "Triangles dans le budget",
+            "value": "8 / 8",
+            "cls": "ok",
+            "tooltip": "value=53432; tranche=20000..150000; label=dans le budget"
+          },
+          {
+            "label": "Topologie à dominante de quads (≥ 70 %)",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "quads=84.3 %"
+          },
+          {
+            "label": "N-gones ≤ 5 %",
+            "value": "2 / 2",
+            "cls": "ok",
+            "tooltip": "n-gones=0 %"
+          },
+          {
+            "label": "Tous les maillages ont une UV map",
+            "value": "5 / 5",
+            "cls": "ok",
+            "tooltip": "surface couverte par des UV=100 %"
+          },
+          {
+            "label": "Chevauchement UV ≤ 10 %",
+            "value": "5 / 5",
+            "cls": "ok",
+            "tooltip": "chevauchement moyen=0"
+          },
+          {
+            "label": "UV dans [0, 1]",
+            "value": "2 / 2",
+            "cls": "ok",
+            "tooltip": "hors cadre=0"
+          },
+          {
+            "label": "Hauteur dans [1.6 ; 3.0] m",
+            "value": "5 / 5",
+            "cls": "ok",
+            "tooltip": "hauteur=2.204 m (cible 2.2 m)"
+          },
+          {
+            "label": "Posée au sol (z min ≈ 0)",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "z min=-0 m"
+          },
+          {
+            "label": "Centrée et symétrique en X",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "décalage |xmin+xmax|/largeur=0"
+          },
+          {
+            "label": "Parties anatomiques nommées",
+            "value": "8 / 8",
+            "cls": "ok",
+            "tooltip": "8/8"
+          },
+          {
+            "label": "6 appuis au sol",
+            "value": "8 / 8",
+            "cls": "ok",
+            "tooltip": "membres au sol=6/6 (patte_1.L, patte_1.R, patte_2.L, patte_2.R, serre.L, serre.R)"
+          },
+          {
+            "label": "Aucun objet au nom par défaut",
+            "value": "2 / 2",
+            "cls": "ok",
+            "tooltip": "noms par défaut=aucun"
+          },
+          {
+            "label": "Triangles (total, modificateurs appliqués)",
+            "value": "53432",
+            "cls": null,
+            "tooltip": "53432"
+          },
+          {
+            "label": "Objets maillés",
+            "value": "23",
+            "cls": null,
+            "tooltip": "23"
+          },
+          {
+            "label": "Hauteur (m)",
+            "value": "2.204",
+            "cls": null,
+            "tooltip": "2.204"
+          }
+        ]
+      },
+      {
+        "title": "Fidélité visuelle",
+        "items": [
+          {
+            "label": "Silhouette FACE",
+            "value": "3.9 / 13",
+            "cls": "warn",
+            "tooltip": "IoU=0.342; value=0.34; tranche=0.25..+inf; label=≥ 0,25"
+          },
+          {
+            "label": "Silhouette PROFIL",
+            "value": "3.9 / 13",
+            "cls": "warn",
+            "tooltip": "IoU=0.279; value=0.28; tranche=0.25..+inf; label=≥ 0,25"
+          },
+          {
+            "label": "Silhouette DOS",
+            "value": "3.9 / 13",
+            "cls": "warn",
+            "tooltip": "IoU=0.346; value=0.35; tranche=0.25..+inf; label=≥ 0,25"
+          },
+          {
+            "label": "Matériaux PBR (Principled BSDF)",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "9/9 matériaux"
+          },
+          {
+            "label": "Palette XÉNOS dans les matériaux",
+            "value": "8 / 8",
+            "cls": "ok",
+            "tooltip": "couleurs couvertes=6/8 (ΔE ≤ 15; plein à 6); chitine_noire=1.8, os=7.4, chair_sombre=3.5, voile_necrose=9.3, ambre_acide=4.3, vert_bile=27.3, bleu_froid=5.2, ichor_clair=40.6"
+          },
+          {
+            "label": "Sacs et membranes translucides",
+            "value": "5 / 5",
+            "cls": "ok",
+            "tooltip": "translucides=sac_acide, membrane_ventrale / sac_acide, membrane_ventrale"
+          },
+          {
+            "label": "Aucune texture manquante",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "images=25; manquantes=aucune"
+          },
+          {
+            "label": "Couleurs rendues proches de la palette",
+            "value": "5 / 5",
+            "cls": "ok",
+            "tooltip": "ΔE moyen=7.14; value=7.14; tranche=-inf..12; label=≤ 12; dominantes=chitine_noire 68.8 %, chair_sombre 9.2 %, bleu_froid 8.4 %, os 7.8 %"
+          },
+          {
+            "label": "Rendus non vides (3 vues)",
+            "value": "5 / 5",
+            "cls": "ok",
+            "tooltip": "front=29.5 %; left=15.5 %; back=29.5 %"
+          },
+          {
+            "label": "Détail de surface",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "variance du laplacien=0.016284; value=0.02; tranche=0.01..+inf; label=détaillé"
+          },
+          {
+            "label": "Exposition exploitable",
+            "value": "2 / 2",
+            "cls": "ok",
+            "tooltip": "luminance moyenne=0.264 (attendu 0.03–0.9)"
+          }
+        ]
+      },
+      {
+        "title": "Rig & Animation",
+        "items": [
+          {
+            "label": "Armature présente",
+            "value": "13 / 13",
+            "cls": "ok",
+            "tooltip": "armatures=1; os=43"
+          },
+          {
+            "label": "Six membres riggés (serres + pattes, L/R)",
+            "value": "8 / 8",
+            "cls": "ok",
+            "tooltip": "6/6; manquants=aucun"
+          },
+          {
+            "label": "≥ 2 os par membre",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "serre.L=3; serre.R=3; patte_1.L=4; patte_1.R=4; patte_2.L=4; patte_2.R=4"
+          },
+          {
+            "label": "Symétrie L/R des os",
+            "value": "5 / 5",
+            "cls": "ok",
+            "tooltip": "paires en miroir=15/15"
+          },
+          {
+            "label": "Sommets pondérés sur l'armature (≥ 99 %)",
+            "value": "8 / 8",
+            "cls": "ok",
+            "tooltip": "pondérés=100 %"
+          },
+          {
+            "label": "≤ 4 influences par sommet",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "sommets > 4 influences=0 %; max=4"
+          },
+          {
+            "label": "Action « idle »",
+            "value": "8 / 8",
+            "cls": "ok",
+            "tooltip": "images=73 (min 48); os animés=True"
+          },
+          {
+            "label": "Action « walk »",
+            "value": "8 / 8",
+            "cls": "ok",
+            "tooltip": "images=33 (min 24); os animés=True"
+          },
+          {
+            "label": "Cadence 24 fps",
+            "value": "2 / 2",
+            "cls": "ok",
+            "tooltip": "fps=24.0"
+          },
+          {
+            "label": "Mouvement réel des actions requises",
+            "value": "8 / 8",
+            "cls": "ok",
+            "tooltip": "idle=0.0482; walk=0.2898 (seuil 0.01 × hauteur)"
+          },
+          {
+            "label": "Cycle de marche : les 4 pattes bougent",
+            "value": "5 / 5",
+            "cls": "ok",
+            "tooltip": "pattes en mouvement=4/4 (patte_1.L, patte_1.R, patte_2.L, patte_2.R)"
+          },
+          {
+            "label": "Actions qui bouclent",
+            "value": "3 / 3",
+            "cls": "ok",
+            "tooltip": "idle=0; walk=0"
+          },
+          {
+            "label": "Aucune clé NaN / infinie",
+            "value": "2 / 2",
+            "cls": "ok",
+            "tooltip": "clés invalides=0"
+          },
+          {
+            "label": "Os (armature principale)",
+            "value": "43",
+            "cls": null,
+            "tooltip": "43"
+          },
+          {
+            "label": "Actions",
+            "value": "3",
+            "cls": null,
+            "tooltip": "attack, idle, walk"
+          }
+        ]
+      },
+      {
+        "title": "Bonus / Malus",
+        "items": [
+          {
+            "label": "Action supplémentaire animée",
+            "value": "2 / 2",
+            "cls": "ok",
+            "tooltip": "actions=attack"
+          },
+          {
+            "label": "Shape keys (déformations)",
+            "value": "0 / 1",
+            "cls": "ko",
+            "tooltip": "shape keys=0"
+          },
+          {
+            "label": "Textures générées ≥ 1K",
+            "value": "1 / 1",
+            "cls": "ok",
+            "tooltip": "images ≥ 1024 px=9"
+          },
+          {
+            "label": "Niveaux de détail (LOD)",
+            "value": "0 / 1",
+            "cls": "ko",
+            "tooltip": "aucun"
+          },
+          {
+            "label": "Chemin absolu dans le code",
+            "value": "—",
+            "cls": "ok",
+            "tooltip": "aucun"
+          },
+          {
+            "label": "GLB au-delà du budget de taille",
+            "value": "—",
+            "cls": "ok",
+            "tooltip": "Mo=10.28; max=60"
+          },
+          {
+            "label": "Données orphelines laissées dans la scène",
+            "value": "—",
+            "cls": "ok",
+            "tooltip": "orphelins=0"
+          },
+          {
+            "label": "Maillages non liés à l'armature",
+            "value": "—",
+            "cls": "ok",
+            "tooltip": "aucun"
+          }
+        ]
+      },
+      {
+        "title": "Détail traçabilité",
+        "items": [
+          {
+            "label": "Score trace",
+            "value": "6.0 / 10.0 (60%)",
+            "cls": "warn"
+          },
+          {
+            "label": "3-1-1 Validation audit_trace.json",
+            "value": "OK · 1/1",
+            "cls": "ok",
+            "tooltip": "Validation audit_trace.json\nCode: 3-1-1\nStatut: OK\nScore: 1/1\nRemarques: phases_count=3\nDétails:\nstatus: OK\nphases_count: 3\nerrors: \nwall_time_consistency: {\"status\": \"OK\", \"summary_total_wall_time_seconds\": 1958.0, \"phases_total_wall_time_seconds\": 1959.0, \"delta_ratio\": 0.0005104645227156713, \"remarks\": \"summary.total_wall_time_seconds coherent with summed phases\"}"
+          },
+          {
+            "label": "3-1-2 Nombre de phases tracées >= 1",
+            "value": "OK · 2/2",
+            "cls": "ok",
+            "tooltip": "Validation audit_trace.json\nCode: 3-1-2\nStatut: OK\nScore: 2/2\nRemarques: phases_count=3\nDétails:\nstatus: OK\nphases_count: 3\nerrors: \nwall_time_consistency: {\"status\": \"OK\", \"summary_total_wall_time_seconds\": 1958.0, \"phases_total_wall_time_seconds\": 1959.0, \"delta_ratio\": 0.0005104645227156713, \"remarks\": \"summary.total_wall_time_seconds coherent with summed phases\"}"
+          },
+          {
+            "label": "3-1-3 Cohérence wall time",
+            "value": "OK · 2/2",
+            "cls": "ok",
+            "tooltip": "Validation audit_trace.json\nCode: 3-1-3\nStatut: OK\nScore: 2/2\nRemarques: summary.total_wall_time_seconds coherent with summed phases\nDétails:\nstatus: OK\nsummary_total_wall_time_seconds: 1958.0\nphases_total_wall_time_seconds: 1959.0\ndelta_ratio: 0.0005104645227156713\nremarks: summary.total_wall_time_seconds coherent with summed phases"
+          },
+          {
+            "label": "3-2-1 Nombre total d'échanges (turns)",
+            "value": "KO · 0/5",
+            "cls": "ko",
+            "tooltip": "Efficacité de la session (audit_trace.json)\nCode: 3-2-1\nStatut: KO\nScore: 0/5\nValeur mesurée: 1.0\nRemarques: Nombre total de tours de parole User <-> Agent | value=1; tranche=out_of_range\nDétails:\nmeasured_value: 1.0\nbands: 5..15=100%, 2..25=50%, else=0%"
+          },
+          {
+            "label": "3-2-2 Nombre total d'appels d'outils",
+            "value": "OK · 3/3",
+            "cls": "ok",
+            "tooltip": "Efficacité de la session (audit_trace.json)\nCode: 3-2-2\nStatut: OK\nScore: 3/3\nValeur mesurée: 45.0\nRemarques: Nombre total d'actions effectuées (shell, fs, etc.) | value=45; tranche=20..60; label=target\nDétails:\nmeasured_value: 45.0\nbands: 20..60=100%, 10..100=50%, else=0%"
+          },
+          {
+            "label": "3-2-3 Temps réel total (secondes)",
+            "value": "PARTIEL · 1/2",
+            "cls": "warn",
+            "tooltip": "Efficacité de la session (audit_trace.json)\nCode: 3-2-3\nStatut: PARTIEL\nScore: 1/2\nValeur mesurée: 1958.0\nRemarques: Temps total d'horloge en secondes | value=1958; tranche=300..3600; label=tolerated\nDétails:\nmeasured_value: 1958.0\nbands: 600..1800=100%, 300..3600=50%, else=0%"
+          },
+          {
+            "label": "3-3-1 Version du prompt déclarée",
+            "value": "MESURE · 0/0",
+            "cls": "na",
+            "tooltip": "Conformité à l'énoncé\nCode: 3-3-1\nStatut: MESURE\nScore: 0/0\nValeur mesurée: 2609231500\nRemarques: déclarée=2609231500; attendue=2609231500"
+          }
+        ]
+      },
+      {
+        "title": "Coût estimé",
+        "items": [
+          {
+            "label": "Coût estimé",
+            "value": "$8.8833",
+            "cls": null
+          },
+          {
+            "label": "Tokens (in+out)",
+            "value": "3 329 191",
+            "cls": null
+          },
+          {
+            "label": "Valeur (pts/$)",
+            "value": "8.8",
+            "cls": null
+          },
+          {
+            "label": "Modèle tarifé",
+            "value": "claude-fable-5-1",
+            "cls": null
+          }
+        ]
+      },
+      {
+        "title": "Synthèse rapport",
+        "items": [
+          {
+            "label": "Rapport MD",
+            "value": "rapport",
+            "cls": null,
+            "tooltip": "cr_20260923_1510_claude-fable-5-1_high_20260923_154547.md"
+          },
+          {
+            "label": "Score rapport",
+            "value": "78.02%",
+            "cls": null
+          },
+          {
+            "label": "Constat 1",
+            "value": "Nombre total d'échanges (turns) — Nombre total de tours de parole User <-> Agent \\",
+            "cls": "ko",
+            "tooltip": "Phase 3. Traçabilité (Score: 9.0/15)\nÉtape 3-2. Efficacité de la session (audit_trace.json)\nNombre total d'échanges (turns) (0/5)\nNombre total de tours de parole User <-> Agent \\"
+          },
+          {
+            "label": "Constat 2",
+            "value": "Shape keys (déformations) — shape keys=0",
+            "cls": "ko",
+            "tooltip": "Phase 4. Bonus / Malus (Score: 3.0/5)\nÉtape 4-1. Initiatives détectées\nShape keys (déformations) (0/1)\nshape keys=0"
+          },
+          {
+            "label": "Constat 3",
+            "value": "Niveaux de détail (LOD) — aucun",
+            "cls": "ko",
+            "tooltip": "Phase 4. Bonus / Malus (Score: 3.0/5)\nÉtape 4-1. Initiatives détectées\nNiveaux de détail (LOD) (0/1)\naucun"
+          },
+          {
+            "label": "Constat 4",
+            "value": "Chemin absolu dans le code — aucun",
+            "cls": "ko",
+            "tooltip": "Phase 4. Bonus / Malus (Score: 3.0/5)\nÉtape 4-2. Écarts détectés\nChemin absolu dans le code (0/2)\naucun"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "cr_20260923_1447_gpt-6-astra_medium_20260923_150546",
     "benchmark": "blender",
     "source_file": "runs/blender/cr_audits/cr_20260923_1447_gpt-6-astra_medium_20260923_150546.json",
