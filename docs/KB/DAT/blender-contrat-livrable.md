@@ -13,7 +13,11 @@ l'auditeur **suppose** pour pouvoir mesurer.
 ## Dossier
 
 `livrables_blender/AAAAMMJJ_HHMM_<modèle>_<effort>/` (même convention que `livrables/`, dont la KB
-tire `session_id` et `agent`). Gitignoré.
+tire `session_id` et `agent`). Gitignoré. Depuis le prompt `2609231500`, l'énoncé **impose** à
+l'agent de créer ce dossier et d'y travailler, et de ne pas deviner `meta.effort` (`unknown` si
+illisible) : le premier run (prompt `2609231100`) avait tout écrit à la racine et déclaré `low` pour
+un effort réellement `medium` (lu dans le transcript par `scripts/session_usage.py`, corrigé en
+override). Recouper l'effort déclaré avec le transcript fait partie de l'audit.
 
 | Fichier | Exigence |
 |---|---|

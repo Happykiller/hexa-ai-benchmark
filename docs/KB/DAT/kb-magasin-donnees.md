@@ -98,6 +98,8 @@ seule, action après écriture). Le magasin par défaut est celui de la Todo Lis
 après chaque écriture. Upsert, garde-fou anti-perte et overrides sont donc **les mêmes** pour les
 deux KB. Les visuels suivent la loi n°8 : jamais supprimés, même si le rapport brut disparaît.
 Commande : `python3 scripts/build_kb_blender.py [--add cr_audits_blender/cr_<…>.json]`.
+La KB Blender ne publie que **l'audit le plus récent de chaque livrable** : un ré-audit remplace
+le précédent sans qu'une reconstruction complète ne ressuscite l'ancien (constaté le 2026-09-23).
 
 ## Le package `kb/`
 

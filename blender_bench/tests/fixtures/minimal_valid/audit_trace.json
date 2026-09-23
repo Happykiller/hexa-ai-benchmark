@@ -1,5 +1,5 @@
 {
-  "meta": {"prompt_version": "2609231100", "model": "claude-fable-5-1", "temperature": 1.0, "effort": "high", "config": {}},
+  "meta": {"prompt_version": "2609231500", "model": "claude-fable-5-1", "temperature": 1.0, "effort": "high", "config": {}},
   "summary": {"total_turns": 12, "total_tool_calls": 48, "total_wall_time_seconds": 1500,
               "total_input_tokens": 400000, "total_output_tokens": 60000, "total_cached_input_tokens": 300000},
   "phases": [

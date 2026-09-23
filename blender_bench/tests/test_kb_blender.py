@@ -62,3 +62,26 @@ def test_blender_store_upsert_publishes_media_and_guards_drops(tmp_path, monkeyp
     assert "window.__HEXA_KB__" in (kb / "data.js").read_text(encoding="utf-8")
     with pytest.raises(KnowledgeBaseShrinkError):
         build_knowledge_base(store=store)  # rapport brut « perdu » : refus de supprimer l'entrée
+
+
+def test_reaudit_supersedes_previous_audit_of_same_deliverable():
+    from kb_blender.normalizer import latest_per_deliverable
+
+    entries = [
+        {
+            "id": "cr_run_b",
+            "target_path": "/x/livrables_blender/run",
+            "audit_started_at": "2026-09-23T14:35",
+        },
+        {
+            "id": "cr_run_a",
+            "target_path": "/y/livrables_blender/run",
+            "audit_started_at": "2026-09-23T14:06",
+        },
+        {
+            "id": "cr_other",
+            "target_path": "/x/livrables_blender/other",
+            "audit_started_at": "2026-09-23T13:00",
+        },
+    ]
+    assert [e["id"] for e in latest_per_deliverable(entries)] == ["cr_run_b", "cr_other"]

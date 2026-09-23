@@ -161,4 +161,19 @@ def load_all() -> list[dict[str, Any]]:
             if not is_test_artifact(entry):
                 entries.append(entry)
     entries.sort(key=lambda entry: entry.get("audit_started_at", ""), reverse=True)
-    return entries
+    return latest_per_deliverable(entries)
+
+
+def latest_per_deliverable(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Un ré-audit du même livrable remplace le précédent : on ne publie que l'audit le plus
+    récent de chaque livrable (le rapport brut de l'ancien reste dans cr_audits_blender/).
+    Sans cela, une reconstruction complète ressusciterait les audits remplacés."""
+    seen: set[str] = set()
+    kept = []
+    for entry in entries:  # déjà triées du plus récent au plus ancien
+        key = Path(entry.get("target_path") or entry["id"]).name
+        if key in seen:
+            continue
+        seen.add(key)
+        kept.append(entry)
+    return kept

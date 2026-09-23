@@ -1,6 +1,6 @@
 # Défi 3D : DREADHIVE — Drone Ravageur Mk.I (Blender)
 
-**Version du prompt : `2609231100`**
+**Version du prompt : `2609231500`**
 
 ---
 
@@ -39,13 +39,23 @@ La créature a **six membres** : deux **serres antérieures** (grandes faux) et 
 
 ### 3.1 Structure
 
+Créez **d'abord**, dans votre répertoire de travail, le dossier du livrable, puis travaillez
+**exclusivement** dedans. Son nom est imposé :
+
 ```
-<livrable>/
+./YYYYMMDD_HHMM_[MODEL]_[EFFORT]/
 ├── build.py            # OBLIGATOIRE — script de construction rejouable
 ├── README.md           # OBLIGATOIRE — documentation (voir §3.4)
 ├── audit_trace.json    # OBLIGATOIRE — traçabilité de session (voir §6)
 └── assets/             # facultatif — données produites par vous (textures générées, etc.)
 ```
+
+- `YYYYMMDD_HHMM` : date et heure **locales** de début de session (ex. `20260923_1123`).
+- `[MODEL]` : identifiant exact du modèle, tel que `meta.model` (ex. `claude-opus-5-5`).
+- `[EFFORT]` : niveau d'effort / de raisonnement **configuré**, tel que `meta.effort`
+  (ex. `medium`) ; `unknown` si la plateforme ne l'expose pas.
+
+Exemple : `./20260923_1123_claude-opus-5-5_medium/`. Rien ne doit être écrit hors de ce dossier.
 
 ### 3.2 `build.py` — le seul point d'entrée
 
@@ -150,10 +160,10 @@ Fichier de suivi **obligatoire** à la racine du livrable. Il mesure l'efficacit
 
 | Champ | Type | Définition |
 | :--- | :--- | :--- |
-| `meta.prompt_version` | `string` | Version exacte du présent prompt, à recopier telle quelle : `"2609231100"` |
+| `meta.prompt_version` | `string` | Version exacte du présent prompt, à recopier telle quelle : `"2609231500"` |
 | `meta.model` | `string` | Le nom exact du modèle d'IA utilisé |
 | `meta.temperature` | `number` | La température configurée pour la génération |
-| `meta.effort` | `string` | Le niveau d'effort ou de raisonnement configuré |
+| `meta.effort` | `string` | Le niveau d'effort ou de raisonnement **configuré**, lu dans la configuration de la session (ex. `/model`, option `--effort`). Ne le devinez pas : s'il n'est pas lisible, écrivez `"unknown"`. |
 | `meta.config` | `object` | Toute autre configuration pertinente de l'agent |
 | `summary.total_turns` | `number` | Nombre total d'échanges User ↔ Agent sur la session |
 | `summary.total_tool_calls` | `number` | Nombre total d'appels d'outils |
@@ -174,7 +184,7 @@ Exemple :
 
 ```json
 {
-  "meta": {"prompt_version": "2609231100", "model": "claude-fable-5-1", "temperature": 1.0, "effort": "high", "config": {}},
+  "meta": {"prompt_version": "2609231500", "model": "claude-fable-5-1", "temperature": 1.0, "effort": "high", "config": {}},
   "summary": {"total_turns": 30, "total_tool_calls": 160, "total_wall_time_seconds": 5400,
               "total_input_tokens": 900000, "total_output_tokens": 120000, "total_cached_input_tokens": 600000},
   "phases": [

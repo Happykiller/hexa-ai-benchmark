@@ -7,7 +7,7 @@
     "challenge_label": "DREADHIVE — Unité Xéno, Drone Ravageur Mk.I",
     "agent": "claude-opus-5-5_low",
     "model": "claude-opus-5-5",
-    "effort": "low",
+    "effort": "medium",
     "prompt_version": "2609231100",
     "session_id": "20260923_1123",
     "target_path": "/home/happykiller/hexa-ai-benchmark/livrables_blender/20260923_1123_claude-opus-5-5_low",
@@ -1846,6 +1846,16 @@
         ]
       },
       {
+        "title": "Corrections manuelles",
+        "items": [
+          {
+            "label": "effort",
+            "value": "medium",
+            "cls": "warn"
+          }
+        ]
+      },
+      {
         "title": "Synthèse rapport",
         "items": [
           {
@@ -1885,6 +1895,9 @@
           }
         ]
       }
+    ],
+    "_overrides_applied": [
+      "effort"
     ]
   }
 ]
