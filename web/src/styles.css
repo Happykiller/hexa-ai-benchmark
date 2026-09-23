@@ -318,13 +318,61 @@ tbody tr:not(.detail-row) {
 
 .media-compare {
   display: grid;
-  grid-template-columns: minmax(170px, 1.1fr) repeat(3, minmax(120px, 1fr));
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
   gap: 10px;
   align-items: start;
 }
 
-.media-compare .planche {
-  grid-row: span 3;
+/* Groupes repliables d'une ligne dépliée : Visuels, Détails. */
+.entry-group {
+  margin: 0 10px 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+}
+
+.entry-group > summary {
+  cursor: pointer;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  list-style: none;
+  user-select: none;
+}
+
+.entry-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.entry-group > summary::before {
+  content: "▸";
+  display: inline-block;
+  width: 1.2em;
+  transition: transform 0.15s ease;
+}
+
+.entry-group[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.entry-group-body {
+  padding: 4px 0 12px;
+}
+
+.entry-group-body .media-block,
+.entry-group-body .detail-grid {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.detail-reference {
+  padding: 0 12px 14px;
+}
+
+.detail-reference .planche {
+  max-width: 360px;
 }
 
 .media-videos {
@@ -379,11 +427,6 @@ tbody tr:not(.detail-row) {
 @media (max-width: 760px) {
   .media-compare {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .media-compare .planche {
-    grid-column: 1 / -1;
-    grid-row: auto;
   }
 
   .media-compare .media-item:not(.planche) img {

@@ -370,7 +370,6 @@ function MediaFigure({ item, className = "" }) {
 // turnaround), le rendu de l'auditeur et la superposition des silhouettes ; puis les vidéos.
 function MediaStrip({ entry }) {
   const byFile = (name) => entry.media.find((item) => item.file === name);
-  const planche = entry.media.find((item) => item.shared);
   const rows = ["front", "side", "back"]
     .map((view) => [byFile(`concept_${view}.jpg`), byFile(`view_${view}.jpg`), byFile(`silhouette_${view}.png`)])
     .filter((row) => row.some(Boolean));
@@ -380,7 +379,6 @@ function MediaStrip({ entry }) {
     <div className="media-block" onClick={(e) => e.stopPropagation()}>
       {rows.length ? (
         <div className="media-compare">
-          {planche ? <MediaFigure className="planche" item={planche} /> : null}
           {rows.flat().map((item, index) => (
             <MediaFigure item={item} key={item?.src || `empty-${index}`} />
           ))}
@@ -401,9 +399,22 @@ function MediaStrip({ entry }) {
   );
 }
 
+// Groupe repliable d'une ligne dépliée (Visuels, Détails) : ouvert par défaut.
+function EntryGroup({ title, children }) {
+  return (
+    <details className="entry-group" onClick={(e) => e.stopPropagation()} open>
+      <summary>{title}</summary>
+      <div className="entry-group-body">{children}</div>
+    </details>
+  );
+}
+
 function EntryRow({ entry, expanded, onOpenInfo, onToggle }) {
   const model = entry.model || entry.agent || "—";
   const effort = entry.effort || "—";
+  // La planche du défi est une référence : elle va avec les détails, pas avec les visuels.
+  const planche = entry.media?.find((item) => item.shared);
+  const visuals = (entry.media || []).filter((item) => !item.shared);
 
   return (
     <>
@@ -433,16 +444,27 @@ function EntryRow({ entry, expanded, onOpenInfo, onToggle }) {
       {expanded ? (
         <tr className="detail-row">
           <td colSpan={7}>
-            {entry.media?.length ? <MediaStrip entry={entry} /> : null}
-            <div className="detail-grid">
-              {entry.sections.map((section) => (
-                <DetailCard
-                  key={`${entry.id}-${section.title}`}
-                  onOpenInfo={onOpenInfo}
-                  section={section}
-                />
-              ))}
-            </div>
+            {visuals.length ? (
+              <EntryGroup title="Visuels">
+                <MediaStrip entry={{ ...entry, media: visuals }} />
+              </EntryGroup>
+            ) : null}
+            <EntryGroup title="Détails">
+              {planche ? (
+                <div className="detail-reference">
+                  <MediaFigure className="planche" item={planche} />
+                </div>
+              ) : null}
+              <div className="detail-grid">
+                {entry.sections.map((section) => (
+                  <DetailCard
+                    key={`${entry.id}-${section.title}`}
+                    onOpenInfo={onOpenInfo}
+                    section={section}
+                  />
+                ))}
+              </div>
+            </EntryGroup>
           </td>
         </tr>
       ) : null}

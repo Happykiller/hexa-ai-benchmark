@@ -50,10 +50,11 @@ Vérifier un changement du front : Chrome headless Windows
 `web/src/` sert les deux KB. `web/vite.config.js` lit `HEXA_SITE` (`todo` par défaut, `blender`),
 fixe `VITE_KB_VARIANT` et sort dans `sites/<site>/` (`npm run build:web:<site>`). Les piliers affichés viennent de
 l'entrée (`bucket_scores[k].short`), avec repli sur la table Todo pour les entrées publiées avant ;
-un bandeau de visuels s'affiche quand l'entrée a des `media` : tableau de comparaison par vue
-(attendu du turnaround → rendu → silhouettes superposées, planche du défi à gauche), vidéos
-(turntable et une par action, à vitesse réelle), images clés repliées. La planche est publiée
-une fois par défi (`sites/blender/challenges/<id>/concept.jpg`), pas par run. Une ancre `#<id>` dans l'URL ouvre
+une ligne dépliée montre deux groupes repliables (ouverts par défaut), sous le résumé :
+**Visuels**, présent seulement si l'entrée a des `media` (comparaison par vue attendu du
+turnaround → rendu → silhouettes superposées, vidéos du turntable et de chaque action, images
+clés repliées), puis **Détails** (planche du défi en référence, puis les cartes d'indicateurs).
+La planche est publiée une fois par défi (`sites/blender/challenges/<id>/concept.jpg`), pas par run. Une ancre `#<id>` dans l'URL ouvre
 ce run (lien partageable, et moyen de vérifier une ligne dépliée en Chrome headless).
 
 Chrome côté Windows ne peut pas écrire sa capture dans un `/tmp` WSL : copier le site dans
