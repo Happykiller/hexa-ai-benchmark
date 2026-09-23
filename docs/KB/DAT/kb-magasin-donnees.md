@@ -12,9 +12,9 @@ d'architecture la plus structurante du volet KB.
 
 | Étage | Fichier | Nature | Versionné ? |
 |---|---|---|---|
-| Brut | `cr_audits/*.json` (+ `.md` jumeau) | Produit par l'auditeur. **Immuable.** | **non** |
-| Correction | `knowledge_base/overrides.json` | Corrections manuelles, tracées et réversibles, keyées par id d'entrée | oui |
-| Dérivé | `knowledge_base/data.json` | Recalculé depuis brut + overrides | oui |
+| Brut | `runs/todo/cr_audits/*.json` (+ `.md` jumeau) | Produit par l'auditeur. **Immuable.** | **non** |
+| Correction | `sites/todo/overrides.json` | Corrections manuelles, tracées et réversibles, keyées par id d'entrée | oui |
+| Dérivé | `sites/todo/data.json` | Recalculé depuis brut + overrides | oui |
 
 ## Pourquoi des overrides plutôt qu'une édition directe
 
@@ -32,7 +32,7 @@ Conséquence directe : **ne jamais hand-editer un `cr_*.json`** — c'est une lo
 
 ## Rebuild complet vs upsert
 
-`scripts/build_kb.py` (wrapper mince de `kb/builder.py`) sait faire les deux : reconstruire toutes
+``python3 -m hexa kb todo`` (wrapper mince de `hexa/core/kb/store.py`) sait faire les deux : reconstruire toutes
 les entrées, ou n'ajouter/mettre à jour qu'une entrée par son id. L'upsert existe parce qu'un
 rebuild complet relit et re-parse tous les rapports markdown — inutile quand un seul audit vient
 de tomber. Commandes exactes : [`README.md`](../../../README.md).
@@ -40,7 +40,7 @@ de tomber. Commandes exactes : [`README.md`](../../../README.md).
 ## L'asymétrie de versionnement, et le garde-fou qui en découle
 
 C'est le point le plus dangereux du magasin : **le dérivé est versionné, la source ne l'est pas.**
-`cr_audits/` est dans `.gitignore` (les rapports sont volumineux et rejouables *en principe*), alors
+`runs/todo/cr_audits/` est dans `.gitignore` (les rapports sont volumineux et rejouables *en principe*), alors
 que `data.json` est commité parce qu'il est lu au runtime par le front.
 
 Conséquence : un `cr_*.json` supprimé, ou produit sur une autre machine, laisse une entrée publiée
@@ -50,10 +50,10 @@ rien n'échoue — et git ne peut pas la restaurer puisque le brut n'y a jamais 
 `build_knowledge_base()` **refuse donc d'écrire** quand le rebuild ferait perdre des entrées déjà
 publiées (`KnowledgeBaseShrinkError`), et liste les ids concernés. Trois issues :
 
-1. restaurer les `cr_*.json` manquants dans `cr_audits/`, puis rebuild ;
+1. restaurer les `cr_*.json` manquants dans `runs/todo/cr_audits/`, puis rebuild ;
 2. passer par `--add`, qui ne touche qu'une entrée ;
 3. `--allow-drop`, qui assume la suppression — après relecture de
-   `git diff knowledge_base/data.json`.
+   `git diff sites/todo/data.json`.
 
 Ne jamais choisir (3) par réflexe pour « débloquer » la commande : c'est exactement le geste que le
 garde-fou existe pour empêcher.
@@ -67,7 +67,7 @@ Le piège rencontré : le rebuild complet stockait des chemins **absolus** (issu
 tandis que `--add` stockait ce que l'appelant avait tapé. Résultat, 36 champs `source_file`
 portaient des préfixes de deux machines différentes (`/home/happykiller/sandbox/…`,
 `/home/admin/sandbox/…`), et tout `--add` en réécrivait un au hasard. `repo_relative()`
-(`kb/constants.py`) normalise désormais ces chemins en relatif-dépôt, à la normalisation — donc
+(`hexa/core/kb/constants.py`) normalise désormais ces chemins en relatif-dépôt, à la normalisation — donc
 en un seul endroit, pour les deux chemins de code.
 
 À retenir pour la suite : **aucun chemin machine ne doit entrer dans `data.json`**. Les chemins
@@ -77,7 +77,7 @@ ce sont des preuves de ce que le run a affiché, on n'y touche pas.
 **Ampleur selon la machine.** Sur la machine `admin` (2026-09-22), ce n'étaient pas 2 mais 17 des
 19 entrées publiées qui n'avaient pas leur `cr_*.json` local : l'upsert (`--add`) est la **voie par
 défaut**, pas une optimisation. Question ouverte : versionner les bruts (p. ex.
-`knowledge_base/raw/`) pour rendre la KB réellement régénérable.
+`sites/todo/raw/`) pour rendre la KB réellement régénérable.
 
 **Ré-audit d'un même livrable ≠ perte d'entrée.** Quand un correctif de l'auditeur impose de
 ré-auditer un livrable, le nouveau cr porte un nouvel id : l'ancienne entrée est retirée de
@@ -92,16 +92,16 @@ score (figés dans le cr par l'auditeur), et le merge shallow remplace un objet 
 
 ## Deux magasins, un builder
 
-`kb/builder.py` travaille sur un `KbStore` (dossier, chargement de toutes les entrées ou d'une
+`hexa/core/kb/store.py` travaille sur un `KbStore` (dossier, chargement de toutes les entrées ou d'une
 seule, action après écriture). Le magasin par défaut est celui de la Todo List ;
-`kb_blender/builder.py` déclare `knowledge_base_blender/` et publie ses visuels dans `media/<id>/`
+`hexa/benches/blender/hexa/core/kb/store.py` déclare `sites/blender/` et publie ses visuels dans `media/<id>/`
 après chaque écriture. Upsert, garde-fou anti-perte et overrides sont donc **les mêmes** pour les
 deux KB. Les visuels suivent la loi n°8 : jamais supprimés, même si le rapport brut disparaît.
-Commande : `python3 scripts/build_kb_blender.py [--add cr_audits_blender/cr_<…>.json]`.
+Commande : `python3 -m hexa kb blender [--add runs/blender/cr_audits/cr_<…>.json]`.
 La KB Blender ne publie que **l'audit le plus récent de chaque livrable** : un ré-audit remplace
 le précédent sans qu'une reconstruction complète ne ressuscite l'ancien (constaté le 2026-09-23).
 
-## Le package `kb/`
+## Le package `hexa/core/kb/`
 
 `normalizer.py` (chargement/normalisation des audits), `markdown_parser.py` (extraction des
 constats depuis les rapports `.md`), `render.py` (sections normalisées consommées par le front),
@@ -109,5 +109,5 @@ constats depuis les rapports `.md`), `render.py` (sections normalisées consomm�
 
 Le parsing markdown existe parce que le `.json` ne contient pas tout : une partie des constats
 n'est lisible que dans le rapport rendu. C'est une dépendance fragile — **si le template
-`auditor/templates/report.md` change de structure, `markdown_parser.py` peut casser
+`hexa/benches/todo/auditor/templates/report.md` change de structure, `markdown_parser.py` peut casser
 silencieusement**. Les deux évoluent ensemble.

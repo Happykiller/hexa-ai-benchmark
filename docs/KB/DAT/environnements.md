@@ -13,7 +13,7 @@ succès réelles.
 
 ## Prérequis d'un audit complet
 
-- Un **venv Python ≥ 3.10** activé avec `auditor/requirements.txt` installé. Le code utilise la
+- Un **venv Python ≥ 3.10** activé avec `requirements.txt` installé. Le code utilise la
   syntaxe `X | None` : sous le `python3` 3.9 de Debian, **toute** la suite de tests échoue à la
   collecte (`TypeError: unsupported operand type(s) for |`). Créer le venv avec `python3.11`.
 - **Docker + Docker Compose** fonctionnels : l'audit dynamique démarre la stack du livrable
@@ -60,22 +60,22 @@ tourner** après la fin du run. Le nom du projet compose est celui du dossier de
 
 Deux raisons pour lesquelles ça passe inaperçu :
 
-1. `livrables/` et `cr_audits/` sont gitignorés, donc **le working tree reste propre** — rien ne
+1. `runs/todo/livrables/` et `runs/todo/cr_audits/` sont gitignorés, donc **le working tree reste propre** — rien ne
    signale qu'un audit a eu lieu, encore moins qu'il a laissé quelque chose derrière lui ;
 2. même un audit `--skip-dynamic` en laisse, puisque les cibles `make` passent par Docker.
 
-Le contrôle est `docker compose ls` : toute stack dont le `CONFIG FILES` pointe dans `livrables/`
+Le contrôle est `docker compose ls` : toute stack dont le `CONFIG FILES` pointe dans `runs/todo/livrables/`
 est un résidu. C'est l'étape 6 du skill `/cloture`, et la raison pour laquelle un dépôt propre ne
 suffit pas à déclarer une session close.
 
 ## Tests de l'auditeur
 
-`pyproject.toml` déclare `testpaths = ["auditor/tests"]` et un `pythonpath = ["auditor", "."]` :
+`pyproject.toml` déclare `testpaths = ["hexa/benches/todo/tests"]` et un `pythonpath = ["auditor", "."]` :
 les tests importent `main`, `modules.*`, `kb.*` **sans bootstrap `sys.path` par fichier**. Ne pas
 réintroduire de manipulation de `sys.path` dans un test — c'était précisément la dette supprimée.
 
 ## Frontend
 
-`npm install` une seule fois, puis `npm run dev` (autoreload) ou `npm run build:kb:web`.
+`npm install` une seule fois, puis `npm run dev` (autoreload) ou `npm run build:web:todo`.
 `data.json` est lu **au runtime** : régénérer les données suffit à mettre à jour la KB déployée,
-le bundle web n'a besoin d'être rebuild que si `src/` change. Voir [frontend-kb.md](frontend-kb.md).
+le bundle web n'a besoin d'être rebuild que si `web/src/` change. Voir [frontend-kb.md](frontend-kb.md).

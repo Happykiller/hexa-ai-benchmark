@@ -16,12 +16,12 @@ duplique pas. Points à connaître :
 - Règles activées : `E`, `F`, `I` (tri des imports), `B` (bugbear), `UP` (modernisation).
 - `E501` est **désactivé volontairement** : le formateur possède la longueur de ligne, une URL
   longue ne doit pas faire échouer le lint.
-- Sont exclus du lint : `knowledge_base/`, `livrables/`, `cr_audits/`, `node_modules/` — du code
+- Sont exclus du lint : `sites/todo/`, `runs/todo/livrables/`, `runs/todo/cr_audits/`, `node_modules/` — du code
   généré ou tiers, qu'on ne normalise pas.
 
 ## Tests
 
-- `testpaths = ["auditor/tests"]`, exécution via `pytest`.
+- `testpaths = ["hexa/benches/todo/tests"]`, exécution via `pytest`.
 - Le `pythonpath` du projet rend `main`, `modules.*`, `kb.*` importables directement : **ne pas
   réintroduire de bricolage `sys.path` dans un fichier de test**, c'est une dette qui a été payée.
 - Les tests couvrent l'analyse statique, dynamique, le supply-chain, le scoring, le builder de KB

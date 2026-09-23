@@ -7,7 +7,7 @@ maj: 2026-09-23
 
 # Barème Blender b1
 
-Défini dans `blender_bench/bench_config.py`, calculé par le noyau `auditor/engine` (mêmes règles
+Défini dans `hexa/benches/blender/auditor/bench_config.py`, calculé par le noyau `hexa/core/engine` (mêmes règles
 que la Todo List v2 : indicateurs Fibonacci, bonus plafonné à la moitié de l'écart à 100, caps).
 Seuil d'admission commun : 60 %.
 

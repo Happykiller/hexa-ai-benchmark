@@ -10,8 +10,8 @@ maj: 2026-09-04
 ## Ce qui est constatable dans le dépôt
 
 Un audit produit trois sorties : un rapport lisible `.md`, les données brutes `.json` (les deux
-dans `cr_audits/`, non versionné) et une copie du rapport dans le dossier du livrable. La
-publication passe ensuite par `knowledge_base/data.json` + le rendu web, qui, eux, sont versionnés.
+dans `runs/todo/cr_audits/`, non versionné) et une copie du rapport dans le dossier du livrable. La
+publication passe ensuite par `sites/todo/data.json` + le rendu web, qui, eux, sont versionnés.
 
 Le coût estimé d'un run ($, tokens, points par dollar) est affiché dans le détail d'une entrée —
 mais ce n'est **pas qu'un affichage** : depuis le scoring v2, le coût est un **pilier noté à 12 %**.
@@ -29,7 +29,7 @@ et Gemini à différents niveaux d'effort.
 
 ## Décidé
 
-- **La source du coût unitaire** est `MODEL_PRICING` dans `auditor/scoring_config.py`, maintenue
+- **La source du coût unitaire** est `MODEL_PRICING` dans `hexa/benches/todo/auditor/scoring_config.py`, maintenue
   **à la main**, avec sa date de vérification dans `PRICING_UPDATED`. C'est une dette d'entretien
   assumée : un prix fournisseur qui change sans être répercuté fausse les runs suivants.
 

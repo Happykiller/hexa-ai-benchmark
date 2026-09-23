@@ -2,25 +2,16 @@
 # Scoring semantics are NOT affected by anything here.
 
 [tool.pytest.ini_options]
-testpaths = ["auditor/tests", "blender_bench/tests"]
-# Make the auditor package importable as top-level modules (main, modules.*,
-# scoring_config, challenges, engine) and the repo root importable (kb.*, scripts.*,
-# blender_bench.*),
-# so test files no longer need per-file sys.path bootstrapping.
-pythonpath = ["auditor", "."]
+# Un seul paquet, `hexa` : chaque benchmark et le noyau portent leurs tests.
+testpaths = ["hexa"]
+pythonpath = ["."]
+# Plusieurs dossiers `tests/` : import par chemin complet, pas de collision de basenames.
+addopts = "--import-mode=importlib"
 
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-extend-exclude = [
-    "knowledge_base",
-    "knowledge_base_blender",
-    "livrables",
-    "livrables_blender",
-    "cr_audits",
-    "cr_audits_blender",
-    "node_modules",
-]
+extend-exclude = ["runs", "sites", "node_modules", "venv"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
@@ -28,13 +19,11 @@ select = ["E", "F", "I", "B", "UP"]
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-# Standalone script: must bootstrap sys.path before importing the kb package.
-"scripts/build_kb.py" = ["E402"]
-"scripts/build_kb_blender.py" = ["E402"]
 # Scripts exécutés DANS Blender : ajoutent leur dossier au sys.path avant d'importer _common.
-"blender_bench/bpy_scripts/*.py" = ["E402"]
-# Point d'entrée lancé en script : bootstrap du sys.path avant les imports du paquet.
-"blender_bench/cli.py" = ["E402"]
+"hexa/benches/blender/bpy/*.py" = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["hexa"]
 
 [tool.ruff.format]
 quote-style = "double"

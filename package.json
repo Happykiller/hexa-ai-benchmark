@@ -1,5 +1,5 @@
 {
-  "name": "hexa-ai-benchmark-kb",
+  "name": "hexa-ai-benchmark-web",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -7,15 +7,11 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "vite --host",
-    "dev:kb": "python3 scripts/build_kb.py && vite --host",
-    "build:kb:data": "python3 scripts/build_kb.py",
-    "build:kb:web": "vite build",
-    "build:kb": "npm run build:kb:data && npm run build:kb:web",
-    "dev:kb:blender": "python3 scripts/build_kb_blender.py && VITE_KB_VARIANT=blender vite --host",
-    "build:kb:blender:data": "python3 scripts/build_kb_blender.py",
-    "build:kb:blender:web": "vite build -c vite.blender.config.js",
-    "build:kb:blender": "npm run build:kb:blender:data && npm run build:kb:blender:web"
+    "dev": "vite --config web/vite.config.js --host",
+    "dev:blender": "HEXA_SITE=blender vite --config web/vite.config.js --host",
+    "build:web": "npm run build:web:todo && npm run build:web:blender",
+    "build:web:todo": "HEXA_SITE=todo vite build --config web/vite.config.js",
+    "build:web:blender": "HEXA_SITE=blender vite build --config web/vite.config.js"
   },
   "dependencies": {
     "react": "^18.3.1",

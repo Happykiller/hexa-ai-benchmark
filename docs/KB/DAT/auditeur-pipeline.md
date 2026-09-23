@@ -7,9 +7,9 @@ maj: 2026-09-23
 
 # Pipeline d'audit
 
-`auditor/main.py` est l'orchestrateur. Il alimente une structure `audit_db` imbriquée
+`hexa/benches/todo/auditor/main.py` est l'orchestrateur. Il alimente une structure `audit_db` imbriquée
 (phases → étapes → indicateurs), finalise en calculant les scores pondérés
-(`_finalize_audit_db()`), puis rend `auditor/templates/report.md` via Jinja2.
+(`_finalize_audit_db()`), puis rend `hexa/benches/todo/auditor/templates/report.md` via Jinja2.
 
 ## Les six phases du rapport
 
@@ -75,7 +75,7 @@ sans avoir besoin de Docker.
 
 ## Parti pris : orchestrateur challenge-agnostique
 
-`auditor/challenges.py` isole tout ce qui est spécifique au défi Todo (endpoint GraphQL, noms et
+`hexa/benches/todo/auditor/challenges.py` isole tout ce qui est spécifique au défi Todo (endpoint GraphQL, noms et
 poids des étapes E2E, noms de couches) dans un `ChallengeProfile`. `TODO_STATIC_CHECKERS` est un
 **registre déclaratif** : chaque checker porte son mapper `emit`, qui réutilise `_append_indicator`.
 
@@ -84,9 +84,9 @@ registre, sans toucher à `main.py`**. Un changement qui modifie `main.py` pour 
 rate l'intention de l'architecture.
 
 Le moteur de notation lui-même (indicateurs Fibonacci, piliers, caps, traçabilité, coût) vit
-dans `auditor/engine/`, sans rien de propre au défi : `_finalize_audit_db` reçoit un barème en
+dans `hexa/core/engine/`, sans rien de propre au défi : `_finalize_audit_db` reçoit un barème en
 paramètre. C'est ce qui permet au benchmark Blender ([blender-pipeline](blender-pipeline.md)) de
-réutiliser phases 3 et 6 à l'identique. `auditor/tests/test_engine_regression.py` rejoue des
+réutiliser phases 3 et 6 à l'identique. `hexa/benches/todo/tests/test_engine_regression.py` rejoue des
 rapports publiés (v1, v2, v2 plafonné) : toute modification du moteur doit le laisser vert.
 
 ## Anti-triche
@@ -128,7 +128,7 @@ donc une preuve positive :
 
 ## Où vivent les seuils
 
-`auditor/scoring_config.py` : `TRACE_SCORING_CONFIG` (métriques déclarées par l'agent),
+`hexa/benches/todo/auditor/scoring_config.py` : `TRACE_SCORING_CONFIG` (métriques déclarées par l'agent),
 `TECHNICAL_STATS_SCORING_CONFIG` (métriques du code livré), `MODEL_PRICING` + `COST_USD_BANDS` +
 `TOTAL_TOKENS_BANDS` (pilier Coût), plus les bandes et les caps. Rien dans `pyproject.toml` ou
 l'outillage de lint n'influence le scoring — c'est un invariant, voir

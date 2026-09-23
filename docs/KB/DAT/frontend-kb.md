@@ -7,19 +7,19 @@ maj: 2026-09-23
 
 # Frontend de la knowledge base
 
-Application React 18 minimale (`src/App.jsx`, `src/main.jsx`, `src/styles.css`) buildée par Vite
-vers `knowledge_base/`.
+Application React 18 minimale (`web/src/App.jsx`, `web/src/main.jsx`, `web/src/styles.css`) buildée par Vite
+vers `sites/todo/`.
 
 ## Le point à connaître : data et bundle sont découplés
 
 `data.json` est **chargé au runtime**, pas inliné au build. Donc :
 
 - ajouter un audit → régénérer `data.json` suffit, le bundle web n'a pas à être reconstruit ;
-- modifier `src/` → il faut `npm run build:kb:web`.
+- modifier `web/src/` → il faut `npm run build:web` (les deux sites partagent le code).
 
-C'est ce qui rend l'ajout d'un run peu coûteux, et c'est pourquoi les scripts npm distinguent
-`build:kb:data`, `build:kb:web` et `build:kb` (les deux). `dev:kb` régénère les données puis lance
-le serveur de dev — le raccourci pour itérer sur l'affichage d'un run qui vient de tomber.
+C'est ce qui rend l'ajout d'un run peu coûteux : données par `python3 -m hexa kb <bench>`, bundle
+par `npm run build:web:<bench>` (ou `build:web` pour les deux). `npm run dev` / `dev:blender`
+servent `sites/<bench>/` à la racine du serveur de dev.
 
 ## Ce que le front affiche, et ce qu'il n'affiche pas
 
@@ -34,10 +34,10 @@ côte sans distinction. C'est une limite connue — voir la loi n°9 dans
 En `file://`, Chrome bloque les scripts `type="module"`, tout attribut `crossorigin` et tout
 `fetch` (origine `null`) : la page restait **blanche** (constaté le 2026-09-22). D'où trois choix :
 
-- le builder écrit `knowledge_base/data.js` (`window.__HEXA_KB__ = {entries, prompt}`) à chaque
+- le builder écrit `sites/todo/data.js` (`window.__HEXA_KB__ = {entries, prompt}`) à chaque
   écriture de `data.json` — les deux ne doivent jamais diverger ;
 - `index.html` charge `data.js` puis le bundle en scripts classiques (`defer`) : Vite émet un
-  bundle **IIFE**, CSS incluse, et un plugin de `vite.config.js` retire `type="module"` /
+  bundle **IIFE**, CSS incluse, et un plugin de `web/vite.config.js` retire `type="module"` /
   `crossorigin` ;
 - le front lit `window.__HEXA_KB__` s'il existe, sinon retombe sur le `fetch` (mode dev,
   serveur HTTP).
@@ -47,13 +47,13 @@ Vérifier un changement du front : Chrome headless Windows
 
 ## Deux sites, un seul code
 
-`src/` sert les deux KB. `vite.blender.config.js` fixe `VITE_KB_VARIANT=blender` et sort dans
-`knowledge_base_blender/` (`npm run build:kb:blender:web`). Les piliers affichés viennent de
+`web/src/` sert les deux KB. `web/vite.config.js` lit `HEXA_SITE` (`todo` par défaut, `blender`),
+fixe `VITE_KB_VARIANT` et sort dans `sites/<site>/` (`npm run build:web:<site>`). Les piliers affichés viennent de
 l'entrée (`bucket_scores[k].short`), avec repli sur la table Todo pour les entrées publiées avant ;
 un bandeau de visuels s'affiche quand l'entrée a des `media` : tableau de comparaison par vue
 (attendu du turnaround → rendu → silhouettes superposées, planche du défi à gauche), vidéos
 (turntable et une par action, à vitesse réelle), images clés repliées. La planche est publiée
-une fois par défi (`knowledge_base_blender/challenges/<id>/concept.jpg`), pas par run. Une ancre `#<id>` dans l'URL ouvre
+une fois par défi (`sites/blender/challenges/<id>/concept.jpg`), pas par run. Une ancre `#<id>` dans l'URL ouvre
 ce run (lien partageable, et moyen de vérifier une ligne dépliée en Chrome headless).
 
 Chrome côté Windows ne peut pas écrire sa capture dans un `/tmp` WSL : copier le site dans
@@ -61,7 +61,7 @@ Chrome côté Windows ne peut pas écrire sa capture dans un `/tmp` WSL : copier
 
 ## Sortie versionnée
 
-`knowledge_base/` est **dans** le dépôt, contrairement à `cr_audits/` et `livrables/`. Le bundle
+`sites/todo/` est **dans** le dépôt, contrairement à `runs/todo/cr_audits/` et `runs/todo/livrables/`. Le bundle
 généré (`index.html`, `assets/`) est donc committé : c'est un artefact de build versionné,
 assumé, parce qu'il tient lieu de publication.
 

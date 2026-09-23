@@ -18,7 +18,7 @@ Le benchmark mesure cinq piliers (scoring **v2**, défaut depuis le 2026-06-08) 
 
 Les poids historiques **50 / 25 / 15 / 10 sans pilier Coût** sont le scoring **v1**, conservé pour
 rejouer à l'identique les runs d'avant juin : `--scoring v1`. Les deux jeux de poids sont dans
-`auditor/scoring_config.py`, et chaque entrée de la KB porte le modèle qui l'a produite
+`hexa/benches/todo/auditor/scoring_config.py`, et chaque entrée de la KB porte le modèle qui l'a produite
 (`fib_v1` / `fib_v2`) — **des scores v1 et v2 ne sont pas directement comparables**.
 
 Un bonus/malus s'applique par-dessus les piliers (+5 max / -10 max) pour les initiatives proactives
@@ -46,37 +46,36 @@ Une **Todo List Multi-Bases** en TypeScript / GraphQL :
 
 ```
 hexa-ai-benchmark/
-├── auditor/              # Moteur d'audit Python
-│   ├── main.py           # CLI principal (commande analyze)
-│   ├── scoring_config.py # Poids, bandes de score, caps
-│   ├── challenges.py     # Profil de défi + registre déclaratif de checkers statiques
-│   ├── modules/
-│   │   ├── static_analysis.py   # Checkers hexagonal, auth, DI, double persistance
-│   │   ├── dynamic_analysis.py  # Docker, E2E GraphQL, auth E2E sécurité, perf
-│   │   └── supply_chain.py      # DevEx, scan de secrets, npm audit
-│   └── tests/
-├── scripts/
-│   └── build_kb.py       # Wrapper CLI du builder de knowledge base
-├── kb/
-│   ├── __init__.py
-│   ├── builder.py        # Orchestration du build des données statiques de KB
-│   ├── constants.py      # Chemins et constantes partagées
-│   ├── markdown_parser.py# Extraction des constats depuis les rapports .md
-│   ├── normalizer.py     # Chargement et normalisation des audits JSON/MD
-│   └── render.py         # Sections normalisées consommées par le frontend React
-├── src/                  # Frontend React/Vite pour l'affichage de la KB
-├── package.json          # Scripts npm de build du frontend KB
-├── vite.config.js        # Build du frontend vers knowledge_base/
-├── cr_audits/            # Rapports JSON/MD des audits lancés depuis la racine (NON versionné)
-├── knowledge_base/
-│   ├── index.html        # Build React statique
-│   ├── assets/           # Bundles front générés par Vite
-│   └── data.json         # Entrées normalisées de tous les audits (versionné)
-├── livrables/            # Dossiers soumis par les agents (NON versionné)
-├── prompts/              # Prompt d'évaluation remis aux agents
-├── docs/KB/              # Base de connaissance du projet (mémoire longue)
-└── .claude/              # Outillage agent versionné : skills/, agents/, hooks/
+├── hexa/                          # Code Python — `python3 -m hexa --help`
+│   ├── cli.py  paths.py           # CLI unique ; TOUS les chemins du dépôt
+│   ├── core/                      # Commun à tous les benchmarks
+│   │   ├── engine/                # Notation : indicateurs Fibonacci, piliers, caps, trace, coût
+│   │   ├── kb/                    # Magasin KB générique (KbStore, overrides, cartes communes)
+│   │   └── tools/session_usage.py # Usage réel d'une session (tokens, effort) vs audit_trace.json
+│   └── benches/                   # Un dossier = un benchmark autonome
+│       ├── todo/                  # API Todo hexagonale (TypeScript/GraphQL)
+│       │   ├── auditor/           # main.py, challenges.py, scoring_config.py, modules/, templates/
+│       │   ├── enonce/            # evaluation_prompt.md remis aux agents
+│       │   ├── kb/                # Normalisation et cartes de la KB Todo
+│       │   └── tests/
+│       └── blender/               # Créature 3D riggée et animée (Blender)
+│           ├── auditor/           # cli.py, analysis/, bench_config.py, runner.py, templates/
+│           ├── bpy/               # Scripts exécutés DANS Blender (mesures, rendus)
+│           ├── challenges/<id>/   # concept.png + enonce.md + spec.json
+│           ├── kb/                # Normalisation, cartes et visuels de la KB Blender
+│           └── tests/
+├── web/                           # Front React/Vite unique (src/, index.html, vite.config.js)
+├── sites/<bench>/                 # KB publiées : data.json, bundle, médias (versionné)
+├── runs/<bench>/                  # NON versionné
+│   ├── livrables/                 # Dossiers soumis par les agents
+│   └── cr_audits/                 # Rapports bruts .json/.md (source immuable)
+├── docs/KB/                       # Base de connaissance du projet (mémoire longue)
+├── .claude/                       # Outillage agent versionné : skills/, agents/, hooks/
+└── requirements.txt  package.json pyproject.toml
 ```
+
+Ajouter un benchmark = ajouter `hexa/benches/<nom>/` (auditeur, énoncé, KB, tests) et l'enregistrer
+dans `hexa/cli.py` et `hexa/paths.py` ; le noyau et le front ne changent pas.
 
 ---
 
@@ -85,14 +84,17 @@ hexa-ai-benchmark/
 ```bash
 # Installation (une seule fois)
 python3.11 -m venv venv && source venv/bin/activate   # Python ≥ 3.10 requis
-pip install -r auditor/requirements.txt
+pip install -r requirements.txt
+
+# Machine qui avait l'ancienne arborescence (livrables/, cr_audits/… à la racine) : une fois
+python3 -m hexa migrate-layout --dry-run && python3 -m hexa migrate-layout
 
 # Audit complet (démarre Docker, exécute l'E2E)
-python3 auditor/main.py analyze livrables/<NOM_DU_LIVRABLE>
+python3 -m hexa todo analyze runs/todo/livrables/<NOM_DU_LIVRABLE>
 
 # Recouper les métriques auto-déclarées (tokens, modèle, effort, durée) avec le transcript
-python3 scripts/session_usage.py ~/.claude/projects/<cwd-encodé>/<session>.jsonl \
-  --trace livrables/<NOM_DU_LIVRABLE>/audit_trace.json
+python3 -m hexa usage ~/.claude/projects/<cwd-encodé>/<session>.jsonl \
+  --trace runs/todo/livrables/<NOM_DU_LIVRABLE>/audit_trace.json
 ```
 
 **Options de `analyze` :**
@@ -114,11 +116,11 @@ python3 scripts/session_usage.py ~/.claude/projects/<cwd-encodé>/<session>.json
 > puis détruirait sa stack au teardown (loi n°10).
 
 **Sorties générées :**
-- `cr_audits/cr_<nom>_<timestamp>.md` — rapport lisible
-- `cr_audits/cr_<nom>_<timestamp>.json` — données brutes d'audit
+- `runs/todo/cr_audits/cr_<nom>_<timestamp>.md` — rapport lisible
+- `runs/todo/cr_audits/cr_<nom>_<timestamp>.json` — données brutes d'audit
 - `<livrable>/audit_report_<timestamp>.md` — copie dans le dossier du livrable
 
-`HEXA_AUDIT_OUTPUT_DIR` redirige les deux premières sorties ailleurs que dans `cr_audits/` (utile
+`HEXA_AUDIT_OUTPUT_DIR` redirige les deux premières sorties ailleurs que dans `runs/todo/cr_audits/` (utile
 pour un run de test qu'on ne veut pas voir remonter dans la KB) ; `HEXA_AUDIT_LOG_LEVEL` règle la
 verbosité.
 
@@ -126,28 +128,28 @@ verbosité.
 
 ## Benchmark Blender 3D (second défi)
 
-Un agent reçoit une planche concept (`blender_bench/challenges/<défi>/concept.png`) et un
+Un agent reçoit une planche concept (`hexa/benches/blender/challenges/<défi>/concept.png`) et un
 énoncé (`enonce.md`), et livre un `build.py` qui construit dans Blender une créature riggée et
 animée. L'auditeur le rejoue dans Blender 4.5 headless puis note le résultat (barème b1).
 Détails : [`docs/KB/DAT/blender-pipeline.md`](docs/KB/DAT/blender-pipeline.md).
 
 ```bash
 # Audit (Blender : --blender, $HEXA_BLENDER_BIN, `blender` du PATH ou ~/.local/bin/blender45)
-python3 blender_bench/cli.py analyze livrables_blender/<NOM_DU_LIVRABLE>
+python3 -m hexa blender analyze runs/blender/livrables/<NOM_DU_LIVRABLE>
 
 # Itérer sans rendus (score non publiable) / réanalyser sans relancer Blender
-python3 blender_bench/cli.py analyze livrables_blender/<NOM> --skip-render --keep-work
-python3 blender_bench/cli.py analyze livrables_blender/<NOM> --reuse-work /tmp/hexa_blender_xxx
+python3 -m hexa blender analyze runs/blender/livrables/<NOM> --skip-render --keep-work
+python3 -m hexa blender analyze runs/blender/livrables/<NOM> --reuse-work /tmp/hexa_blender_xxx
 
-# KB Blender (site séparé : knowledge_base_blender/)
-python3 scripts/build_kb_blender.py --add cr_audits_blender/cr_<...>.json
-npm run build:kb:blender:web
+# KB Blender (site séparé : sites/blender/)
+python3 -m hexa kb blender --add runs/blender/cr_audits/cr_<...>.json
+npm run build:web:blender
 
 # Tests de rendu (≈ 1 min) en plus de la suite
-HEXA_BLENDER_SLOW=1 pytest -q blender_bench
+HEXA_BLENDER_SLOW=1 pytest -q hexa/benches/blender
 ```
 
-Sorties : `cr_audits_blender/cr_<nom>_<ts>.{json,md}` + `cr_<…>_media/` (rendus, silhouettes
+Sorties : `runs/blender/cr_audits/cr_<nom>_<ts>.{json,md}` + `cr_<…>_media/` (rendus, silhouettes
 superposées au concept, turntable MP4, planches d'animation).
 
 > ⚠️ L'auditeur **exécute** `build.py` sur l'hôte, sous garde-fous mais sans isolation forte :
@@ -159,38 +161,38 @@ superposées au concept, turntable MP4, planches d'animation).
 
 La KB est un **magasin de données** dérivé, pas un simple snapshot :
 
-- `cr_audits/*.json` (+ `.md` jumeaux) = **source brute immuable** produite par l'auditeur.
-- `knowledge_base/overrides.json` = **corrections manuelles tracées/réversibles**, keyées par
+- `runs/todo/cr_audits/*.json` (+ `.md` jumeaux) = **source brute immuable** produite par l'auditeur.
+- `sites/todo/overrides.json` = **corrections manuelles tracées/réversibles**, keyées par
   id d'entrée (ex. `model`/`effort` mal auto-déclarés par l'agent — voir « Format
   `audit_trace.json` »). Appliquées au build ; jamais hand-editer les `cr_*.json`.
-- `knowledge_base/data.json` = **dérivé** (brut + overrides), régénérable **ou** upsertable
+- `sites/todo/data.json` = **dérivé** (brut + overrides), régénérable **ou** upsertable
   à l'unité. Le coût estimé ($, tokens, pts/$) y est surfacé et affiché dans le détail ;
   les entrées corrigées portent une section « Corrections manuelles ».
 
-> ⚠️ **`cr_audits/` n'est pas versionné, `data.json` l'est.** Un rapport brut supprimé, ou produit
+> ⚠️ **`runs/todo/cr_audits/` n'est pas versionné, `data.json` l'est.** Un rapport brut supprimé, ou produit
 > sur une autre machine, rend son entrée publiée irrécupérable par un rebuild complet. Le builder
 > **refuse donc d'écrire** si le rebuild ferait disparaître des entrées déjà publiées, et liste
 > lesquelles. Dans ce cas : restaurer les `cr_*.json` manquants, ou passer par `--add`. `--allow-drop`
-> force la suppression — à ne faire qu'après avoir relu `git diff knowledge_base/data.json`.
+> force la suppression — à ne faire qu'après avoir relu `git diff sites/todo/data.json`.
 
 ```bash
-python3 scripts/build_kb.py --add cr_audits/cr_<...>.json   # VOIE PAR DÉFAUT : ajout/maj d'UNE entrée (upsert par id)
-python3 scripts/build_kb.py                     # rebuild complet — refusé s'il ferait perdre des entrées publiées
-python3 scripts/build_kb.py --allow-drop        # rebuild complet EN ACCEPTANT de perdre des entrées
+python3 -m hexa kb todo --add runs/todo/cr_audits/cr_<...>.json   # VOIE PAR DÉFAUT : ajout/maj d'UNE entrée (upsert par id)
+python3 -m hexa kb todo                     # rebuild complet — refusé s'il ferait perdre des entrées publiées
+python3 -m hexa kb todo --allow-drop        # rebuild complet EN ACCEPTANT de perdre des entrées
 
-# Corriger une métadonnée : éditer knowledge_base/overrides.json, ex.
+# Corriger une métadonnée : éditer sites/todo/overrides.json, ex.
 #   { "cr_20260529_1322_GPT5.5-medium_20260529_161440": { "model": "gpt-5.4-codex" } }
 # puis relancer build_kb.py --add. Un override est cosmétique : il ne recalcule ni coût ni score.
 
 npm ci                           # une seule fois (rendu web ; data.json est lu au runtime)
 npm run dev                      # serveur React/Vite en dev avec autoreload
-npm run build:kb:web             # régénère knowledge_base/index.html et assets/
-git add knowledge_base/ && git commit -m "kb: add run <agent> <date>"
+npm run build:web:todo             # régénère sites/todo/index.html et assets/
+git add sites/todo/ && git commit -m "kb: add run <agent> <date>"
 ```
 
-`cr_audits/` n'est **pas versionné** : sur une machine donnée, la plupart des entrées publiées n'ont
+`runs/todo/cr_audits/` n'est **pas versionné** : sur une machine donnée, la plupart des entrées publiées n'ont
 pas leur `cr_*.json`. Un rebuild complet les effacerait de `data.json` — le builder le refuse
-(exit 1 + liste des entrées concernées, `--allow-drop` pour passer outre). `npm run build:kb` / `dev:kb` enchaînent ce même rebuild.
+(exit 1 + liste des entrées concernées, `--allow-drop` pour passer outre). Les scripts npm ne touchent plus aux données : `npm run build:web` ne construit que le bundle.
 
 Format d'`overrides.json` : `{ "<id_entrée>": { "<champ>": "<valeur>" } }` — merge shallow
 au niveau top de l'entrée (`model`, `effort`, `prompt_version`, …). Le rendu web lit
@@ -289,7 +291,7 @@ prix, lui, vient de la table de l'auditeur, donc le montant $ n'est pas auto-dé
 [`docs/KB/DAF/tracabilite-agent.md`](docs/KB/DAF/tracabilite-agent.md) sur la portée exacte de
 l'auto-déclaration.
 
-La référence normative remise aux agents reste [`prompts/evaluation_prompt.md`](prompts/evaluation_prompt.md) :
+La référence normative remise aux agents reste [`hexa/benches/todo/enonce/evaluation_prompt.md`](hexa/benches/todo/enonce/evaluation_prompt.md) :
 en cas de divergence avec ce README, c'est l'énoncé qui fait foi.
 
 ---

@@ -15,12 +15,12 @@ trois est fausse, la session n'est pas close — et tu le dis au lieu de conclur
 
 | Dépôt | Chemin | Branche de travail | Remarque |
 | --- | --- | --- | --- |
-| `hexa-ai-benchmark` | `.` (racine) | `develop` | **Dépôt unique.** Pas de sous-module, pas de dépôt frère : les autres dépôts de `~/` sont d'autres projets, hors périmètre. Un `.git` sous `livrables/<LIVRABLE>/` est le dépôt **créé par l'agent audité** : donnée auditée, gitignorée, ne jamais y committer |
+| `hexa-ai-benchmark` | `.` (racine) | `develop` | **Dépôt unique.** Pas de sous-module, pas de dépôt frère : les autres dépôts de `~/` sont d'autres projets, hors périmètre. Un `.git` sous `runs/todo/livrables/<LIVRABLE>/` est le dépôt **créé par l'agent audité** : donnée auditée, gitignorée, ne jamais y committer |
 
 | Stack | Fichier compose | Services |
 | --- | --- | --- |
 | — | **aucune stack propre au projet** | — |
-| *(transitoire)* | `livrables/<LIVRABLE>/docker-compose.yml` | `api`, `mongodb`, `mysql` — stack **du livrable audité**, démarrée par l'auditeur |
+| *(transitoire)* | `runs/todo/livrables/<LIVRABLE>/docker-compose.yml` | `api`, `mongodb`, `mysql` — stack **du livrable audité**, démarrée par l'auditeur |
 
 | Skill de sync data | Ce qu'il pousse en amont | Doit tourner avant l'arrêt de |
 | --- | --- | --- |
@@ -31,17 +31,17 @@ stack du livrable qu'il analyse, et le nom du projet compose est le nom du dossi
 (ex. `20260702_0705_claude-fable-5_10`). Conséquences pour la clôture :
 
 - il n'y a **rien à arrêter par défaut** — seulement les stacks qu'un audit a laissées en vie ;
-- ces stacks se reconnaissent à leur `CONFIG FILES` pointant dans `livrables/` ;
+- ces stacks se reconnaissent à leur `CONFIG FILES` pointant dans `runs/todo/livrables/` ;
 - `--skip-dynamic` **n'empêche pas** un audit de laisser des conteneurs : les cibles `make`
   passent par Docker (voir `docs/KB/DAT/environnements.md`). Ne jamais supposer qu'un audit
   statique n'a rien démarré — vérifier.
 
-L'auditeur Blender (`blender_bench/`) ne lance **aucun conteneur**, mais un audit interrompu
+L'auditeur Blender (`hexa/benches/blender/`) ne lance **aucun conteneur**, mais un audit interrompu
 peut laisser des processus `blender -b` (et leur dossier `/tmp/hexa_blender_*`). Les recenser par
 `pgrep -af "blender -b"` et les arrêter nommément (`kill <pid>`) s'ils viennent d'un audit —
 jamais un Blender que l'utilisateur aurait ouvert lui-même.
 
-`livrables/` et `cr_audits/` étant gitignorés, un audit ne salit jamais le working tree : un dépôt
+`runs/todo/livrables/` et `runs/todo/cr_audits/` étant gitignorés, un audit ne salit jamais le working tree : un dépôt
 propre ne prouve donc **pas** qu'aucun conteneur ne traîne. Les deux contrôles sont indépendants.
 
 Si cette section est vide ou fausse, **recense d'abord** (étape 1) et propose de la corriger dans
@@ -97,8 +97,8 @@ Aucun de ces gestes ne se justifie par « pour que ce soit clean » :
   `docker stop $(docker ps -q)` ;
 - committer sur une branche protégée que les règles du projet réservent aux MR.
 
-> Spécifique à ce projet : ne **jamais** lancer `python3 scripts/build_kb.py --allow-drop` pour
-> « débloquer » un rebuild refusé, et ne jamais hand-editer un `cr_audits/*.json`. Ce sont les
+> Spécifique à ce projet : ne **jamais** lancer `python3 -m hexa kb todo --allow-drop` pour
+> « débloquer » un rebuild refusé, et ne jamais hand-editer un `runs/todo/cr_audits/*.json`. Ce sont les
 > lois n°1 et n°8 (`docs/KB/REGLES/lois.md`) : une entrée publiée dont le rapport brut a disparu
 > n'est récupérable nulle part.
 
@@ -121,7 +121,7 @@ grep -ril -E 'name: .*sync|description: .*(sync|synchro)' .claude/skills/*/SKILL
 > `collect_sync_skills`). Il n'y a donc pour l'instant qu'un seul motif à maintenir, ici. Si le
 > hook gagne un jour cette détection, les deux motifs doivent inclure la même exclusion.
 
-Sur ce projet, le recensement des composes remonte surtout `livrables/*/docker-compose.yml` :
+Sur ce projet, le recensement des composes remonte surtout `runs/todo/livrables/*/docker-compose.yml` :
 ce sont des **données auditées**, pas des stacks du projet. Seules comptent celles que
 `docker compose ls` montre **effectivement en vie**.
 
@@ -156,7 +156,7 @@ Pour chaque dépôt du périmètre :
 5. Ne fabrique pas un commit vide pour « marquer la fin » : un dépôt sans modification reste sans
    commit, et c'est un résultat normal.
 
-> Sur ce projet, `knowledge_base/data.json` est un **dérivé versionné** : s'il apparaît modifié,
+> Sur ce projet, `sites/todo/data.json` est un **dérivé versionné** : s'il apparaît modifié,
 > vérifie que le diff ne contient que ce que tu attendais (une entrée ajoutée, pas 36 chemins
 > réécrits). Un diff inattendu sur ce fichier est un signal, pas un détail à committer au passage.
 
@@ -194,7 +194,7 @@ Uniquement ce qui appartient au projet, stack par stack, depuis le dossier du co
 docker compose -f <fichier> down       # sans -v : les volumes survivent
 ```
 
-Ici, `<fichier>` sera typiquement `livrables/<LIVRABLE>/docker-compose.yml` — la stack qu'un audit
+Ici, `<fichier>` sera typiquement `runs/todo/livrables/<LIVRABLE>/docker-compose.yml` — la stack qu'un audit
 a laissée derrière lui. Ne pas ajouter `-v` : si les volumes doivent repartir vierges, c'est
 l'auditeur qui le fait, avec son propre `--fresh-docker`, au prochain audit.
 
@@ -222,7 +222,7 @@ Si le périmètre a des skills de sync data, leur résultat (poussé / échoué 
 au même titre qu'un push : une synchro non confirmée n'est pas une session close.
 
 Contrôle propre à ce projet : `docker compose ls` ne doit plus lister aucune stack pointant dans
-`livrables/`.
+`runs/todo/livrables/`.
 
 ## Étape 8 — rendre compte
 

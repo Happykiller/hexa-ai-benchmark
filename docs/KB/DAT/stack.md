@@ -12,7 +12,7 @@ l'auditeur doit pouvoir tourner sans Node, et le rendu web sans Python.
 
 ## Python — l'auditeur et le builder de KB
 
-Déclaré dans `auditor/requirements.txt` et `pyproject.toml`.
+Déclaré dans `requirements.txt` et `pyproject.toml`.
 
 - Cible **Python 3.11** (`[tool.ruff] target-version`).
 - Runtime : `click` (CLI), `jinja2` (rendu du rapport), `requests` (sondes GraphQL),

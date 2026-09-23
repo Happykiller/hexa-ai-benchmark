@@ -7,24 +7,24 @@ maj: 2026-09-23
 
 # Pipeline de l'auditeur Blender
 
-`python3 blender_bench/cli.py analyze livrables_blender/<NOM>` — second benchmark du dépôt,
-autonome : seul le noyau `auditor/engine/` est partagé avec la Todo List.
+`python3 -m hexa blender analyze runs/blender/livrables/<NOM>` — second benchmark du dépôt,
+autonome : seul le noyau `hexa/core/engine/` est partagé avec la Todo List.
 
 ## Enchaînement
 
 | Étape | Où | Produit |
 |---|---|---|
-| Contrôles statiques | `blender_bench/static_checks.py` (hôte) | contrat, imports interdits, chemins absolus |
-| Rejeu du build | `bpy_scripts/run_build.py` (dans Blender) | `build_log.json`, `scene.blend`, `model.glb` |
-| Inspection | `bpy_scripts/inspect_scene.py` | `inspection.json` (géométrie, UV, skin, os, actions) |
-| Aller-retour glTF | `bpy_scripts/reimport_gltf.py` | `reimport.json` |
-| Rendus | `bpy_scripts/render_views.py` (3 modes) | vues ortho albédo + beauty, turntable, chaque image de chaque action (≤ 48, ≤ 4 actions) |
-| Analyses | `blender_bench/analysis/` (hôte, numpy + Pillow) | des `Check` → indicateurs (`emit.py`) |
-| Score | `auditor/engine` avec le barème `bench_config.py` | `cr_audits_blender/cr_<livrable>_<ts>.{json,md}` + `_media/` |
+| Contrôles statiques | `hexa/benches/blender/auditor/static_checks.py` (hôte) | contrat, imports interdits, chemins absolus |
+| Rejeu du build | `hexa/benches/blender/bpy/run_build.py` (dans Blender) | `build_log.json`, `scene.blend`, `model.glb` |
+| Inspection | `hexa/benches/blender/bpy/inspect_scene.py` | `inspection.json` (géométrie, UV, skin, os, actions) |
+| Aller-retour glTF | `hexa/benches/blender/bpy/reimport_gltf.py` | `reimport.json` |
+| Rendus | `hexa/benches/blender/bpy/render_views.py` (3 modes) | vues ortho albédo + beauty, turntable, chaque image de chaque action (≤ 48, ≤ 4 actions) |
+| Analyses | `hexa/benches/blender/auditor/analysis/` (hôte, numpy + Pillow) | des `Check` → indicateurs (`emit.py`) |
+| Score | `hexa/core/engine` avec le barème `bench_config.py` | `runs/blender/cr_audits/cr_<livrable>_<ts>.{json,md}` + `_media/` |
 
-Principe : **les scripts bpy mesurent, l'hôte note**. Aucun seuil dans `bpy_scripts/` ; les
+Principe : **les scripts bpy mesurent, l'hôte note**. Aucun seuil dans `hexa/benches/blender/bpy/` ; les
 analyses sont des fonctions pures testées sans Blender sur une inspection figée
-(`blender_bench/tests/fixtures/inspection/`).
+(`hexa/benches/blender/tests/fixtures/inspection/`).
 
 ## Pourquoi l'auditeur rejoue `build.py`
 
@@ -34,12 +34,12 @@ l'auditeur qui sauvegarde et **exporte** (réglages glTF identiques pour tous).
 
 ## Exécution de Blender
 
-`blender_bench/runner.py` : `blender -b [scene.blend] --factory-startup -noaudio -t 8
+`hexa/benches/blender/auditor/runner.py` : `blender -b [scene.blend] --factory-startup -noaudio -t 8
 --python-exit-code 1`, env minimal (`HOME`, `TMPDIR`, config Blender dans le dossier de travail),
 groupe de processus tué au timeout (`timeouts_s` de `spec.json`). Binaire : `--blender` >
 `$HEXA_BLENDER_BIN` > `blender` du PATH > `~/.local/bin/blender45` (Blender 4.5 LTS est **hors
 PATH** sur la machine de référence). Le livrable est **copié** dans le dossier de travail avant
-rejeu : un build ne peut pas polluer `livrables_blender/`.
+rejeu : un build ne peut pas polluer `runs/blender/livrables/`.
 
 Garde-fous de `run_build.py` : `socket`, `subprocess.Popen`, `os.system` & co remplacés par des
 stubs qui journalisent puis lèvent → cap `sandbox_violation`. **Ce n'est pas une isolation**
@@ -64,7 +64,7 @@ stubs qui journalisent puis lèvent → cap `sandbox_violation`. **Ce n'est pas 
 | Variable | Effet |
 |---|---|
 | `HEXA_BLENDER_BIN` | Binaire Blender |
-| `HEXA_BLENDER_AUDIT_OUTPUT_DIR` | Remplace `cr_audits_blender/` (tests) |
+| `HEXA_BLENDER_AUDIT_OUTPUT_DIR` | Remplace `runs/blender/cr_audits/` (tests) |
 | `HEXA_BLENDER_SLOW=1` | Active les tests de rendu (≈ 1 min) |
 
 Options utiles : `--skip-render` (itération rapide, phase 5 en SKIPPED : **non publiable**),

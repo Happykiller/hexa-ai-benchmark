@@ -49,7 +49,7 @@ c'est à lui de recouper avant de publier un run frugal suspect.
 
 Le recoupement « par l'opérateur » ci-dessus est outillé.
 
-Depuis le 2026-09-22, `scripts/session_usage.py` lit le transcript de la session (Claude Code ou
+Depuis le 2026-09-22, `hexa/core/tools/session_usage.py` lit le transcript de la session (Claude Code ou
 Codex) et en extrait les tokens réels (cache inclus, écritures de cache 5m/1h séparées), le
 modèle, l'**effort réel** et la durée, puis les confronte à l'`audit_trace.json`. C'est un outil
 d'opérateur : il n'alimente pas le scoring, il sert à lever le doute avant publication.

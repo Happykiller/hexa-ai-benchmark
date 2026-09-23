@@ -7,7 +7,7 @@ maj: 2026-09-04
 
 # Contrat du livrable
 
-Ce que l'auditeur **suppose** de tout dossier de `livrables/`. Ce contrat est implicite dans le
+Ce que l'auditeur **suppose** de tout dossier de `runs/todo/livrables/`. Ce contrat est implicite dans le
 code des checkers : le violer ne produit pas une erreur claire, mais un score bas difficile à
 diagnostiquer.
 
@@ -28,7 +28,7 @@ diagnostiquer.
 ## Structure attendue
 
 ```
-livrables/<HORODATAGE_MODELE_EFFORT>/
+runs/todo/livrables/<HORODATAGE_MODELE_EFFORT>/
 ├── audit_trace.json          # dont les compteurs de tokens (pilier Coût)
 ├── Makefile                  # + une cible de teardown
 ├── docker-compose.yml        # services : api, mongodb, mysql (sans champ version:, ports hôte 4000 / 47017 / 43306)
@@ -77,6 +77,6 @@ joint les bases par **nom de service compose** sur le réseau interne (`mongodb:
 - Les bind-mounts déclarés dans le compose (typiquement `./coverage`) sont pré-créés par
   l'auditeur : voir [environnements.md](environnements.md) pour la raison.
 
-L'énoncé remis aux agents (`prompts/evaluation_prompt.md`) est la version *lisible* de ce contrat.
+L'énoncé remis aux agents (`hexa/benches/todo/enonce/evaluation_prompt.md`) est la version *lisible* de ce contrat.
 S'ils divergent, c'est l'énoncé qui doit être corrigé — un agent ne peut pas satisfaire une
 exigence qu'on ne lui a pas donnée.

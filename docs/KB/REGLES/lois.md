@@ -9,11 +9,11 @@ maj: 2026-09-23
 
 Ce qu'on ne fait **jamais** ici, et pourquoi.
 
-## 1. Ne jamais hand-editer un `cr_audits/*.json` ou son `.md` jumeau
+## 1. Ne jamais hand-editer un `runs/todo/cr_audits/*.json` ou son `.md` jumeau
 
 C'est la source brute immuable produite par l'auditeur. La modifier détruit la trace de ce qui a
 réellement été mesuré, et la modification saute au prochain rebuild. Toute correction passe par
-`knowledge_base/overrides.json`.
+`sites/todo/overrides.json`.
 → [`../DAT/kb-magasin-donnees.md`](../DAT/kb-magasin-donnees.md)
 
 ## 2. L'outillage n'influence jamais le scoring
@@ -58,7 +58,7 @@ et à refléter dans [`../MOTEUR.md`](../MOTEUR.md). Ne rien y mettre de spécif
 
 ## 8. Ne jamais faire disparaître une entrée publiée de la KB
 
-`data.json` est versionné, `cr_audits/` ne l'est pas : une entrée dont le rapport brut a disparu
+`data.json` est versionné, `runs/todo/cr_audits/` ne l'est pas : une entrée dont le rapport brut a disparu
 n'est récupérable **nulle part**. Un rebuild complet qui la supprimerait est refusé par le builder ;
 `--allow-drop` n'est légitime qu'après avoir relu le diff et décidé de la perte.
 

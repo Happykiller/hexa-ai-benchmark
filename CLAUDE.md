@@ -22,7 +22,8 @@ outillage ([`MOTEUR.md`](docs/KB/MOTEUR.md)) et historique des sujets
 
 | Besoin | Où aller |
 |---|---|
-| Lancer un audit, rebuild la KB | [`README.md`](README.md) — commandes exactes |
+| Lancer un audit, rebuild la KB | [`README.md`](README.md) — `python3 -m hexa --help` |
+| Où est quoi (un dossier par benchmark) | [`docs/KB/DAT/arborescence.md`](docs/KB/DAT/arborescence.md) |
 | Comprendre le pipeline d'audit | [`docs/KB/DAT/auditeur-pipeline.md`](docs/KB/DAT/auditeur-pipeline.md) |
 | Ce qu'un livrable doit fournir | [`docs/KB/DAT/contrat-livrable.md`](docs/KB/DAT/contrat-livrable.md) |
 | Pièges d'exécution (droits, bind-mounts) | [`docs/KB/DAT/environnements.md`](docs/KB/DAT/environnements.md) |
@@ -37,4 +38,4 @@ dépôts du projet, puis arrête les conteneurs. Pour capitaliser seul, sans ref
 
 Attention aux conteneurs : ils ne viennent pas du projet mais du **livrable audité**, et un audit
 même `--skip-dynamic` peut en laisser tourner. Un working tree propre ne prouve rien à ce sujet —
-`livrables/` et `cr_audits/` sont gitignorés.
+`runs/` (livrables et rapports bruts) est gitignoré.

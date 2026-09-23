@@ -21,7 +21,7 @@ décrochent le plus.
 
 ## Catalogue
 
-`blender_bench/challenges/<id>/` = `concept.png` + `enonce.md` + `spec.json` (boîtes des vues du
+`hexa/benches/blender/challenges/<id>/` = `concept.png` + `enonce.md` + `spec.json` (boîtes des vues du
 turnaround, palette, vocabulaire des parties et des os, budget, animations, profil de rendu).
 Ajouter un défi = ajouter un dossier ; `--challenge <id>` le sélectionne.
 
