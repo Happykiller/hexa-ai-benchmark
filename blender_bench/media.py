@@ -1,5 +1,6 @@
 """Visuels publiés avec le rapport : rendus composés sur fond clair, turntable MP4, planches
-d'animation. Ré-encodés par Pillow : aucune métadonnée (temps de rendu, machine) ne fuit."""
+d'animation. Ré-encodés par Pillow : aucune métadonnée (temps de rendu, machine) ne fuit.
+JPEG pour les images aplaties : elles sont versionnées dans knowledge_base_blender/media/."""
 
 import shutil
 import subprocess
@@ -10,6 +11,7 @@ from PIL import Image
 
 BACKGROUND = (234, 234, 234)  # gris des vignettes de la planche
 MAX_SHEET_WIDTH = 1280
+JPEG_QUALITY = 85
 
 
 def _flatten(path: Path) -> Image.Image:
@@ -19,13 +21,13 @@ def _flatten(path: Path) -> Image.Image:
     return canvas.convert("RGB")
 
 
-def save_view(source: Path, destination: Path, max_width: int = 768) -> Path:
+def save_view(source: Path, destination: Path, max_width: int = 640) -> Path:
     image = _flatten(source)
     if image.width > max_width:
         image = image.resize(
             (max_width, round(image.height * max_width / image.width)), Image.LANCZOS
         )
-    image.save(destination, optimize=True)
+    image.save(destination, quality=JPEG_QUALITY, optimize=True)
     return destination
 
 
@@ -43,7 +45,7 @@ def contact_sheet(frames: list[Path], destination: Path) -> Path | None:
         sheet = sheet.resize(
             (MAX_SHEET_WIDTH, round(sheet.height * MAX_SHEET_WIDTH / sheet.width)), Image.LANCZOS
         )
-    sheet.save(destination, optimize=True)
+    sheet.save(destination, quality=JPEG_QUALITY, optimize=True)
     return destination
 
 

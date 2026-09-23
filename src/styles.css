@@ -308,6 +308,45 @@ tbody tr:not(.detail-row) {
   border-radius: 18px;
 }
 
+/* Visuels d'un audit Blender : rendus, silhouettes, turntable, planches d'animation. */
+.media-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: start;
+  padding: 0 10px 14px 18px;
+}
+
+.media-item {
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+}
+
+.media-item.video {
+  grid-column: span 2;
+}
+
+.media-item.sheet {
+  grid-column: 1 / -1;
+}
+
+.media-item img,
+.media-item video {
+  display: block;
+  width: 100%;
+  border-radius: 8px;
+  background: #eaeaea;
+}
+
+.media-item figcaption {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .detail-card h3 {
   margin: 0 0 12px;
   font-size: 14px;

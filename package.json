@@ -11,7 +11,11 @@
     "dev:kb": "python3 scripts/build_kb.py && vite --host",
     "build:kb:data": "python3 scripts/build_kb.py",
     "build:kb:web": "vite build",
-    "build:kb": "npm run build:kb:data && npm run build:kb:web"
+    "build:kb": "npm run build:kb:data && npm run build:kb:web",
+    "dev:kb:blender": "python3 scripts/build_kb_blender.py && VITE_KB_VARIANT=blender vite --host",
+    "build:kb:blender:data": "python3 scripts/build_kb_blender.py",
+    "build:kb:blender:web": "vite build -c vite.blender.config.js",
+    "build:kb:blender": "npm run build:kb:blender:data && npm run build:kb:blender:web"
   },
   "dependencies": {
     "react": "^18.3.1",

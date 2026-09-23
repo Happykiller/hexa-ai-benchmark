@@ -8,13 +8,33 @@ const BUCKET_LABELS = {
   cost: "Coût",
 };
 
-const DATA_URL = import.meta.env.DEV ? "/knowledge_base/data.json" : "./data.json";
-const PROMPT_URL = import.meta.env.DEV ? "/knowledge_base/evaluation_prompt.md" : "./evaluation_prompt.md";
+// Deux sites construits depuis ce même code : la Todo List (défaut) et le benchmark Blender
+// (`vite build -c vite.blender.config.js`, qui fixe VITE_KB_VARIANT=blender).
+const VARIANT = import.meta.env.VITE_KB_VARIANT === "blender" ? "blender" : "todo";
+const SITE = {
+  todo: { dir: "knowledge_base", title: "Hexa-AI Benchmark", prompt: "le prompt d'évaluation" },
+  blender: { dir: "knowledge_base_blender", title: "Hexa-AI Benchmark — Blender 3D", prompt: "l'énoncé du défi" },
+}[VARIANT];
+const BASE_URL = import.meta.env.DEV ? `/${SITE.dir}/` : "./";
+const DATA_URL = `${BASE_URL}data.json`;
+const PROMPT_URL = `${BASE_URL}evaluation_prompt.md`;
+
+// Piliers d'une entrée, dans l'ordre du rapport : libellé court porté par l'entrée (KB
+// Blender) ou, pour les entrées Todo publiées avant, la table BUCKET_LABELS.
+function bucketKeys(entry) {
+  return Object.keys(entry.bucket_scores || {}).filter((key) => bucketLabel(entry, key));
+}
+
+function bucketLabel(entry, key) {
+  return entry.bucket_scores?.[key]?.short || BUCKET_LABELS[key];
+}
 
 // knowledge_base/data.js (écrit par kb/builder.py) embarque entrées + énoncé dans un <script>
 // classique : c'est ce qui permet d'ouvrir index.html en file://, où tout fetch est bloqué.
 // Sans lui (mode dev, ancien build), on retombe sur le fetch HTTP.
 const EMBEDDED = typeof window !== "undefined" ? window.__HEXA_KB__ : undefined;
+
+if (typeof document !== "undefined") document.title = `${SITE.title} KB`;
 
 async function loadPrompt() {
   if (typeof EMBEDDED?.prompt === "string") return EMBEDDED.prompt;
@@ -133,7 +153,7 @@ function PromptModal({ onClose }) {
     <div className="prompt-overlay" ref={overlayRef} onClick={handleOverlayClick}>
       <div className="prompt-modal">
         <div className="prompt-modal-header">
-          <span className="prompt-modal-title">Prompt d'évaluation</span>
+          <span className="prompt-modal-title">{VARIANT === "blender" ? "Énoncé du défi" : "Prompt d'évaluation"}</span>
           <button className="prompt-close" onClick={onClose} aria-label="Fermer">✕</button>
         </div>
         <div className="prompt-modal-body">
@@ -328,6 +348,25 @@ function DetailCard({ onOpenInfo, section }) {
   );
 }
 
+function MediaStrip({ entry }) {
+  return (
+    <div className="media-strip" onClick={(e) => e.stopPropagation()}>
+      {entry.media.map((item) => (
+        <figure className={`media-item ${item.kind}`} key={item.src}>
+          {item.kind === "video" ? (
+            <video autoPlay controls loop muted playsInline src={`${BASE_URL}${item.src}`} />
+          ) : (
+            <a href={`${BASE_URL}${item.src}`} rel="noreferrer" target="_blank">
+              <img alt={item.label} loading="lazy" src={`${BASE_URL}${item.src}`} />
+            </a>
+          )}
+          <figcaption>{item.label}</figcaption>
+        </figure>
+      ))}
+    </div>
+  );
+}
+
 function EntryRow({ entry, expanded, onOpenInfo, onToggle }) {
   const model = entry.model || entry.agent || "—";
   const effort = entry.effort || "—";
@@ -343,14 +382,14 @@ function EntryRow({ entry, expanded, onOpenInfo, onToggle }) {
         <td className={`score ${scoreClass(entry.score_percentage)}`}>{entry.score_percentage}%</td>
         <td>
           <div className="bucket-list">
-            {Object.keys(BUCKET_LABELS).filter((bucketKey) => entry.bucket_scores?.[bucketKey]).map((bucketKey) => {
+            {bucketKeys(entry).map((bucketKey) => {
               const bucket = formatBucket(entry, bucketKey);
               return (
                 <span
                   className={`bucket ${scoreClass(bucket.percent)}`}
                   key={bucketKey}
                 >
-                  {BUCKET_LABELS[bucketKey]} {bucket.percent}%
+                  {bucketLabel(entry, bucketKey)} {bucket.percent}%
                 </span>
               );
             })}
@@ -360,6 +399,7 @@ function EntryRow({ entry, expanded, onOpenInfo, onToggle }) {
       {expanded ? (
         <tr className="detail-row">
           <td colSpan={7}>
+            {entry.media?.length ? <MediaStrip entry={entry} /> : null}
             <div className="detail-grid">
               {entry.sections.map((section) => (
                 <DetailCard
@@ -385,7 +425,6 @@ function buildExportHTML(entries, promptContent, datetime) {
   const entriesJson = JSON.stringify(entries);
   const promptHtml = promptContent ? parseMarkdown(promptContent) : "";
 
-  const BUCKET_LABELS = { operationality: "Opé", architecture: "Archi", quality: "Qual", traceability: "Traca", cost: "Coût" };
 
   const css = `
 :root{--ok:#1b7f54;--warn:#a15a08;--ko:#bf2f21;--na:#6e6458;--accent:#1f4f8f;
@@ -453,7 +492,7 @@ var BL=${JSON.stringify(BUCKET_LABELS)};
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function sc(p){return p>=70?'ok':p>=40?'warn':'ko';}
 function fmtD(s){var n=parseFloat(s);if(!isFinite(n)||n<=0)return '—';return(Math.round(n/60*10)/10)+' min';}
-function bkts(e){var o='';for(var k in BL){if(!(e.bucket_scores||{})[k])continue;var b=(e.bucket_scores||{})[k];var n=parseFloat(b.normalized_score)||0;var w=parseFloat(b.weight)||0;var p=w?Math.round(n/w*100):0;o+='<span class="bucket '+sc(p)+'" title="'+n.toFixed(1)+'/'+w+'">'+BL[k]+'&nbsp;'+p+'%</span>';}return o;}
+function bkts(e){var o='';for(var k in (e.bucket_scores||{})){var b=e.bucket_scores[k];var lbl=b.short||BL[k];if(!lbl)continue;var n=parseFloat(b.normalized_score)||0;var w=parseFloat(b.weight)||0;var p=w?Math.round(n/w*100):0;o+='<span class="bucket '+sc(p)+'" title="'+n.toFixed(1)+'/'+w+'">'+lbl+'&nbsp;'+p+'%</span>';}return o;}
 var _tt=null;
 function showTT(el,lbl,txt){_tt=document.getElementById('tt');_tt.innerHTML='<div class="tt-t">'+esc(lbl)+'</div><pre>'+esc(txt)+'</pre>';_tt.style.display='block';var r=el.getBoundingClientRect();_tt.style.left=(r.right+10)+'px';_tt.style.top=(r.top+window.scrollY-4)+'px';}
 function hideTT(){if(_tt)_tt.style.display='none';}
@@ -478,14 +517,14 @@ document.getElementById('cnt').textContent=E.length+' résultat(s)';
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hexa-AI Benchmark KB — ${datetime}</title>
+<title>${SITE.title} KB — ${datetime}</title>
 <style>${css}</style>
 </head>
 <body>
 <div id="tt"></div>
 <div class="shell">
   <header>
-    <h1>Hexa-AI Benchmark</h1>
+    <h1>${SITE.title}</h1>
     <span class="sub">KB export · ${datetime}</span>
   </header>
   <div class="summary" id="summary"></div>
@@ -541,7 +580,11 @@ export function App() {
   const [entries, setEntries] = useState([]);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
-  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  // Une ancre #<id d'entrée> dans l'URL ouvre ce run : lien partageable vers un audit.
+  const [expandedIds, setExpandedIds] = useState(() => {
+    const anchor = typeof window !== "undefined" ? decodeURIComponent(window.location.hash.slice(1)) : "";
+    return new Set(anchor ? [anchor] : []);
+  });
   const [sort, setSort] = useState({ field: "audit_started_at", direction: "desc" });
   const [infoModal, setInfoModal] = useState(null);
   const [promptOpen, setPromptOpen] = useState(false);
@@ -648,8 +691,8 @@ export function App() {
           <button
             className="prompt-trigger"
             onClick={() => setPromptOpen(true)}
-            title="Voir le prompt d'évaluation"
-            aria-label="Voir le prompt d'évaluation"
+            title={`Voir ${SITE.prompt}`}
+            aria-label={`Voir ${SITE.prompt}`}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -678,7 +721,7 @@ export function App() {
               </svg>
             )}
           </button>
-          <h1>Hexa-AI Benchmark</h1>
+          <h1>{SITE.title}</h1>
         </div>
       </header>
 

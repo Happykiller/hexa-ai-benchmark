@@ -1,6 +1,7 @@
 import json
 import re
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -425,25 +426,32 @@ def is_test_artifact(entry: dict[str, Any]) -> bool:
     return target_path.startswith("/tmp/") or "pytest" in target_path
 
 
-def load_overrides() -> dict[str, Any]:
+def load_overrides(path: Path | None = None) -> dict[str, Any]:
     """Load knowledge_base/overrides.json ({} if absent/unreadable).
 
     Structure: {"<entry_id>": {"model": "...", "effort": "...", ...}} — tracked,
-    reversible manual corrections applied on top of the raw cr_audits data.
+    reversible manual corrections applied on top of the raw cr_audits data. ``path``
+    points another KB (e.g. knowledge_base_blender/) at its own overrides file.
     """
-    if not OVERRIDES_PATH.exists():
+    path = OVERRIDES_PATH if path is None else path
+    if not path.exists():
         return {}
     try:
-        data = json.loads(OVERRIDES_PATH.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
         return data if isinstance(data, dict) else {}
     except (OSError, ValueError) as exc:
         print(f"[WARN] overrides.json unreadable: {exc}", file=sys.stderr)
         return {}
 
 
-def apply_overrides(entry: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
+def apply_overrides(
+    entry: dict[str, Any],
+    overrides: dict[str, Any],
+    sections_builder: Callable[[dict[str, Any]], list[dict[str, Any]]] | None = None,
+) -> dict[str, Any]:
     """Shallow-merge the manual patch for this entry id and record which keys changed
-    (``_overrides_applied``) so the front can flag manually-corrected entries."""
+    (``_overrides_applied``) so the front can flag manually-corrected entries.
+    ``sections_builder`` rebuilds the detail cards (default: the Todo List ones)."""
     patch = overrides.get(entry.get("id", ""))
     if isinstance(patch, dict) and patch:
         entry.update(patch)
@@ -451,7 +459,7 @@ def apply_overrides(entry: dict[str, Any], overrides: dict[str, Any]) -> dict[st
         # Sections are pre-built by normalize(); rebuild so they reflect the correction
         # (adds the "Corrections manuelles" section, refreshes any overridden field).
         if "sections" in entry:
-            entry["sections"] = build_sections(entry)
+            entry["sections"] = (sections_builder or build_sections)(entry)
     return entry
 
 

@@ -108,7 +108,7 @@
 {% if audit_data.artifacts.media %}
 ### Visuels
 {%- for item in audit_data.artifacts.media %}
-{%- if item.kind == "image" %}
+{%- if item.kind != "video" %}
 - {{ item.label }} : ![{{ item.label }}]({{ item.path }})
 {%- else %}
 - {{ item.label }} : [{{ item.file }}]({{ item.path }})

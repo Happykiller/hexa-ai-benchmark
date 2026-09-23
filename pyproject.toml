@@ -30,6 +30,7 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 # Standalone script: must bootstrap sys.path before importing the kb package.
 "scripts/build_kb.py" = ["E402"]
+"scripts/build_kb_blender.py" = ["E402"]
 # Scripts exécutés DANS Blender : ajoutent leur dossier au sys.path avant d'importer _common.
 "blender_bench/bpy_scripts/*.py" = ["E402"]
 # Point d'entrée lancé en script : bootstrap du sys.path avant les imports du paquet.

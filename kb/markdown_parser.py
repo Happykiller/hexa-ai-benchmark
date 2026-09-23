@@ -54,9 +54,9 @@ def is_interesting_finding(
     return any(token in remarks_lc for token in FINDING_TOKENS)
 
 
-def md_files_by_stem() -> dict[str, Path]:
+def md_files_by_stem(scan_dirs: list[Path] | None = None) -> dict[str, Path]:
     files: dict[str, Path] = {}
-    for scan_dir in SCAN_DIRS:
+    for scan_dir in SCAN_DIRS if scan_dirs is None else scan_dirs:
         if not scan_dir.exists():
             continue
         for path in sorted(scan_dir.glob("*.md")):

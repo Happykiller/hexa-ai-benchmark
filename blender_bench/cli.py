@@ -199,11 +199,11 @@ def _publish_media(
     for view_id, view in spec["turnaround"]["views"].items():
         source = renders / f"view_{view['camera']}_beauty.png"
         if source.exists():
-            media.save_view(source, media_dir / f"view_{view_id}.png")
+            media.save_view(source, media_dir / f"view_{view_id}.jpg")
             items.append(
                 {
                     "kind": "image",
-                    "file": f"view_{view_id}.png",
+                    "file": f"view_{view_id}.jpg",
                     "label": f"Rendu {labels[view_id]}",
                 }
             )
@@ -222,11 +222,11 @@ def _publish_media(
         items.append({"kind": "video", "file": "turntable.mp4", "label": "Turntable 360°"})
     for action in spec["animations"]["required"]:
         sheet = media.contact_sheet(
-            sorted(renders.glob(f"anim_{action}_*.png")), media_dir / f"anim_{action}.png"
+            sorted(renders.glob(f"anim_{action}_*.png")), media_dir / f"anim_{action}.jpg"
         )
         if sheet:
             items.append(
-                {"kind": "image", "file": f"anim_{action}.png", "label": f"Action « {action} »"}
+                {"kind": "sheet", "file": f"anim_{action}.jpg", "label": f"Action « {action} »"}
             )
     return items
 

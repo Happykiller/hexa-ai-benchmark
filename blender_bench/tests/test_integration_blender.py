@@ -75,7 +75,7 @@ def test_full_audit_with_renders(blender_bin, deliverable, tmp_path, monkeypatch
     assert all(value is not None and 0.2 < value < 0.8 for value in iou.values()), iou
     assert report["stats"]["palette_delta_e"] < 10  # passe albédo : couleurs de palette exactes
     files = {item["file"] for item in report["artifacts"]["media"]}
-    assert {"view_front.png", "silhouette_side.png", "anim_walk.png"} <= files
+    assert {"view_front.jpg", "silhouette_side.png", "anim_walk.jpg"} <= files
 
 
 @pytest.mark.skipif(not slow_enabled(), reason="rendus : HEXA_BLENDER_SLOW=1")
