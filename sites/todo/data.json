@@ -1,5 +1,1778 @@
 [
   {
+    "id": "cr_20260930_1945_gpt-6.1-sol_unknown_20260930_204253",
+    "source_file": "runs/todo/cr_audits/cr_20260930_1945_gpt-6.1-sol_unknown_20260930_204253.json",
+    "agent": "gpt-6.1-sol_unknown",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "prompt_version": "2606082200",
+    "session_id": "20260930_1945",
+    "audit_started_at": "2026-09-30 20:42:08",
+    "audit_finished_at": "2026-09-30 20:42:53",
+    "scoring_model": "indicator_fibonacci_v2",
+    "score_percentage": 80.52,
+    "admission_status": "ADMIS",
+    "score_capped": false,
+    "score_caps": [],
+    "skip_dynamic": false,
+    "bucket_scores": {
+      "operationality": {
+        "normalized_score": 43,
+        "weight": 43
+      },
+      "architecture": {
+        "normalized_score": 19.52,
+        "weight": 22
+      },
+      "quality": {
+        "normalized_score": 13,
+        "weight": 13
+      },
+      "traceability": {
+        "normalized_score": 5.0,
+        "weight": 10
+      },
+      "cost": {
+        "normalized_score": 0.0,
+        "weight": 12
+      }
+    },
+    "cost": {
+      "usd": null,
+      "tokens": 2159722.0,
+      "model_key": null,
+      "priced": false,
+      "efficiency": null
+    },
+    "target_path": "runs/todo/livrables/20260930_1945_gpt-6.1-sol_unknown",
+    "stats": {
+      "files": 65,
+      "ts_files": 45,
+      "lines": 1938,
+      "test_files": 20,
+      "tests_pass": 76,
+      "tests_fail": 0,
+      "coverage": 98.27
+    },
+    "make_targets": {
+      "setup": "OK",
+      "lint": "OK",
+      "build": "OK",
+      "test": "OK"
+    },
+    "docker": {
+      "status": "OK",
+      "waited_s": 0
+    },
+    "hexagonal": {
+      "status": "OK",
+      "violations": 0,
+      "rules_ok": 5,
+      "rules_total": 5
+    },
+    "auth_static": {
+      "jwt": true,
+      "mutations": true,
+      "guard": true,
+      "hashing": true
+    },
+    "injection": {
+      "no_direct": true,
+      "injectable": false,
+      "inject": false,
+      "ctor_deps": false
+    },
+    "dual_persistence": {
+      "mongoose": true,
+      "sql_orm": true,
+      "mongoose_tasks": true,
+      "sql_users": true,
+      "adapters": true
+    },
+    "trace_metrics": {
+      "phases": 3,
+      "turns": 1.0,
+      "tools": 100.0,
+      "wall_s": 3130.282,
+      "errors": 0
+    },
+    "traceability_indicators": [
+      {
+        "code": "3-1-1",
+        "name": "Validation audit_trace.json",
+        "status": "OK",
+        "score": 1.0,
+        "max_score": 1,
+        "measured_value": null,
+        "remarks": "phases_count=3",
+        "step": "Validation audit_trace.json",
+        "details": {
+          "status": "OK",
+          "phases_count": 3,
+          "errors": [],
+          "wall_time_consistency": {
+            "status": "OK",
+            "summary_total_wall_time_seconds": 3130.282,
+            "phases_total_wall_time_seconds": 3130.282402,
+            "delta_ratio": 1.284229178205528e-07,
+            "remarks": "summary.total_wall_time_seconds coherent with summed phases"
+          }
+        }
+      },
+      {
+        "code": "3-1-2",
+        "name": "Nombre de phases tracées >= 1",
+        "status": "OK",
+        "score": 2.0,
+        "max_score": 2,
+        "measured_value": null,
+        "remarks": "phases_count=3",
+        "step": "Validation audit_trace.json",
+        "details": {
+          "status": "OK",
+          "phases_count": 3,
+          "errors": [],
+          "wall_time_consistency": {
+            "status": "OK",
+            "summary_total_wall_time_seconds": 3130.282,
+            "phases_total_wall_time_seconds": 3130.282402,
+            "delta_ratio": 1.284229178205528e-07,
+            "remarks": "summary.total_wall_time_seconds coherent with summed phases"
+          }
+        }
+      },
+      {
+        "code": "3-1-3",
+        "name": "Cohérence wall time",
+        "status": "OK",
+        "score": 2.0,
+        "max_score": 2,
+        "measured_value": null,
+        "remarks": "summary.total_wall_time_seconds coherent with summed phases",
+        "step": "Validation audit_trace.json",
+        "details": {
+          "status": "OK",
+          "summary_total_wall_time_seconds": 3130.282,
+          "phases_total_wall_time_seconds": 3130.282402,
+          "delta_ratio": 1.284229178205528e-07,
+          "remarks": "summary.total_wall_time_seconds coherent with summed phases"
+        }
+      },
+      {
+        "code": "3-2-1",
+        "name": "Nombre total d'échanges (turns)",
+        "status": "KO",
+        "score": 0,
+        "max_score": 5,
+        "measured_value": 1.0,
+        "remarks": "Nombre total de tours de parole User <-> Agent | value=1; tranche=out_of_range",
+        "step": "Efficacité de la session (audit_trace.json)",
+        "details": {
+          "measured_value": 1.0,
+          "bands": "5..15=100%, 2..25=50%, else=0%"
+        }
+      },
+      {
+        "code": "3-2-2",
+        "name": "Nombre total d'appels d'outils",
+        "status": "PARTIEL",
+        "score": 1.5,
+        "max_score": 3,
+        "measured_value": 100.0,
+        "remarks": "Nombre total d'actions effectuées (shell, fs, etc.) | value=100; tranche=10..100; label=tolerated",
+        "step": "Efficacité de la session (audit_trace.json)",
+        "details": {
+          "measured_value": 100.0,
+          "bands": "20..60=100%, 10..100=50%, else=0%"
+        }
+      },
+      {
+        "code": "3-2-3",
+        "name": "Temps réel total (secondes)",
+        "status": "PARTIEL",
+        "score": 1.0,
+        "max_score": 2,
+        "measured_value": 3130.282,
+        "remarks": "Temps total d'horloge en secondes | value=3130.28; tranche=300..3600; label=tolerated",
+        "step": "Efficacité de la session (audit_trace.json)",
+        "details": {
+          "measured_value": 3130.282,
+          "bands": "600..1800=100%, 300..3600=50%, else=0%"
+        }
+      }
+    ],
+    "duration_seconds": 3130.282,
+    "bonuses": [
+      {
+        "reason": "Centralized Error Handling (Custom Error classes)",
+        "ok": true
+      },
+      {
+        "reason": "Environment Variables Validation (zod/envalid)",
+        "ok": true
+      },
+      {
+        "reason": "Explicit Healthcheck Query",
+        "ok": true
+      },
+      {
+        "reason": "Robust GraphQL Pagination (Relay pattern)",
+        "ok": false
+      },
+      {
+        "reason": "Structured Logger (winston/pino)",
+        "ok": true
+      }
+    ],
+    "maluses": [
+      {
+        "reason": "Docker version attribute is obsolete",
+        "detected": false
+      },
+      {
+        "reason": "Over-abstraction via AbstractFactory classes",
+        "detected": false
+      },
+      {
+        "reason": "Extreme fragmentation (< 10 lines per TS file)",
+        "detected": false
+      },
+      {
+        "reason": "Fichiers source vides / placeholder (padding)",
+        "detected": false
+      },
+      {
+        "reason": "Fichiers de test sans assertion réelle",
+        "detected": false
+      },
+      {
+        "reason": "Plus de fichiers de test que de cas réellement exécutés (padding)",
+        "detected": false
+      },
+      {
+        "reason": "Secrets / clés / .env commités dans le dépôt",
+        "detected": true
+      },
+      {
+        "reason": "Vulnérabilités npm (high/critical)",
+        "detected": false
+      }
+    ],
+    "e2e_steps": {
+      "List Tasks (Initial)": true,
+      "Create Task A": true,
+      "Get Task A": true,
+      "Create Task B (Dependent on A)": true,
+      "Close B (Should Fail)": true,
+      "Close A (Success)": true,
+      "Close B (Now Success)": true,
+      "Close Independent Task (No Deps)": true
+    },
+    "auth_e2e_steps": {
+      "Auth: Accès non-authentifié bloqué": true,
+      "Auth: Inscription (register)": true,
+      "Auth: Connexion (login)": true,
+      "Auth: Opération authentifiée autorisée": true,
+      "Auth: Token falsifié rejeté": true,
+      "Auth: Token alg=none rejeté": true,
+      "Auth: Signature étrangère rejetée": true,
+      "Auth: Code UNAUTHENTICATED exact": true,
+      "Auth: Mot de passe faible refusé": true,
+      "Auth: Isolation inter-utilisateurs": true
+    },
+    "performance": {
+      "avg_latency_ms": 3.040342330932617,
+      "p95_ms": 4.179716110229492,
+      "error_rate": 0.0
+    },
+    "report_markdown": {
+      "source_file": "runs/todo/cr_audits/cr_20260930_1945_gpt-6.1-sol_unknown_20260930_204253.md",
+      "summary_metrics": {
+        "Points positifs gagnés": "435.5",
+        "Points positifs possibles": "476",
+        "Malus cumulés": "-5.0",
+        "Score brut (Net)": "430.5",
+        "Score normalisé de base": "80.52/100.0",
+        "Règle de plafond (scoring)": "v2",
+        "Malus appliqué": "-5.0",
+        "Bonus effectif (comble du plafond)": "5",
+        "Ajustement bonus/malus (net, legacy)": "5",
+        "Pourcentage brut du score net": "80.52%",
+        "Pourcentage final du score net": "80.52%",
+        "Coût de la session ($)": "",
+        "Tokens totaux (in+out)": "2159722.0",
+        "Valeur (points de score par $)": "",
+        "Nombre total d'indicateurs": "95"
+      },
+      "findings_count": 17,
+      "top_findings": [
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 14.0/19)",
+          "step": "Étape 4-2. Malus détectés",
+          "code": "4-2-7",
+          "indicator": "Secrets / clés / .env commités dans le dépôt",
+          "score": -5.0,
+          "max_score": 5.0,
+          "remarks": ".env (committed_dotenv)",
+          "status": "-5.0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-2. Malus détectés\nSecrets / clés / .env commités dans le dépôt (-5.0/5)\n.env (committed_dotenv)"
+        },
+        {
+          "phase": "Phase 2. Architecture & Qualité (Score: 172.0/190)",
+          "step": "Étape 2-5. Injection de Dépendances (Use Cases)",
+          "code": "2-5-2",
+          "indicator": "@injectable() sur les use cases",
+          "score": 0.0,
+          "max_score": 5.0,
+          "remarks": "detected=no",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 2. Architecture & Qualité (Score: 172.0/190)\nÉtape 2-5. Injection de Dépendances (Use Cases)\n@injectable() sur les use cases (0/5)\ndetected=no"
+        },
+        {
+          "phase": "Phase 2. Architecture & Qualité (Score: 172.0/190)",
+          "step": "Étape 2-5. Injection de Dépendances (Use Cases)",
+          "code": "2-5-3",
+          "indicator": "@inject() sur les paramètres constructeur",
+          "score": 0.0,
+          "max_score": 5.0,
+          "remarks": "detected=no",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 2. Architecture & Qualité (Score: 172.0/190)\nÉtape 2-5. Injection de Dépendances (Use Cases)\n@inject() sur les paramètres constructeur (0/5)\ndetected=no"
+        },
+        {
+          "phase": "Phase 2. Architecture & Qualité (Score: 172.0/190)",
+          "step": "Étape 2-5. Injection de Dépendances (Use Cases)",
+          "code": "2-5-4",
+          "indicator": "Constructeurs avec dépendances injectées",
+          "score": 0.0,
+          "max_score": 8.0,
+          "remarks": "detected=no",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 2. Architecture & Qualité (Score: 172.0/190)\nÉtape 2-5. Injection de Dépendances (Use Cases)\nConstructeurs avec dépendances injectées (0/8)\ndetected=no"
+        },
+        {
+          "phase": "Phase 3. Traçabilité (Score: 7.5/15)",
+          "step": "Étape 3-2. Efficacité de la session (audit_trace.json)",
+          "code": "3-2-1",
+          "indicator": "Nombre total d'échanges (turns)",
+          "score": 0.0,
+          "max_score": 5.0,
+          "remarks": "Nombre total de tours de parole User <-> Agent \\",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 3. Traçabilité (Score: 7.5/15)\nÉtape 3-2. Efficacité de la session (audit_trace.json)\nNombre total d'échanges (turns) (0/5)\nNombre total de tours de parole User <-> Agent \\"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 14.0/19)",
+          "step": "Étape 4-1. Initiatives détectées",
+          "code": "4-1-4",
+          "indicator": "Robust GraphQL Pagination (Relay pattern)",
+          "score": 0.0,
+          "max_score": 5.0,
+          "remarks": "detected=False",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-1. Initiatives détectées\nRobust GraphQL Pagination (Relay pattern) (0/5)\ndetected=False"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 14.0/19)",
+          "step": "Étape 4-2. Malus détectés",
+          "code": "4-2-1",
+          "indicator": "Docker version attribute is obsolete",
+          "score": 0.0,
+          "max_score": 1.0,
+          "remarks": "obsolete_detected_count=0",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-2. Malus détectés\nDocker version attribute is obsolete (0/1)\nobsolete_detected_count=0"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 14.0/19)",
+          "step": "Étape 4-2. Malus détectés",
+          "code": "4-2-2",
+          "indicator": "Over-abstraction via AbstractFactory classes",
+          "score": 0.0,
+          "max_score": 5.0,
+          "remarks": "abstract_factory_count=0",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-2. Malus détectés\nOver-abstraction via AbstractFactory classes (0/5)\nabstract_factory_count=0"
+        }
+      ]
+    },
+    "_tooltips": {
+      "make": {},
+      "e2e": {},
+      "perf": "avg=3.0ms  p95=4.2ms  err_rate=0.0%"
+    },
+    "sections": [
+      {
+        "title": "Score détaillé",
+        "items": [
+          {
+            "label": "Opérationnalité",
+            "value": "43.0 / 43.0 (100%)",
+            "cls": "ok"
+          },
+          {
+            "label": "Architecture",
+            "value": "19.5 / 22.0 (89%)",
+            "cls": "ok"
+          },
+          {
+            "label": "Qualité logicielle",
+            "value": "13.0 / 13.0 (100%)",
+            "cls": "ok"
+          },
+          {
+            "label": "Traçabilité",
+            "value": "5.0 / 10.0 (50%)",
+            "cls": "warn"
+          },
+          {
+            "label": "Coût & Efficience",
+            "value": "0.0 / 12.0 (0%)",
+            "cls": "ko"
+          },
+          {
+            "label": "Modèle scoring",
+            "value": "fib_v2",
+            "cls": null
+          }
+        ]
+      },
+      {
+        "title": "Coût estimé",
+        "items": [
+          {
+            "label": "Tokens (in+out)",
+            "value": "2 159 722",
+            "cls": null
+          }
+        ]
+      },
+      {
+        "title": "Détail traçabilité",
+        "items": [
+          {
+            "label": "Score trace",
+            "value": "5.0 / 10.0 (50%)",
+            "cls": "warn"
+          },
+          {
+            "label": "3-1-1 Validation audit_trace.json",
+            "value": "OK · 1/1",
+            "cls": "ok",
+            "tooltip": "Validation audit_trace.json\nCode: 3-1-1\nStatut: OK\nScore: 1/1\nRemarques: phases_count=3\nDétails:\nstatus: OK\nphases_count: 3\nerrors: \nwall_time_consistency: {\"status\": \"OK\", \"summary_total_wall_time_seconds\": 3130.282, \"phases_total_wall_time_seconds\": 3130.282402, \"delta_ratio\": 1.284229178205528e-07, \"remarks\": \"summary.total_wall_time_seconds coherent with summed phases\"}"
+          },
+          {
+            "label": "3-1-2 Nombre de phases tracées >= 1",
+            "value": "OK · 2/2",
+            "cls": "ok",
+            "tooltip": "Validation audit_trace.json\nCode: 3-1-2\nStatut: OK\nScore: 2/2\nRemarques: phases_count=3\nDétails:\nstatus: OK\nphases_count: 3\nerrors: \nwall_time_consistency: {\"status\": \"OK\", \"summary_total_wall_time_seconds\": 3130.282, \"phases_total_wall_time_seconds\": 3130.282402, \"delta_ratio\": 1.284229178205528e-07, \"remarks\": \"summary.total_wall_time_seconds coherent with summed phases\"}"
+          },
+          {
+            "label": "3-1-3 Cohérence wall time",
+            "value": "OK · 2/2",
+            "cls": "ok",
+            "tooltip": "Validation audit_trace.json\nCode: 3-1-3\nStatut: OK\nScore: 2/2\nRemarques: summary.total_wall_time_seconds coherent with summed phases\nDétails:\nstatus: OK\nsummary_total_wall_time_seconds: 3130.282\nphases_total_wall_time_seconds: 3130.282402\ndelta_ratio: 1.284229178205528e-07\nremarks: summary.total_wall_time_seconds coherent with summed phases"
+          },
+          {
+            "label": "3-2-1 Nombre total d'échanges (turns)",
+            "value": "KO · 0/5",
+            "cls": "ko",
+            "tooltip": "Efficacité de la session (audit_trace.json)\nCode: 3-2-1\nStatut: KO\nScore: 0/5\nValeur mesurée: 1.0\nRemarques: Nombre total de tours de parole User <-> Agent | value=1; tranche=out_of_range\nDétails:\nmeasured_value: 1.0\nbands: 5..15=100%, 2..25=50%, else=0%"
+          },
+          {
+            "label": "3-2-2 Nombre total d'appels d'outils",
+            "value": "PARTIEL · 1.5/3",
+            "cls": "warn",
+            "tooltip": "Efficacité de la session (audit_trace.json)\nCode: 3-2-2\nStatut: PARTIEL\nScore: 1.5/3\nValeur mesurée: 100.0\nRemarques: Nombre total d'actions effectuées (shell, fs, etc.) | value=100; tranche=10..100; label=tolerated\nDétails:\nmeasured_value: 100.0\nbands: 20..60=100%, 10..100=50%, else=0%"
+          },
+          {
+            "label": "3-2-3 Temps réel total (secondes)",
+            "value": "PARTIEL · 1/2",
+            "cls": "warn",
+            "tooltip": "Efficacité de la session (audit_trace.json)\nCode: 3-2-3\nStatut: PARTIEL\nScore: 1/2\nValeur mesurée: 3130.282\nRemarques: Temps total d'horloge en secondes | value=3130.28; tranche=300..3600; label=tolerated\nDétails:\nmeasured_value: 3130.282\nbands: 600..1800=100%, 300..3600=50%, else=0%"
+          }
+        ]
+      },
+      {
+        "title": "Pipeline",
+        "items": [
+          {
+            "label": "make setup",
+            "value": "OK",
+            "cls": "ok"
+          },
+          {
+            "label": "make lint",
+            "value": "OK",
+            "cls": "ok"
+          },
+          {
+            "label": "make build",
+            "value": "OK",
+            "cls": "ok"
+          },
+          {
+            "label": "make test",
+            "value": "OK",
+            "cls": "ok"
+          },
+          {
+            "label": "docker start (0s)",
+            "value": "OK",
+            "cls": "ok"
+          }
+        ]
+      },
+      {
+        "title": "Stats projet",
+        "items": [
+          {
+            "label": "Fichiers",
+            "value": "65 (45 .ts)",
+            "cls": null
+          },
+          {
+            "label": "Lignes TS",
+            "value": "1938",
+            "cls": null
+          },
+          {
+            "label": "Fichiers test",
+            "value": "20",
+            "cls": null
+          },
+          {
+            "label": "Tests exécutés",
+            "value": "76 ✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Coverage",
+            "value": "98.27%",
+            "cls": "ok"
+          }
+        ]
+      },
+      {
+        "title": "Checks statiques",
+        "items": [
+          {
+            "label": "Hexagonal",
+            "value": "5/5 règles",
+            "cls": "ok"
+          },
+          {
+            "label": "JWT library",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Auth mutations",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Auth guard",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Password hash",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "No direct new",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "@injectable",
+            "value": "✗",
+            "cls": "ko"
+          },
+          {
+            "label": "@inject param",
+            "value": "✗",
+            "cls": "ko"
+          },
+          {
+            "label": "Ctor inject",
+            "value": "✗",
+            "cls": "ko"
+          },
+          {
+            "label": "Mongoose installé",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "SQL ORM installé",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Mongo (tasks)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "SQL (users)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Adapters séparés",
+            "value": "✓",
+            "cls": "ok"
+          }
+        ]
+      },
+      {
+        "title": "E2E",
+        "items": [
+          {
+            "label": "List Tasks (Initial)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Create Task A",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Get Task A",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Create Task B (Dependent on A)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Close B (Should Fail)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Close A (Success)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Close B (Now Success)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Close Independent Task (No Deps)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Accès non-authentifié bloqué",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Inscription (register)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Connexion (login)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Opération authentifiée autorisée",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Token falsifié rejeté",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Token alg=none rejeté",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Signature étrangère rejetée",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Code UNAUTHENTICATED exact",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Mot de passe faible refusé",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Isolation inter-utilisateurs",
+            "value": "✓",
+            "cls": "ok"
+          }
+        ]
+      },
+      {
+        "title": "Trace session",
+        "items": [
+          {
+            "label": "Livrable",
+            "value": "gpt-6.1-sol_unknown",
+            "cls": null
+          },
+          {
+            "label": "Prompt version",
+            "value": "2606082200",
+            "cls": null
+          },
+          {
+            "label": "Phases",
+            "value": "3",
+            "cls": null
+          },
+          {
+            "label": "Turns",
+            "value": "1",
+            "cls": "ko"
+          },
+          {
+            "label": "Tool calls",
+            "value": "100",
+            "cls": "warn"
+          },
+          {
+            "label": "Wall time",
+            "value": "52.2 min",
+            "cls": "warn"
+          }
+        ]
+      },
+      {
+        "title": "Bonus / Malus",
+        "items": [
+          {
+            "label": "Centralized Error Handling (Custom Error classes)",
+            "value": "✓ obtenu",
+            "cls": "ok"
+          },
+          {
+            "label": "Environment Variables Validation (zod/envalid)",
+            "value": "✓ obtenu",
+            "cls": "ok"
+          },
+          {
+            "label": "Explicit Healthcheck Query",
+            "value": "✓ obtenu",
+            "cls": "ok"
+          },
+          {
+            "label": "Robust GraphQL Pagination (Relay pattern)",
+            "value": "absent",
+            "cls": "na"
+          },
+          {
+            "label": "Structured Logger (winston/pino)",
+            "value": "✓ obtenu",
+            "cls": "ok"
+          },
+          {
+            "label": "Docker version attribute is obsolete",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          },
+          {
+            "label": "Over-abstraction via AbstractFactory classes",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          },
+          {
+            "label": "Extreme fragmentation (< 10 lines per TS file)",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          },
+          {
+            "label": "Fichiers source vides / placeholder (padding)",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          },
+          {
+            "label": "Fichiers de test sans assertion réelle",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          },
+          {
+            "label": "Plus de fichiers de test que de cas réellement exé",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          },
+          {
+            "label": "Secrets / clés / .env commités dans le dépôt",
+            "value": "! détecté",
+            "cls": "ko"
+          },
+          {
+            "label": "Vulnérabilités npm (high/critical)",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          }
+        ]
+      },
+      {
+        "title": "Synthèse rapport",
+        "items": [
+          {
+            "label": "Rapport MD",
+            "value": "rapport",
+            "cls": null,
+            "tooltip": "cr_20260930_1945_gpt-6.1-sol_unknown_20260930_204253.md"
+          },
+          {
+            "label": "Score rapport",
+            "value": "80.52%",
+            "cls": null
+          },
+          {
+            "label": "Constat 1",
+            "value": "Secrets / clés / .env commités dans le dépôt — .env (committed_dotenv)",
+            "cls": "ko",
+            "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-2. Malus détectés\nSecrets / clés / .env commités dans le dépôt (-5.0/5)\n.env (committed_dotenv)"
+          },
+          {
+            "label": "Constat 2",
+            "value": "@injectable() sur les use cases — detected=no",
+            "cls": "ko",
+            "tooltip": "Phase 2. Architecture & Qualité (Score: 172.0/190)\nÉtape 2-5. Injection de Dépendances (Use Cases)\n@injectable() sur les use cases (0/5)\ndetected=no"
+          },
+          {
+            "label": "Constat 3",
+            "value": "@inject() sur les paramètres constructeur — detected=no",
+            "cls": "ko",
+            "tooltip": "Phase 2. Architecture & Qualité (Score: 172.0/190)\nÉtape 2-5. Injection de Dépendances (Use Cases)\n@inject() sur les paramètres constructeur (0/5)\ndetected=no"
+          },
+          {
+            "label": "Constat 4",
+            "value": "Constructeurs avec dépendances injectées — detected=no",
+            "cls": "ko",
+            "tooltip": "Phase 2. Architecture & Qualité (Score: 172.0/190)\nÉtape 2-5. Injection de Dépendances (Use Cases)\nConstructeurs avec dépendances injectées (0/8)\ndetected=no"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cr_20260930_1919_claude-sonnet-5-5_default_20260930_194546",
+    "source_file": "runs/todo/cr_audits/cr_20260930_1919_claude-sonnet-5-5_default_20260930_194546.json",
+    "agent": "claude-sonnet-5-5_default",
+    "model": "claude-sonnet-5-5",
+    "effort": "high",
+    "prompt_version": "2606082200",
+    "session_id": "20260930_1919",
+    "audit_started_at": "2026-09-30 19:44:33",
+    "audit_finished_at": "2026-09-30 19:45:46",
+    "scoring_model": "indicator_fibonacci_v2",
+    "score_percentage": 95.33,
+    "admission_status": "ADMIS",
+    "score_capped": false,
+    "score_caps": [],
+    "skip_dynamic": false,
+    "bucket_scores": {
+      "operationality": {
+        "normalized_score": 43,
+        "weight": 43
+      },
+      "architecture": {
+        "normalized_score": 22,
+        "weight": 22
+      },
+      "quality": {
+        "normalized_score": 13,
+        "weight": 13
+      },
+      "traceability": {
+        "normalized_score": 6.67,
+        "weight": 10
+      },
+      "cost": {
+        "normalized_score": 6.0,
+        "weight": 12
+      }
+    },
+    "cost": {
+      "usd": 2.5203,
+      "tokens": 5027946.0,
+      "model_key": "claude-sonnet",
+      "priced": true,
+      "efficiency": 37.82
+    },
+    "target_path": "runs/todo/livrables/20260930_1919_claude-sonnet-5-5_default",
+    "stats": {
+      "files": 101,
+      "ts_files": 83,
+      "lines": 3967,
+      "test_files": 34,
+      "tests_pass": 242,
+      "tests_fail": 0,
+      "coverage": 100.0
+    },
+    "make_targets": {
+      "setup": "OK",
+      "lint": "OK",
+      "build": "OK",
+      "test": "OK"
+    },
+    "docker": {
+      "status": "OK",
+      "waited_s": 0
+    },
+    "hexagonal": {
+      "status": "OK",
+      "violations": 0,
+      "rules_ok": 5,
+      "rules_total": 5
+    },
+    "auth_static": {
+      "jwt": true,
+      "mutations": true,
+      "guard": true,
+      "hashing": true
+    },
+    "injection": {
+      "no_direct": true,
+      "injectable": true,
+      "inject": true,
+      "ctor_deps": true
+    },
+    "dual_persistence": {
+      "mongoose": true,
+      "sql_orm": true,
+      "mongoose_tasks": true,
+      "sql_users": true,
+      "adapters": true
+    },
+    "trace_metrics": {
+      "phases": 3,
+      "turns": 1.0,
+      "tools": 39.0,
+      "wall_s": 1140.0,
+      "errors": 0
+    },
+    "traceability_indicators": [
+      {
+        "code": "3-1-1",
+        "name": "Validation audit_trace.json",
+        "status": "OK",
+        "score": 1.0,
+        "max_score": 1,
+        "measured_value": null,
+        "remarks": "phases_count=3",
+        "step": "Validation audit_trace.json",
+        "details": {
+          "status": "OK",
+          "phases_count": 3,
+          "errors": [],
+          "wall_time_consistency": {
+            "status": "OK",
+            "summary_total_wall_time_seconds": 1140.0,
+            "phases_total_wall_time_seconds": 1140.0,
+            "delta_ratio": 0.0,
+            "remarks": "summary.total_wall_time_seconds coherent with summed phases"
+          }
+        }
+      },
+      {
+        "code": "3-1-2",
+        "name": "Nombre de phases tracées >= 1",
+        "status": "OK",
+        "score": 2.0,
+        "max_score": 2,
+        "measured_value": null,
+        "remarks": "phases_count=3",
+        "step": "Validation audit_trace.json",
+        "details": {
+          "status": "OK",
+          "phases_count": 3,
+          "errors": [],
+          "wall_time_consistency": {
+            "status": "OK",
+            "summary_total_wall_time_seconds": 1140.0,
+            "phases_total_wall_time_seconds": 1140.0,
+            "delta_ratio": 0.0,
+            "remarks": "summary.total_wall_time_seconds coherent with summed phases"
+          }
+        }
+      },
+      {
+        "code": "3-1-3",
+        "name": "Cohérence wall time",
+        "status": "OK",
+        "score": 2.0,
+        "max_score": 2,
+        "measured_value": null,
+        "remarks": "summary.total_wall_time_seconds coherent with summed phases",
+        "step": "Validation audit_trace.json",
+        "details": {
+          "status": "OK",
+          "summary_total_wall_time_seconds": 1140.0,
+          "phases_total_wall_time_seconds": 1140.0,
+          "delta_ratio": 0.0,
+          "remarks": "summary.total_wall_time_seconds coherent with summed phases"
+        }
+      },
+      {
+        "code": "3-2-1",
+        "name": "Nombre total d'échanges (turns)",
+        "status": "KO",
+        "score": 0,
+        "max_score": 5,
+        "measured_value": 1.0,
+        "remarks": "Nombre total de tours de parole User <-> Agent | value=1; tranche=out_of_range",
+        "step": "Efficacité de la session (audit_trace.json)",
+        "details": {
+          "measured_value": 1.0,
+          "bands": "5..15=100%, 2..25=50%, else=0%"
+        }
+      },
+      {
+        "code": "3-2-2",
+        "name": "Nombre total d'appels d'outils",
+        "status": "OK",
+        "score": 3.0,
+        "max_score": 3,
+        "measured_value": 39.0,
+        "remarks": "Nombre total d'actions effectuées (shell, fs, etc.) | value=39; tranche=20..60; label=target",
+        "step": "Efficacité de la session (audit_trace.json)",
+        "details": {
+          "measured_value": 39.0,
+          "bands": "20..60=100%, 10..100=50%, else=0%"
+        }
+      },
+      {
+        "code": "3-2-3",
+        "name": "Temps réel total (secondes)",
+        "status": "OK",
+        "score": 2.0,
+        "max_score": 2,
+        "measured_value": 1140.0,
+        "remarks": "Temps total d'horloge en secondes | value=1140; tranche=600..1800; label=target",
+        "step": "Efficacité de la session (audit_trace.json)",
+        "details": {
+          "measured_value": 1140.0,
+          "bands": "600..1800=100%, 300..3600=50%, else=0%"
+        }
+      }
+    ],
+    "duration_seconds": 1140.0,
+    "bonuses": [
+      {
+        "reason": "Centralized Error Handling (Custom Error classes)",
+        "ok": true
+      },
+      {
+        "reason": "Environment Variables Validation (zod/envalid)",
+        "ok": true
+      },
+      {
+        "reason": "Explicit Healthcheck Query",
+        "ok": true
+      },
+      {
+        "reason": "Robust GraphQL Pagination (Relay pattern)",
+        "ok": false
+      },
+      {
+        "reason": "Structured Logger (winston/pino)",
+        "ok": true
+      }
+    ],
+    "maluses": [
+      {
+        "reason": "Docker version attribute is obsolete",
+        "detected": false
+      },
+      {
+        "reason": "Over-abstraction via AbstractFactory classes",
+        "detected": false
+      },
+      {
+        "reason": "Extreme fragmentation (< 10 lines per TS file)",
+        "detected": false
+      },
+      {
+        "reason": "Fichiers source vides / placeholder (padding)",
+        "detected": false
+      },
+      {
+        "reason": "Fichiers de test sans assertion réelle",
+        "detected": false
+      },
+      {
+        "reason": "Plus de fichiers de test que de cas réellement exécutés (padding)",
+        "detected": false
+      },
+      {
+        "reason": "Secrets / clés / .env commités dans le dépôt",
+        "detected": false
+      },
+      {
+        "reason": "Vulnérabilités npm (high/critical)",
+        "detected": false
+      }
+    ],
+    "e2e_steps": {
+      "List Tasks (Initial)": true,
+      "Create Task A": true,
+      "Get Task A": true,
+      "Create Task B (Dependent on A)": true,
+      "Close B (Should Fail)": true,
+      "Close A (Success)": true,
+      "Close B (Now Success)": true,
+      "Close Independent Task (No Deps)": true
+    },
+    "auth_e2e_steps": {
+      "Auth: Accès non-authentifié bloqué": true,
+      "Auth: Inscription (register)": true,
+      "Auth: Connexion (login)": true,
+      "Auth: Opération authentifiée autorisée": true,
+      "Auth: Token falsifié rejeté": true,
+      "Auth: Token alg=none rejeté": true,
+      "Auth: Signature étrangère rejetée": true,
+      "Auth: Code UNAUTHENTICATED exact": true,
+      "Auth: Mot de passe faible refusé": true,
+      "Auth: Isolation inter-utilisateurs": true
+    },
+    "performance": {
+      "avg_latency_ms": 2.5673913955688477,
+      "p95_ms": 3.591775894165039,
+      "error_rate": 0.0
+    },
+    "report_markdown": {
+      "source_file": "runs/todo/cr_audits/cr_20260930_1919_claude-sonnet-5-5_default_20260930_194546.md",
+      "summary_metrics": {
+        "Points positifs gagnés": "461.0",
+        "Points positifs possibles": "476",
+        "Malus cumulés": "0",
+        "Score brut (Net)": "461.0",
+        "Score normalisé de base": "90.67/100.0",
+        "Règle de plafond (scoring)": "v2",
+        "Malus appliqué": "0.0",
+        "Bonus effectif (comble du plafond)": "4.66",
+        "Ajustement bonus/malus (net, legacy)": "5",
+        "Pourcentage brut du score net": "95.33%",
+        "Pourcentage final du score net": "95.33%",
+        "Coût de la session ($)": "2.5203",
+        "Tokens totaux (in+out)": "5027946.0",
+        "Valeur (points de score par $)": "37.82",
+        "Nombre total d'indicateurs": "95"
+      },
+      "findings_count": 13,
+      "top_findings": [
+        {
+          "phase": "Phase 3. Traçabilité (Score: 10.0/15)",
+          "step": "Étape 3-2. Efficacité de la session (audit_trace.json)",
+          "code": "3-2-1",
+          "indicator": "Nombre total d'échanges (turns)",
+          "score": 0.0,
+          "max_score": 5.0,
+          "remarks": "Nombre total de tours de parole User <-> Agent \\",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 3. Traçabilité (Score: 10.0/15)\nÉtape 3-2. Efficacité de la session (audit_trace.json)\nNombre total d'échanges (turns) (0/5)\nNombre total de tours de parole User <-> Agent \\"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 14.0/19)",
+          "step": "Étape 4-1. Initiatives détectées",
+          "code": "4-1-4",
+          "indicator": "Robust GraphQL Pagination (Relay pattern)",
+          "score": 0.0,
+          "max_score": 5.0,
+          "remarks": "detected=False",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-1. Initiatives détectées\nRobust GraphQL Pagination (Relay pattern) (0/5)\ndetected=False"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 14.0/19)",
+          "step": "Étape 4-2. Malus détectés",
+          "code": "4-2-1",
+          "indicator": "Docker version attribute is obsolete",
+          "score": 0.0,
+          "max_score": 1.0,
+          "remarks": "obsolete_detected_count=0",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-2. Malus détectés\nDocker version attribute is obsolete (0/1)\nobsolete_detected_count=0"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 14.0/19)",
+          "step": "Étape 4-2. Malus détectés",
+          "code": "4-2-2",
+          "indicator": "Over-abstraction via AbstractFactory classes",
+          "score": 0.0,
+          "max_score": 5.0,
+          "remarks": "abstract_factory_count=0",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-2. Malus détectés\nOver-abstraction via AbstractFactory classes (0/5)\nabstract_factory_count=0"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 14.0/19)",
+          "step": "Étape 4-2. Malus détectés",
+          "code": "4-2-3",
+          "indicator": "Extreme fragmentation (< 10 lines per TS file)",
+          "score": 0.0,
+          "max_score": 5.0,
+          "remarks": "tiny_files_count=14, total_ts_files=83, ratio_pct=16.87",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-2. Malus détectés\nExtreme fragmentation (< 10 lines per TS file) (0/5)\ntiny_files_count=14, total_ts_files=83, ratio_pct=16.87"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 14.0/19)",
+          "step": "Étape 4-2. Malus détectés",
+          "code": "4-2-4",
+          "indicator": "Fichiers source vides / placeholder (padding)",
+          "score": 0.0,
+          "max_score": 5.0,
+          "remarks": "empty_files_count=1",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-2. Malus détectés\nFichiers source vides / placeholder (padding) (0/5)\nempty_files_count=1"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 14.0/19)",
+          "step": "Étape 4-2. Malus détectés",
+          "code": "4-2-5",
+          "indicator": "Fichiers de test sans assertion réelle",
+          "score": 0.0,
+          "max_score": 5.0,
+          "remarks": "assertion_ratio=0.912, test_files=34",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-2. Malus détectés\nFichiers de test sans assertion réelle (0/5)\nassertion_ratio=0.912, test_files=34"
+        },
+        {
+          "phase": "Phase 4. Bonus / Malus (Score: 14.0/19)",
+          "step": "Étape 4-2. Malus détectés",
+          "code": "4-2-6",
+          "indicator": "Plus de fichiers de test que de cas réellement exécutés (padding)",
+          "score": 0.0,
+          "max_score": 5.0,
+          "remarks": "executed_cases=242, test_files=34",
+          "status": "0",
+          "kind": "failed",
+          "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-2. Malus détectés\nPlus de fichiers de test que de cas réellement exécutés (padding) (0/5)\nexecuted_cases=242, test_files=34"
+        }
+      ]
+    },
+    "_tooltips": {
+      "make": {},
+      "e2e": {},
+      "perf": "avg=2.6ms  p95=3.6ms  err_rate=0.0%"
+    },
+    "sections": [
+      {
+        "title": "Score détaillé",
+        "items": [
+          {
+            "label": "Opérationnalité",
+            "value": "43.0 / 43.0 (100%)",
+            "cls": "ok"
+          },
+          {
+            "label": "Architecture",
+            "value": "22.0 / 22.0 (100%)",
+            "cls": "ok"
+          },
+          {
+            "label": "Qualité logicielle",
+            "value": "13.0 / 13.0 (100%)",
+            "cls": "ok"
+          },
+          {
+            "label": "Traçabilité",
+            "value": "6.7 / 10.0 (67%)",
+            "cls": "warn"
+          },
+          {
+            "label": "Coût & Efficience",
+            "value": "6.0 / 12.0 (50%)",
+            "cls": "warn"
+          },
+          {
+            "label": "Modèle scoring",
+            "value": "fib_v2",
+            "cls": null
+          }
+        ]
+      },
+      {
+        "title": "Coût estimé",
+        "items": [
+          {
+            "label": "Coût estimé",
+            "value": "$2.5203",
+            "cls": null
+          },
+          {
+            "label": "Tokens (in+out)",
+            "value": "5 027 946",
+            "cls": null
+          },
+          {
+            "label": "Valeur (pts/$)",
+            "value": "37.8",
+            "cls": null
+          },
+          {
+            "label": "Modèle tarifé",
+            "value": "claude-sonnet",
+            "cls": null
+          }
+        ]
+      },
+      {
+        "title": "Détail traçabilité",
+        "items": [
+          {
+            "label": "Score trace",
+            "value": "6.7 / 10.0 (67%)",
+            "cls": "warn"
+          },
+          {
+            "label": "3-1-1 Validation audit_trace.json",
+            "value": "OK · 1/1",
+            "cls": "ok",
+            "tooltip": "Validation audit_trace.json\nCode: 3-1-1\nStatut: OK\nScore: 1/1\nRemarques: phases_count=3\nDétails:\nstatus: OK\nphases_count: 3\nerrors: \nwall_time_consistency: {\"status\": \"OK\", \"summary_total_wall_time_seconds\": 1140.0, \"phases_total_wall_time_seconds\": 1140.0, \"delta_ratio\": 0.0, \"remarks\": \"summary.total_wall_time_seconds coherent with summed phases\"}"
+          },
+          {
+            "label": "3-1-2 Nombre de phases tracées >= 1",
+            "value": "OK · 2/2",
+            "cls": "ok",
+            "tooltip": "Validation audit_trace.json\nCode: 3-1-2\nStatut: OK\nScore: 2/2\nRemarques: phases_count=3\nDétails:\nstatus: OK\nphases_count: 3\nerrors: \nwall_time_consistency: {\"status\": \"OK\", \"summary_total_wall_time_seconds\": 1140.0, \"phases_total_wall_time_seconds\": 1140.0, \"delta_ratio\": 0.0, \"remarks\": \"summary.total_wall_time_seconds coherent with summed phases\"}"
+          },
+          {
+            "label": "3-1-3 Cohérence wall time",
+            "value": "OK · 2/2",
+            "cls": "ok",
+            "tooltip": "Validation audit_trace.json\nCode: 3-1-3\nStatut: OK\nScore: 2/2\nRemarques: summary.total_wall_time_seconds coherent with summed phases\nDétails:\nstatus: OK\nsummary_total_wall_time_seconds: 1140.0\nphases_total_wall_time_seconds: 1140.0\ndelta_ratio: 0.0\nremarks: summary.total_wall_time_seconds coherent with summed phases"
+          },
+          {
+            "label": "3-2-1 Nombre total d'échanges (turns)",
+            "value": "KO · 0/5",
+            "cls": "ko",
+            "tooltip": "Efficacité de la session (audit_trace.json)\nCode: 3-2-1\nStatut: KO\nScore: 0/5\nValeur mesurée: 1.0\nRemarques: Nombre total de tours de parole User <-> Agent | value=1; tranche=out_of_range\nDétails:\nmeasured_value: 1.0\nbands: 5..15=100%, 2..25=50%, else=0%"
+          },
+          {
+            "label": "3-2-2 Nombre total d'appels d'outils",
+            "value": "OK · 3/3",
+            "cls": "ok",
+            "tooltip": "Efficacité de la session (audit_trace.json)\nCode: 3-2-2\nStatut: OK\nScore: 3/3\nValeur mesurée: 39.0\nRemarques: Nombre total d'actions effectuées (shell, fs, etc.) | value=39; tranche=20..60; label=target\nDétails:\nmeasured_value: 39.0\nbands: 20..60=100%, 10..100=50%, else=0%"
+          },
+          {
+            "label": "3-2-3 Temps réel total (secondes)",
+            "value": "OK · 2/2",
+            "cls": "ok",
+            "tooltip": "Efficacité de la session (audit_trace.json)\nCode: 3-2-3\nStatut: OK\nScore: 2/2\nValeur mesurée: 1140.0\nRemarques: Temps total d'horloge en secondes | value=1140; tranche=600..1800; label=target\nDétails:\nmeasured_value: 1140.0\nbands: 600..1800=100%, 300..3600=50%, else=0%"
+          }
+        ]
+      },
+      {
+        "title": "Pipeline",
+        "items": [
+          {
+            "label": "make setup",
+            "value": "OK",
+            "cls": "ok"
+          },
+          {
+            "label": "make lint",
+            "value": "OK",
+            "cls": "ok"
+          },
+          {
+            "label": "make build",
+            "value": "OK",
+            "cls": "ok"
+          },
+          {
+            "label": "make test",
+            "value": "OK",
+            "cls": "ok"
+          },
+          {
+            "label": "docker start (0s)",
+            "value": "OK",
+            "cls": "ok"
+          }
+        ]
+      },
+      {
+        "title": "Stats projet",
+        "items": [
+          {
+            "label": "Fichiers",
+            "value": "101 (83 .ts)",
+            "cls": null
+          },
+          {
+            "label": "Lignes TS",
+            "value": "3967",
+            "cls": null
+          },
+          {
+            "label": "Fichiers test",
+            "value": "34",
+            "cls": null
+          },
+          {
+            "label": "Tests exécutés",
+            "value": "242 ✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Coverage",
+            "value": "100.0%",
+            "cls": "ok"
+          }
+        ]
+      },
+      {
+        "title": "Checks statiques",
+        "items": [
+          {
+            "label": "Hexagonal",
+            "value": "5/5 règles",
+            "cls": "ok"
+          },
+          {
+            "label": "JWT library",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Auth mutations",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Auth guard",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Password hash",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "No direct new",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "@injectable",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "@inject param",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Ctor inject",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Mongoose installé",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "SQL ORM installé",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Mongo (tasks)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "SQL (users)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Adapters séparés",
+            "value": "✓",
+            "cls": "ok"
+          }
+        ]
+      },
+      {
+        "title": "E2E",
+        "items": [
+          {
+            "label": "List Tasks (Initial)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Create Task A",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Get Task A",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Create Task B (Dependent on A)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Close B (Should Fail)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Close A (Success)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Close B (Now Success)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Close Independent Task (No Deps)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Accès non-authentifié bloqué",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Inscription (register)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Connexion (login)",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Opération authentifiée autorisée",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Token falsifié rejeté",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Token alg=none rejeté",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Signature étrangère rejetée",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Code UNAUTHENTICATED exact",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Mot de passe faible refusé",
+            "value": "✓",
+            "cls": "ok"
+          },
+          {
+            "label": "Isolation inter-utilisateurs",
+            "value": "✓",
+            "cls": "ok"
+          }
+        ]
+      },
+      {
+        "title": "Trace session",
+        "items": [
+          {
+            "label": "Livrable",
+            "value": "claude-sonnet-5-5_default",
+            "cls": null
+          },
+          {
+            "label": "Prompt version",
+            "value": "2606082200",
+            "cls": null
+          },
+          {
+            "label": "Phases",
+            "value": "3",
+            "cls": null
+          },
+          {
+            "label": "Turns",
+            "value": "1",
+            "cls": "ko"
+          },
+          {
+            "label": "Tool calls",
+            "value": "39",
+            "cls": "ok"
+          },
+          {
+            "label": "Wall time",
+            "value": "19.0 min",
+            "cls": "ok"
+          }
+        ]
+      },
+      {
+        "title": "Bonus / Malus",
+        "items": [
+          {
+            "label": "Centralized Error Handling (Custom Error classes)",
+            "value": "✓ obtenu",
+            "cls": "ok"
+          },
+          {
+            "label": "Environment Variables Validation (zod/envalid)",
+            "value": "✓ obtenu",
+            "cls": "ok"
+          },
+          {
+            "label": "Explicit Healthcheck Query",
+            "value": "✓ obtenu",
+            "cls": "ok"
+          },
+          {
+            "label": "Robust GraphQL Pagination (Relay pattern)",
+            "value": "absent",
+            "cls": "na"
+          },
+          {
+            "label": "Structured Logger (winston/pino)",
+            "value": "✓ obtenu",
+            "cls": "ok"
+          },
+          {
+            "label": "Docker version attribute is obsolete",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          },
+          {
+            "label": "Over-abstraction via AbstractFactory classes",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          },
+          {
+            "label": "Extreme fragmentation (< 10 lines per TS file)",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          },
+          {
+            "label": "Fichiers source vides / placeholder (padding)",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          },
+          {
+            "label": "Fichiers de test sans assertion réelle",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          },
+          {
+            "label": "Plus de fichiers de test que de cas réellement exé",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          },
+          {
+            "label": "Secrets / clés / .env commités dans le dépôt",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          },
+          {
+            "label": "Vulnérabilités npm (high/critical)",
+            "value": "✓ non détecté",
+            "cls": "ok"
+          }
+        ]
+      },
+      {
+        "title": "Synthèse rapport",
+        "items": [
+          {
+            "label": "Rapport MD",
+            "value": "rapport",
+            "cls": null,
+            "tooltip": "cr_20260930_1919_claude-sonnet-5-5_default_20260930_194546.md"
+          },
+          {
+            "label": "Score rapport",
+            "value": "95.33%",
+            "cls": null
+          },
+          {
+            "label": "Constat 1",
+            "value": "Nombre total d'échanges (turns) — Nombre total de tours de parole User <-> Agent \\",
+            "cls": "ko",
+            "tooltip": "Phase 3. Traçabilité (Score: 10.0/15)\nÉtape 3-2. Efficacité de la session (audit_trace.json)\nNombre total d'échanges (turns) (0/5)\nNombre total de tours de parole User <-> Agent \\"
+          },
+          {
+            "label": "Constat 2",
+            "value": "Robust GraphQL Pagination (Relay pattern) — detected=False",
+            "cls": "ko",
+            "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-1. Initiatives détectées\nRobust GraphQL Pagination (Relay pattern) (0/5)\ndetected=False"
+          },
+          {
+            "label": "Constat 3",
+            "value": "Docker version attribute is obsolete — obsolete_detected_count=0",
+            "cls": "ko",
+            "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-2. Malus détectés\nDocker version attribute is obsolete (0/1)\nobsolete_detected_count=0"
+          },
+          {
+            "label": "Constat 4",
+            "value": "Over-abstraction via AbstractFactory classes — abstract_factory_count=0",
+            "cls": "ko",
+            "tooltip": "Phase 4. Bonus / Malus (Score: 14.0/19)\nÉtape 4-2. Malus détectés\nOver-abstraction via AbstractFactory classes (0/5)\nabstract_factory_count=0"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "cr_20260711_0958_gpt-5.6-sol_medium_20260922_213123",
     "source_file": "cr_audits/cr_20260711_0958_gpt-5.6-sol_medium_20260922_213123.json",
     "agent": "gpt-5.6-sol_medium",
