@@ -6,7 +6,7 @@ Framework d'évaluation industrielle de la capacité des agents IA à livrer des
 
 ## Objectifs
 
-Le benchmark mesure cinq piliers (scoring **v2**, défaut depuis le 2026-06-08) :
+Le benchmark mesure cinq piliers (scoring **v3**, défaut depuis le 2026-09-30 ; mêmes poids que la v2) :
 
 | Pilier | Poids | Ce qui est évalué |
 |---|---|---|
@@ -19,7 +19,9 @@ Le benchmark mesure cinq piliers (scoring **v2**, défaut depuis le 2026-06-08) 
 Les poids historiques **50 / 25 / 15 / 10 sans pilier Coût** sont le scoring **v1**, conservé pour
 rejouer à l'identique les runs d'avant juin : `--scoring v1`. Les deux jeux de poids sont dans
 `hexa/benches/todo/auditor/scoring_config.py`, et chaque entrée de la KB porte le modèle qui l'a produite
-(`fib_v1` / `fib_v2`) — **des scores v1 et v2 ne sont pas directement comparables**.
+(`fib_v1` / `fib_v2` / `fib_v3`) — **des scores v1, v2 et v3 ne sont pas directement comparables**.
+La v3 ne change qu'un indicateur : la bande des échanges User↔Agent (3-2-1), qui récompense désormais
+la session autonome (1–2 échanges = 100 %, 3–6 = 50 %). `--scoring v2` rejoue les scores v2 publiés.
 
 Un bonus/malus s'applique par-dessus les piliers (+5 max / -10 max) pour les initiatives proactives
 et l'over-engineering détecté. En v2 il n'est **pas** symétrique : les malus se soustraient en
@@ -104,7 +106,7 @@ python3 -m hexa usage ~/.claude/projects/<cwd-encodé>/<session>.jsonl \
 | `--skip-dynamic` | Saute Docker, E2E, auth E2E et benchmark de perf |
 | `--force-dynamic` | Lance `make test`, Docker, E2E et perf **même si `make build` échoue** |
 | `--fresh-docker` | `docker compose down -v` avant `make start` (repart de volumes vides) |
-| `--scoring v1\|v2` | Règle de plafond du score final (défaut `v2` ; `v1` rejoue les scores historiques) |
+| `--scoring v1\|v2\|v3` | Version du barème (défaut `v3` ; `v2` et `v1` rejouent les scores publiés) |
 
 > ⚠️ **`--skip-dynamic` n'est pas un mode « sans Docker ».** `make setup`, `make lint`, `make build`
 > et `make test` s'exécutent quand même — or ces cibles passent par Docker dans le contrat livrable.
@@ -200,7 +202,7 @@ au niveau top de l'entrée (`model`, `effort`, `prompt_version`, …). Le rendu 
 
 ---
 
-## Modèle de scoring (`indicator_fibonacci_v2`)
+## Modèle de scoring (`indicator_fibonacci_v2` / `_v3`)
 
 Chaque vérification produit un **indicateur** pondéré selon la séquence de Fibonacci (position dans l'étape). Les indicateurs sont agrégés en buckets normalisés sur 100 points.
 
@@ -236,7 +238,7 @@ Chaque vérification produit un **indicateur** pondéré selon la séquence de F
 **Phase 3 — Traçabilité**
 - Présence et validité du fichier `audit_trace.json` fourni par l'agent
 - Cohérence summary vs phases (écart toléré : 10%)
-- Métriques d'efficacité : nombre de turns (cible 5–15), tool calls (20–60), wall time (10–30 min)
+- Métriques d'efficacité : nombre de turns (cible 1–2 en v3 ; 5–15 en v1/v2), tool calls (20–60), wall time (10–30 min)
 
 **Phase 4 — Bonus / Malus**
 - Bonus : gestion d'erreurs centralisée, validation d'env (zod/envalid), healthcheck, pagination Relay, logger structuré

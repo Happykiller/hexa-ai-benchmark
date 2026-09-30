@@ -81,11 +81,15 @@ def _build_trace_metrics(traceability: dict[str, Any]) -> dict[str, Any]:
 
 
 def emit_trace_indicators(
-    audit_db: dict[str, Any], traceability: dict[str, Any], trace_metrics: dict[str, Any]
+    audit_db: dict[str, Any],
+    traceability: dict[str, Any],
+    trace_metrics: dict[str, Any],
+    scoring_config: dict[str, Any] | None = None,
 ) -> None:
     """Phase 3 — Traçabilité : validité de audit_trace.json puis efficacité en bandes.
 
     Les valeurs viennent de l'agent audité (loi n°4) : elles sont validées, pas mesurées.
+    ``scoring_config`` remplace les bandes communes (défaut : ``TRACE_SCORING_CONFIG``).
     """
     trace_valid = traceability["status"] == "OK"
     _append_indicator(
@@ -131,7 +135,7 @@ def emit_trace_indicators(
         details=wall_time_consistency,
         weight=2,
     )
-    for metric_key, config in TRACE_SCORING_CONFIG.items():
+    for metric_key, config in (scoring_config or TRACE_SCORING_CONFIG).items():
         _append_scored_indicator_from_config(
             audit_db,
             config,

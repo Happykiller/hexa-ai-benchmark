@@ -15,6 +15,7 @@ from hexa.core.engine.config import (  # noqa: F401 — ré-exports
     PRICING_UPDATED,
     TOTAL_TOKENS_BANDS,
     TRACE_SCORING_CONFIG,
+    trace_scoring_config,
 )
 
 # Legacy bucket weights (scoring v1) — frozen so --scoring v1 reproduces the 7
@@ -72,7 +73,15 @@ BASE_SCORE_BUCKETS_V2 = {
     },
 }
 
-BASE_SCORE_BUCKETS_BY_VERSION = {"v1": BASE_SCORE_BUCKETS_V1, "v2": BASE_SCORE_BUCKETS_V2}
+# scoring v3 — mêmes poids que v2 ; seule la bande des échanges (3-2-1) change, voir
+# hexa.core.engine.config.trace_scoring_config.
+BASE_SCORE_BUCKETS_V3 = BASE_SCORE_BUCKETS_V2
+
+BASE_SCORE_BUCKETS_BY_VERSION = {
+    "v1": BASE_SCORE_BUCKETS_V1,
+    "v2": BASE_SCORE_BUCKETS_V2,
+    "v3": BASE_SCORE_BUCKETS_V3,
+}
 
 # Back-compat default (importers that don't pass a version get the legacy set).
 BASE_SCORE_BUCKETS = BASE_SCORE_BUCKETS_V1
@@ -86,7 +95,7 @@ BASE_SCORE_BUCKETS = BASE_SCORE_BUCKETS_V1
 #   v2 — reserved ceiling: maluses subtract fully, then bonus may only fill a
 #        fraction of the *remaining* gap to 100. A non-perfect base therefore
 #        approaches but never reaches 100% — 100 is reserved for a flawless base.
-SCORING_DEFAULT_VERSION = "v2"
+SCORING_DEFAULT_VERSION = "v3"
 
 
 TECHNICAL_STATS_SCORING_CONFIG = {

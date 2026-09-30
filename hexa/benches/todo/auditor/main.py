@@ -39,6 +39,7 @@ from hexa.benches.todo.auditor.scoring_config import (
     PRICING_UPDATED,
     SCORING_DEFAULT_VERSION,
     TECHNICAL_STATS_SCORING_CONFIG,
+    trace_scoring_config,
 )
 from hexa.core.engine import (  # noqa: F401 — ré-exports historiques (tests)
     TraceabilityValidator,
@@ -205,10 +206,13 @@ def cli() -> None:
 @click.option("--fresh-docker", is_flag=True, help="Run docker compose down -v before make start")
 @click.option(
     "--scoring",
-    type=click.Choice(["v1", "v2"]),
+    type=click.Choice(["v1", "v2", "v3"]),
     default=SCORING_DEFAULT_VERSION,
     show_default=True,
-    help="Final-score ceiling rule: v2 reserves 100%% for a flawless base; v1 reproduces legacy scores",
+    help=(
+        "Scoring version: v3 (default) = v2 + autonomous-session turns band (1..2 turns = 100%%); "
+        "v2 reproduces published v2 scores; v1 reproduces legacy scores"
+    ),
 )
 def analyze(
     path: str,
@@ -231,7 +235,9 @@ def analyze(
             "skip_dynamic": skip_dynamic,
             "force_dynamic": force_dynamic,
             "fresh_docker": fresh_docker,
-            "scoring_model": "indicator_fibonacci_v2",
+            "scoring_model": "indicator_fibonacci_v3"
+            if scoring == "v3"
+            else "indicator_fibonacci_v2",
             "scoring_version": scoring,
         },
         "summary": {},
@@ -898,7 +904,7 @@ def analyze(
             }
         )
 
-    emit_trace_indicators(audit_db, traceability, trace_metrics)
+    emit_trace_indicators(audit_db, traceability, trace_metrics, trace_scoring_config(scoring))
 
     # Phase 6 — Cost pillar (scoring v2), see engine/cost.py.
     audit_db["meta"]["cost"] = emit_cost_indicators(audit_db, trace_metrics)

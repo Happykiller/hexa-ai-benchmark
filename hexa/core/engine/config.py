@@ -124,3 +124,27 @@ TRACE_SCORING_CONFIG = {
         ],
     },
 }
+
+
+# Scoring v3 — la session est censée être entièrement autonome (énoncé) : un seul échange
+# User <-> Agent est la cible, pas une anomalie. Bandes v2 (5..15 = 100 %) laissées intactes
+# pour que --scoring v2 rejoue les scores publiés.
+TRACE_TURNS_BANDS_V3 = [
+    {"min": 1, "max": 2, "score_ratio": 1.0, "status": "OK", "label": "autonome"},
+    {"min": 3, "max": 6, "score_ratio": 0.5, "status": "PARTIEL", "label": "quelques relances"},
+]
+TRACE_TURNS_BANDS_LABEL_V3 = "1..2=100%, 3..6=50%, else=0%"
+
+
+def trace_scoring_config(scoring_version: str) -> dict:
+    """Bandes d'efficacité de session (phase 3) applicables à une version de scoring."""
+    if scoring_version in ("v1", "v2"):
+        return TRACE_SCORING_CONFIG
+    return {
+        **TRACE_SCORING_CONFIG,
+        "total_turns": {
+            **TRACE_SCORING_CONFIG["total_turns"],
+            "bands_label": TRACE_TURNS_BANDS_LABEL_V3,
+            "bands": TRACE_TURNS_BANDS_V3,
+        },
+    }

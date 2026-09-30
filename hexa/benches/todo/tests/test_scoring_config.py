@@ -71,3 +71,33 @@ def test_model_pricing_entries_are_positive():
 def test_bonus_malus_caps_have_expected_polarity():
     assert BONUS_MALUS_SCORE_CONFIG["bonus_cap"] > 0
     assert BONUS_MALUS_SCORE_CONFIG["malus_cap"] < 0
+
+
+def test_trace_turns_band_v3_rewards_autonomous_session():
+    from hexa.core.engine.config import TRACE_SCORING_CONFIG, trace_scoring_config
+
+    def ratio(config, turns):
+        for band in config["total_turns"]["bands"]:
+            if band["min"] <= turns <= band["max"]:
+                return band["score_ratio"]
+        return 0.0
+
+    v3 = trace_scoring_config("v3")
+    assert [ratio(v3, n) for n in (1, 2, 3, 6, 7, 12, 94)] == [1.0, 1.0, 0.5, 0.5, 0.0, 0.0, 0.0]
+    assert v3["total_turns"]["weight"] == 5
+    # v1/v2 rejouent les scores publiés : 1 échange y vaut 0, 8 échanges 100 %.
+    for version in ("v1", "v2"):
+        assert trace_scoring_config(version) is TRACE_SCORING_CONFIG
+        assert [ratio(TRACE_SCORING_CONFIG, n) for n in (1, 8, 20)] == [0.0, 1.0, 0.5]
+    # Les autres métriques de session restent communes.
+    assert v3["total_tool_calls"] is TRACE_SCORING_CONFIG["total_tool_calls"]
+
+
+def test_scoring_v3_shares_v2_buckets_and_is_default():
+    from hexa.benches.todo.auditor.scoring_config import (
+        BASE_SCORE_BUCKETS_BY_VERSION,
+        SCORING_DEFAULT_VERSION,
+    )
+
+    assert BASE_SCORE_BUCKETS_BY_VERSION["v3"] == BASE_SCORE_BUCKETS_BY_VERSION["v2"]
+    assert SCORING_DEFAULT_VERSION == "v3"
