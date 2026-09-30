@@ -2,10 +2,30 @@
 titre: Workflows outillés
 type: regle
 statut: actif
-maj: 2026-09-23
+maj: 2026-09-30
 ---
 
 # Workflows
+
+## Récupérer un bench (Todo ou Blender)
+
+« Récupère le bench X » — X est un dossier de `~/test/` (le chemin donné sans `~` est à lire
+relativement à `~`) — veut dire **toute** la chaîne, sans redemander entre les étapes :
+
+1. **Copier** (pas déplacer) le dossier dans `runs/<bench>/livrables/`, puis `diff -rq` source ↔
+   copie. Ignorer le `.zip` de même nom qui l'accompagne parfois : c'est le même contenu.
+2. **Vider `~/test/`** (dossier et `.zip`) une fois la copie vérifiée. Le transcript de session
+   vit hors de `~/test/` (`~/.claude/projects/…`, `~/.codex/sessions/…`) : la trace n'y est pas
+   perdue. Décision du 2026-09-30, pour Todo **et** Blender (elle remplace « l'original reste la
+   trace de la session »).
+3. **Auditer** (sous-agent `audit-runner` ou `blender-audit-runner`), puis **intégrer à la KB**
+   (`kb-builder`, upsert `--add`) — voir les deux workflows ci-dessous.
+4. Ne committer qu'à la clôture (`/cloture`) ; ne jamais arrêter un conteneur qui n'est pas celui
+   du livrable.
+
+Le nom du dossier n'est pas une source : `audit_trace.json` fait foi pour le modèle et l'effort
+(un dossier `…_unknown` peut porter `effort: medium`). Toute divergence se signale, elle ne se
+corrige pas en renommant.
 
 ## Auditer un livrable, de bout en bout
 
@@ -17,7 +37,10 @@ L'ordre compte : chaque étape suppose la précédente réussie.
    détruirait la stack de l'agent (loi n°10).
 1. **Vérifier la propriété du livrable** (piège `faro` — voir
    [`../DAT/environnements.md`](../DAT/environnements.md)). Avant, pas après.
-2. **Vérifier les prérequis Docker** et la disponibilité du port 4000.
+2. **Vérifier les prérequis Docker** et la disponibilité du port 4000, puis que le modèle est dans
+   `MODEL_PRICING` (`hexa/core/engine/config.py`). Sinon « Coût non calculé » : le pilier Coût (12 %)
+   vaut 0 et le run est pénalisé à tort (`gpt-6.1-sol`, 2026-09-30, 80,52 % avec 0/12). Ajouter le
+   tarif **avant** l'audit, vérifié sur la page officielle (voir plus bas).
 3. **Lancer l'audit** (`analyze runs/todo/livrables/<...>`) — long, à traiter comme une tâche de fond.
    Le sous-agent [`audit-runner`](../MOTEUR.md) existe pour ça.
 4. **Lire le score par phase** avant de conclure : un total à 40 % appelle une vérification du cap
@@ -26,7 +49,7 @@ L'ordre compte : chaque étape suppose la précédente réussie.
    <livrable>/audit_trace.json`. Les tokens pilotent le pilier Coût ; un écart qui fait changer de
    bande se signale avant publication (le 2026-09-22, Opus 5.5 avait sous-estimé ses tokens de
    20-30 %, avec un changement de bande à la clé).
-6. **Intégrer à la KB** : `python3 -m hexa kb todo --add` depuis le `runs/todo/cr_audits/*.json` produit — jamais de
+6. **Intégrer à la KB** : `venv/bin/python -m hexa kb todo --add` depuis le `runs/todo/cr_audits/*.json` produit — jamais de
    rebuild complet (voir [`../DAT/kb-magasin-donnees.md`](../DAT/kb-magasin-donnees.md)).
 7. **Corriger les métadonnées si besoin** via `overrides.json`, puis rejouer le build.
 8. **Committer** `sites/todo/` avec un message `kb(...)` portant modèle et score.
@@ -38,8 +61,8 @@ Le rebuild du bundle web n'est nécessaire **que** si `web/src/` a changé.
 Les sessions d'agent tournent dans `~/test/` ; l'agent y crée son dossier
 `AAAAMMJJ_HHMM_<modèle>_<effort>/` (imposé depuis le prompt `2609231500`).
 
-1. **Copier** (pas déplacer) le dossier dans `runs/blender/livrables/` et vérifier la copie
-   (`diff -r`). L'original reste la trace de la session.
+1. **Copier** le dossier dans `runs/blender/livrables/`, vérifier la copie (`diff -r`), puis vider
+   `~/test/` — voir « Récupérer un bench ».
 2. **Scanner le code** : imports réseau / sous-processus, chemins absolus, dans **tous** les `.py`
    du livrable (le contrôle statique les lit tous, scripts annexes compris). Loi n°11 : on n'audite
    que nos propres sessions.

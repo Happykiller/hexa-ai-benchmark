@@ -2,7 +2,7 @@
 titre: Piliers de notation et seuils
 type: daf
 statut: actif
-maj: 2026-09-22
+maj: 2026-09-30
 ---
 
 # Piliers de notation
@@ -21,17 +21,25 @@ Le pilier **Coût** a été introduit parce qu'un livrable identique obtenu en b
 de tokens n'est pas la même performance d'agent. Les 12 % ont été pris sur les trois premiers
 piliers (50/25/15 → 43/22/13) pour que le total reste 100.
 
-## Deux générations de scoring cohabitent
+## Trois générations de scoring cohabitent
 
 | Modèle | Piliers | Où on le voit |
 |---|---|---|
 | `indicator_fibonacci_v1` | 50 / 25 / 15 / 10, pas de pilier Coût | Runs d'avant juin 2026 |
-| `indicator_fibonacci_v2` | 43 / 22 / 13 / 10 / 12 | Défaut depuis le 2026-06-08 |
+| `indicator_fibonacci_v2` | 43 / 22 / 13 / 10 / 12 | Du 2026-06-08 au 2026-09-30 |
+| `indicator_fibonacci_v3` | 43 / 22 / 13 / 10 / 12, bande des échanges révisée | Défaut depuis le 2026-09-30 |
 
 `--scoring v1` rejoue les scores historiques à l'identique — c'est la raison d'être du flag, pas une
 option de confort. **Conséquence à ne jamais perdre de vue : classer un run v1 et un run v2 dans un
 même palmarès compare deux barèmes différents.** La KB affiche le modèle de scoring dans le détail
 de chaque entrée (`Modèle scoring : fib_v1|fib_v2`) ; le classement, lui, ne le distingue pas.
+
+**v3 (2026-09-30)** : seul l'indicateur 3-2-1 (échanges User↔Agent, poids 5) change. En v1/v2 la
+bande était 5..15 = 100 %, 2..25 = 50 % : un agent autonome (1 échange, ce que demande l'énoncé)
+prenait 0/5, alors que des sessions interactives marquaient. En v3 : 1..2 = 100 %, 3..6 = 50 %,
+sinon 0. Les runs v2 déjà publiés ne sont pas recalculés ; `--scoring v2` les rejoue. Les bandes
+sont choisies par `trace_scoring_config(version)` (`hexa/core/engine/config.py`) ; Blender garde
+les bandes communes.
 
 ## Le bonus n'est pas symétrique du malus (v2)
 

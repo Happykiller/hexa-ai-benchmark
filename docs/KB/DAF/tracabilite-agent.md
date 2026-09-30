@@ -2,7 +2,7 @@
 titre: Traçabilité de l'agent — ce qui est auto-déclaré
 type: daf
 statut: actif
-maj: 2026-09-22
+maj: 2026-09-30
 ---
 
 # Traçabilité de l'agent
@@ -64,5 +64,6 @@ déclarés pour 38 appels d'outils) pendant qu'un run honnête les perd.
   pas disponible, p. ex. runs sur une autre machine) ?
 - Faut-il un contrôle de vraisemblance tokens ↔ tool calls ↔ wall time, pour détecter une
   sous-déclaration grossière sans exiger de mesure externe ?
-- La bande `total_turns` 5..15 contredit le mode « session entièrement autonome » de l'énoncé : un
-  agent honnête déclare 1 échange et prend 0. Réviser la bande ou la définition du champ.
+- ~~La bande `total_turns` 5..15 contredit le mode « session entièrement autonome »~~ : corrigé en
+  scoring v3 (2026-09-30), bande 1..2 = 100 %, 3..6 = 50 %. Reste ouvert : faut-il ré-auditer en v3
+  les runs v2 dont le livrable existe encore, pour les comparer à armes égales ?

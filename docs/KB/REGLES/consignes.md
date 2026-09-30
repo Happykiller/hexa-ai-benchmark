@@ -2,7 +2,7 @@
 titre: Consignes de l'utilisateur envers Claude
 type: regle
 statut: actif
-maj: 2026-09-22
+maj: 2026-09-30
 ---
 
 # Consignes
@@ -57,3 +57,10 @@ dépasse celui de le corriger sur-le-champ, tant qu'on est dans le contexte.
   gros lot.
 - La limite reste les **lois** : une correction ne justifie jamais de hand-editer une source brute
   ni de faire disparaître une entrée publiée. Devant ce cas, on s'arrête et on expose.
+
+## « Récupérer un bench » = toute la chaîne
+
+Demandé le 2026-09-30 : quand l'utilisateur dit de récupérer un bench, on ne s'arrête pas à la copie
+en proposant l'audit. On copie, on vérifie, on vide `~/test/`, on audite, on intègre à la KB.
+Il a dû le dire deux fois (« on l'intègre à nos résultats », puis « nettoie le rép de test ») :
+la procédure est dans [`workflows.md`](workflows.md#récupérer-un-bench-todo-ou-blender).

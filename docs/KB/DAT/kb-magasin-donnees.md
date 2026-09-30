@@ -2,7 +2,7 @@
 titre: Magasin de données KB — brut, overrides, dérivé
 type: dat
 statut: actif
-maj: 2026-09-23
+maj: 2026-09-30
 ---
 
 # Magasin de données de la knowledge base
@@ -69,6 +69,10 @@ portaient des préfixes de deux machines différentes (`/home/happykiller/sandbo
 `/home/admin/sandbox/…`), et tout `--add` en réécrivait un au hasard. `repo_relative()`
 (`hexa/core/kb/constants.py`) normalise désormais ces chemins en relatif-dépôt, à la normalisation — donc
 en un seul endroit, pour les deux chemins de code.
+
+Les entrées d'avant le rangement du 2026-09-23 portent `cr_audits/…` et `livrables/…`, celles
+d'après `runs/todo/cr_audits/…` : les deux sont relatifs-dépôt et sans chemin machine. Écart sans
+effet (le front ne lit ni `source_file` ni `target_path`), à ne pas « harmoniser » à la main.
 
 À retenir pour la suite : **aucun chemin machine ne doit entrer dans `data.json`**. Les chemins
 qui apparaissent dans les *sorties capturées* (logs npm, erreurs make) sont une autre affaire —

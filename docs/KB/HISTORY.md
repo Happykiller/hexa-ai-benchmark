@@ -2,7 +2,7 @@
 titre: Historique des sujets abordés
 type: index
 statut: actif
-maj: 2026-09-04
+maj: 2026-09-30
 ---
 
 # Historique
@@ -26,3 +26,4 @@ Au-delà de ~200 lignes, découper par année (`HISTORY/README.md` + `HISTORY/20
 | 2026-09-23 | Second benchmark : Blender 3D | Moteur de notation extrait dans `auditor/engine` (rejeu de 3 rapports publiés à l'identique) ; `blender_bench/` rejoue le `build.py` de l'agent dans Blender headless, mesure géométrie, rig, animation et silhouettes contre la planche DREADHIVE ; palette mesurée sur la passe albédo (l'image éclairée grisait la chitine) ; KB séparée `knowledge_base_blender/` sur le même builder (`KbStore`) ; loi n°11 | [DAT/blender-pipeline.md](DAT/blender-pipeline.md), [DAF/blender-piliers.md](DAF/blender-piliers.md) |
 | 2026-09-23 | Rangement : un dossier par benchmark | Paquet Python `hexa` et CLI unique (`python3 -m hexa`) ; `hexa/core/` (notation sans barème de benchmark, magasin KB, outils) et `hexa/benches/{todo,blender}/` autonomes ; `web/` unique (`HEXA_SITE`), `sites/<bench>/` publiés, `runs/<bench>/` gitignorés ; chemins centralisés dans `hexa/paths.py` ; `python3 -m hexa migrate-layout` pour les autres machines. Non-régression : 138 tests, normalisation KB identique sur 19 rapports | [DAT/arborescence.md](DAT/arborescence.md) |
 | 2026-09-23 | Premiers runs Blender publiés | Opus 5.5 medium 88,54 %, Fable 5.1 high 78,02 %, GPT-6 Astra medium 77,75 %. Tokens corrigés depuis le transcript pour les trois (traces écrites avant la fin de session) ; KB regroupée en résumé / visuels / détails. Constat : les piliers techniques saturent (100 % partout), seuls visuel et coût discriminent → barème b2 à préparer | [REGLES/workflows.md](REGLES/workflows.md), [DAF/blender-piliers.md](DAF/blender-piliers.md) |
+| 2026-09-30 | Runs Sonnet 5.5 (95,33 %) et GPT 6.1 sol (80,52 %) ; scoring v3 | Procédure « récupérer un bench » (copie vérifiée, `~/test/` vidé, audit, KB). Indicateur 3-2-1 : la bande 5..15 échanges donnait 0/5 à tout agent autonome → **scoring v3**, bande 1..2 = 100 % / 3..6 = 50 %, défaut de `--scoring`, v2 rejouable, runs publiés non recalculés. GPT 6.1 non tarifé → pilier Coût à 0 (tarif à ajouter) | [REGLES/workflows.md](REGLES/workflows.md), [DAF/piliers-notation.md](DAF/piliers-notation.md), [DAF/tracabilite-agent.md](DAF/tracabilite-agent.md) |
