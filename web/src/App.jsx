@@ -30,6 +30,71 @@ function bucketLabel(entry, key) {
   return entry.bucket_scores?.[key]?.short || BUCKET_LABELS[key];
 }
 
+// Piliers remplis par l'agent lui-même (audit_trace.json) : discipline et coût déclarés.
+// Tout le reste est mesuré sur le livrable par l'auditeur.
+const DECLARED_BUCKETS = new Set(["traceability", "cost"]);
+
+function sumBuckets(entry, keep) {
+  let score = 0;
+  let weight = 0;
+  for (const [key, bucket] of Object.entries(entry.bucket_scores || {})) {
+    if (!keep(key)) continue;
+    score += Number(bucket.normalized_score ?? 0);
+    weight += Number(bucket.weight ?? 0);
+  }
+  return { score, weight };
+}
+
+function scoringTag(entry) {
+  const model = String(entry.scoring_model || "");
+  const match = model.match(/_([vb]\d+)$/);
+  return match ? match[1] : model || "?";
+}
+
+// Lecture du score, calculée ici et non dans data.json : elle vaut ainsi pour toutes les
+// entrées, y compris celles dont le rapport brut n'existe plus et qu'on ne peut pas
+// reconstruire. Le « score livrable » ne garde que les piliers mesurés par l'auditeur,
+// ramenés sur 100 : c'est le repère comparable d'une version de barème à l'autre (v1 n'a
+// pas de pilier Coût, les bandes déclaratives ont changé en v3).
+function withScoreReading(entry) {
+  const measured = sumBuckets(entry, (key) => !DECLARED_BUCKETS.has(key));
+  const declared = sumBuckets(entry, (key) => DECLARED_BUCKETS.has(key));
+  if (!measured.weight) return entry;
+  const deliverable = Math.round((measured.score / measured.weight) * 1000) / 10;
+  const round1 = (value) => Math.round(value * 10) / 10;
+  const items = [
+    {
+      label: "Score livrable (mesuré)",
+      value: `${deliverable}% (${round1(measured.score)} / ${measured.weight})`,
+      cls: scoreClass(deliverable),
+      tooltip:
+        "Piliers mesurés par l'auditeur sur le livrable, ramenés sur 100.\n" +
+        "Hors traçabilité et coût, que l'agent déclare lui-même, et hors bonus, malus et caps.\n" +
+        "C'est le repère à utiliser pour comparer des runs notés avec des barèmes différents.",
+    },
+    {
+      label: "Part déclarée par l'agent",
+      value: declared.weight ? `${round1(declared.score)} / ${declared.weight}` : "—",
+      cls: "na",
+      tooltip: "Traçabilité et coût : calculés sur audit_trace.json, rempli par l'agent audité.",
+    },
+    { label: "Barème", value: scoringTag(entry), cls: "na" },
+    {
+      label: "Source des tokens",
+      value: entry.token_source || "non renseignée",
+      cls: entry.token_source === "transcript" ? "ok" : "na",
+    },
+    {
+      label: "KPI exploratoires",
+      value: entry.kpi_revision ? `jeu ${entry.kpi_revision}` : "non mesurés (audit antérieur)",
+      cls: entry.kpi_revision ? "ok" : "na",
+    },
+  ];
+  const sections = [...(entry.sections || [])];
+  sections.splice(1, 0, { title: "Lecture du score", items });
+  return { ...entry, deliverable_pct: deliverable, scoring_tag: scoringTag(entry), sections };
+}
+
 // sites/<site>/data.js (écrit par le magasin KB) embarque entrées + énoncé dans un <script>
 // classique : c'est ce qui permet d'ouvrir index.html en file://, où tout fetch est bloqué.
 // Sans lui (mode dev, ancien build), on retombe sur le fetch HTTP.
@@ -424,7 +489,12 @@ function EntryRow({ entry, expanded, onOpenInfo, onToggle }) {
         <td className="mono">{entry.session_id || "—"}</td>
         <td className="mono">{(entry.audit_started_at || "").slice(0, 16) || "—"}</td>
         <td className="mono">{formatDuration(entry.trace_metrics?.wall_s)}</td>
-        <td className={`score ${scoreClass(entry.score_percentage)}`}>{entry.score_percentage}%</td>
+        <td className={`score ${scoreClass(entry.score_percentage)}`}>
+          {entry.score_percentage}% <span className="scoring-tag">{entry.scoring_tag}</span>
+        </td>
+        <td className={`score ${scoreClass(entry.deliverable_pct ?? 0)}`}>
+          {entry.deliverable_pct != null ? `${entry.deliverable_pct}%` : "—"}
+        </td>
         <td>
           <div className="bucket-list">
             {bucketKeys(entry).map((bucketKey) => {
@@ -443,7 +513,7 @@ function EntryRow({ entry, expanded, onOpenInfo, onToggle }) {
       </tr>
       {expanded ? (
         <tr className="detail-row">
-          <td colSpan={7}>
+          <td colSpan={8}>
             {visuals.length ? (
               <EntryGroup title="Visuels">
                 <MediaStrip entry={{ ...entry, media: visuals }} />
@@ -684,7 +754,7 @@ export function App() {
           payload = await response.json();
         }
         if (cancelled) return;
-        setEntries(payload);
+        setEntries(payload.map(withScoreReading));
         setStatus("ready");
       } catch (err) {
         if (cancelled) return;
@@ -796,6 +866,12 @@ export function App() {
                   <th onClick={() => updateSort("audit_started_at")}>Date</th>
                   <th onClick={() => updateSort("duration_seconds")}>Duration</th>
                   <th onClick={() => updateSort("score_percentage")}>Score %</th>
+                  <th
+                    onClick={() => updateSort("deliverable_pct")}
+                    title="Piliers mesurés sur le livrable, sur 100 — hors traçabilité et coût déclarés par l'agent. Comparable entre barèmes."
+                  >
+                    Livrable %
+                  </th>
                   <th>Buckets</th>
                 </tr>
               </thead>
