@@ -10,6 +10,7 @@ from hexa.benches.todo.kb.render import build_sections
 from hexa.core.kb import common
 from hexa.core.kb.common import (  # noqa: F401 — ré-exports historiques
     agent_from_path,
+    exploratory_fields,
     extract_phase_indicators,
     is_test_artifact,
     session_from_path,
@@ -17,6 +18,7 @@ from hexa.core.kb.common import (  # noqa: F401 — ré-exports historiques
 )
 from hexa.core.kb.constants import ADMISSION_THRESHOLD, repo_relative
 from hexa.core.kb.markdown_parser import extract_report_markdown, md_files_by_stem
+from hexa.paths import portable_path
 
 
 def load_overrides(path: Path | None = None) -> dict[str, Any]:
@@ -157,7 +159,7 @@ def normalize_old(
         "skip_dynamic": meta.get("skip_dynamic", False),
         "bucket_scores": bucket_scores,
         "cost": None,
-        "target_path": target,
+        "target_path": portable_path(target),
         "stats": None,
         "make_targets": None,
         "docker": None,
@@ -306,7 +308,7 @@ def normalize_new(
             "priced": (meta.get("cost") or {}).get("priced"),
             "efficiency": summary.get("cost_efficiency_pct_per_usd"),
         },
-        "target_path": target,
+        "target_path": portable_path(target),
         "stats": {
             "files": stats.get("total_files"),
             "ts_files": stats.get("total_ts_files"),
@@ -385,6 +387,7 @@ def normalize_new(
         "performance": artifacts.get("performance"),
         "report_markdown": report_markdown,
         "_tooltips": extract_tooltips(artifacts, data),
+        **exploratory_fields(data),
     }
 
 

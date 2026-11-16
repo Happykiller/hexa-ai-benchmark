@@ -23,6 +23,7 @@ from rich.table import Table
 from hexa.benches.blender.auditor import media
 from hexa.benches.blender.auditor.analysis import Check
 from hexa.benches.blender.auditor.analysis.bonus_malus import analyze_bonus_malus
+from hexa.benches.blender.auditor.analysis.exploratory import emit_blender_exploratory
 from hexa.benches.blender.auditor.analysis.geometry import analyze_geometry
 from hexa.benches.blender.auditor.analysis.imagery import analyze_imagery
 from hexa.benches.blender.auditor.analysis.materials import analyze_materials
@@ -53,6 +54,7 @@ from hexa.core.engine import (
     emit_cost_indicators,
     emit_trace_indicators,
 )
+from hexa.core.engine.exploratory import emit_session_kpis, measure_transcript
 from hexa.paths import cr_audits_dir
 
 console = Console()
@@ -321,6 +323,15 @@ def cli() -> None:
     default=None,
     help="Binaire Blender (défaut : $HEXA_BLENDER_BIN, PATH, ~/.local/bin/blender45)",
 )
+@click.option(
+    "--transcript",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help=(
+        "Transcript de la session d'agent (Claude Code ou Codex) : ajoute les tokens "
+        "réellement consommés aux KPI exploratoires. N'influence pas le score."
+    ),
+)
 def analyze(
     path: str,
     challenge: str,
@@ -328,6 +339,7 @@ def analyze(
     keep_work: bool,
     reuse_work: str | None,
     blender_bin: str | None,
+    transcript: str | None = None,
 ) -> None:
     """Audite un livrable Blender (dossier contenant build.py)."""
     target = Path(path).resolve()
@@ -434,6 +446,12 @@ def analyze(
     )  # fmt: skip
     audit_db["meta"]["cost"] = emit_cost_indicators(audit_db, trace_metrics)
     emit_checks(audit_db, analyze_bonus_malus(inspection, static, glb_mb, spec))
+
+    # KPI exploratoires (phase 8) : mesurés, jamais notés — aucun pilier ne les sélectionne.
+    emit_session_kpis(
+        audit_db, trace_metrics, audit_db["meta"]["cost"], measure_transcript(transcript)
+    )
+    emit_blender_exploratory(audit_db, inspection, imagery, spec)
 
     audit_db["meta"]["score_cap_reasons"] = cap_reasons(build, reimport, inspection, spec)
     audit_db["phases"].sort(key=lambda phase: phase["number"])

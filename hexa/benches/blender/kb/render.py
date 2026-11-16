@@ -7,6 +7,7 @@ from hexa.core.kb.cards import (
     item,
     section,
     section_cost,
+    section_exploratory,
     section_overrides,
     section_report,
     section_trace_diagnostic,
@@ -96,6 +97,7 @@ def build_sections(entry: dict[str, Any]) -> list[dict[str, Any]]:
     sections += [
         section_trace_diagnostic(entry),
         section_cost(entry),
+        section_exploratory(entry),
         section_overrides(entry),
         section_report(entry),
     ]

@@ -181,3 +181,68 @@ def test_analyze_rejects_conflicting_dynamic_flags(tmp_path, monkeypatch):
         cli, ["analyze", str(deliverable), "--skip-dynamic", "--force-dynamic"]
     )
     assert result.exit_code != 0
+
+
+def _run_fixture(tmp_path, monkeypatch, *extra: str) -> dict:
+    deliverable = tmp_path / "20260701_1200_test-model_0.2"
+    deliverable.mkdir(parents=True)
+    _write_fixture(deliverable)
+    out_dir = tmp_path / "cr_audits"
+    monkeypatch.setenv("HEXA_AUDIT_OUTPUT_DIR", str(out_dir))
+    monkeypatch.setattr(
+        "hexa.benches.todo.auditor.main.MakefileRunner.run_target",
+        lambda self, target: {"status": "OK", "output": "", "error": "", "exit_code": 0},
+    )
+    result = CliRunner().invoke(cli, ["analyze", str(deliverable), "--skip-dynamic", *extra])
+    assert result.exit_code == 0, f"analyze crashed: {result.exception!r}\n{result.output}"
+    return json.loads(next(out_dir.glob("cr_*.json")).read_text(encoding="utf-8"))
+
+
+def test_exploratory_kpis_are_measured_and_never_scored(tmp_path, monkeypatch):
+    """Un KPI exploratoire ne doit JAMAIS changer un score (loi n°2) : la phase 8 est
+    entièrement en ``measured``, aucun pilier ne la sélectionne, et le score recalculé
+    sans elle est identique."""
+    from hexa.benches.todo.auditor.main import _finalize_audit_db
+    from hexa.core.engine.exploratory import EXPLORATORY_PHASE, KPI_REVISION
+
+    data = _run_fixture(tmp_path, monkeypatch)
+    kpis = [i for i in data["indicators"] if i["phase_number"] == EXPLORATORY_PHASE]
+    assert len(kpis) >= 10
+    assert all(i["kind"] == "measured" and i["score"] is None for i in kpis)
+    assert data["meta"]["kpi_revision"] == KPI_REVISION
+    assert data["meta"]["token_source"] == "déclaré"
+    names = {i["name"] for i in kpis}
+    assert "Duplication du code source (%)" in names
+    assert "Tokens déclarés par appel d'outil" in names
+
+    published = data["summary"]["percentage_net"]
+    buckets = data["summary"]["bucket_scores"]
+    data["indicators"] = [i for i in data["indicators"] if i["phase_number"] != EXPLORATORY_PHASE]
+    data["phases"] = [p for p in data["phases"] if p["number"] != EXPLORATORY_PHASE]
+    _finalize_audit_db(data, data["meta"]["scoring_version"])
+    assert data["summary"]["percentage_net"] == published
+    assert data["summary"]["bucket_scores"] == buckets
+
+
+def test_transcript_feeds_measured_tokens_without_touching_score(tmp_path, monkeypatch):
+    baseline = _run_fixture(tmp_path / "a", monkeypatch)["summary"]["percentage_net"]
+
+    transcript = tmp_path / "session.jsonl"
+    usage = {"input_tokens": 1000, "cache_read_input_tokens": 9000, "output_tokens": 500}
+    transcript.write_text(
+        json.dumps(
+            {
+                "type": "assistant",
+                "timestamp": "2026-11-16T10:00:00Z",
+                "message": {"id": "m1", "model": "claude-fable-5-2", "usage": usage},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    data = _run_fixture(tmp_path / "b", monkeypatch, "--transcript", str(transcript))
+    by_name = {i["name"]: i for i in data["indicators"] if i["phase_number"] == 8}
+    assert by_name["Tokens mesurés dans le transcript (in+out)"]["measured_value"] == 10500
+    assert data["meta"]["token_source"] == "transcript"
+    assert str(tmp_path) not in json.dumps(by_name)  # aucun chemin machine publié
+    assert data["summary"]["percentage_net"] == baseline

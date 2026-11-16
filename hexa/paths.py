@@ -33,3 +33,18 @@ def repo_relative(path: Path | str) -> str:
         return resolved.relative_to(ROOT_DIR).as_posix()
     except ValueError:
         return resolved.as_posix()
+
+
+def portable_path(path: Path | str) -> str:
+    """Chemin d'un livrable tel qu'on le publie : jamais de préfixe machine.
+
+    Contrairement à ``repo_relative`` il ne résout rien (un chemin relatif tapé par
+    l'opérateur reste tel quel) et il reconnaît le dépôt cloné sur une autre machine :
+    tout ce qui précède ``<nom du dépôt>/`` est retiré."""
+    text = str(path).replace("\\", "/")
+    if not text.startswith("/"):
+        return text
+    marker = f"/{ROOT_DIR.name}/"
+    if marker in text:
+        return text.split(marker, 1)[1]
+    return text

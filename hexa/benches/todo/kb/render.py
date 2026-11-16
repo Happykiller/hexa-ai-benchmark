@@ -7,6 +7,7 @@ from hexa.core.kb.cards import (  # noqa: F401 — ré-exports historiques
     item,
     section,
     section_cost,
+    section_exploratory,
     section_overrides,
     section_report,
     section_trace_diagnostic,
@@ -237,6 +238,7 @@ SECTION_EXTRACTORS = [
     section_e2e,
     section_trace,
     section_bonuses,
+    section_exploratory,
     section_report,
 ]
 

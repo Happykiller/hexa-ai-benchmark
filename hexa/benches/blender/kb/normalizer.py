@@ -6,9 +6,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from hexa.core.engine.exploratory import EXPLORATORY_PHASE
 from hexa.core.kb.common import (
     agent_from_path,
     apply_overrides,
+    exploratory_fields,
     extract_phase_indicators,
     is_test_artifact,
     load_overrides,
@@ -17,6 +19,7 @@ from hexa.core.kb.common import (
 )
 from hexa.core.kb.constants import ADMISSION_THRESHOLD, repo_relative
 from hexa.core.kb.markdown_parser import extract_report_markdown, md_files_by_stem
+from hexa.paths import portable_path
 
 from .constants import BUCKET_SHORT, OVERRIDES_PATH, SCAN_DIRS
 from .render import build_sections
@@ -46,6 +49,7 @@ def _phases_detail(data: dict[str, Any]) -> list[dict[str, Any]]:
             ],
         }
         for phase in data.get("phases", [])
+        if phase["number"] != EXPLORATORY_PHASE  # publiés à part : entry["exploratory_kpis"]
     ]
 
 
@@ -86,7 +90,7 @@ def normalize_blender(
         "effort": str(trace_meta.get("effort") or ""),
         "prompt_version": str(trace_meta.get("prompt_version") or ""),
         "session_id": session_from_path(target),
-        "target_path": target,
+        "target_path": portable_path(target),
         "audit_started_at": meta.get("audit_started_at", ""),
         "audit_finished_at": meta.get("audit_finished_at", ""),
         "scoring_model": meta.get("scoring_model"),
@@ -134,6 +138,7 @@ def normalize_blender(
             for item in artifacts.get("media") or []
         ],
         "report_markdown": report_markdown,
+        **exploratory_fields(data),
     }
     entry["sections"] = build_sections(entry)
     return entry

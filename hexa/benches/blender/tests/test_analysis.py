@@ -92,3 +92,27 @@ def test_bonus_malus(inspection, spec):
     assert checks["Chemin absolu dans le code"].polarity == "negative"
     assert checks["GLB au-delà du budget de taille"].ratio == 1.0
     assert checks["Action supplémentaire animée"].ratio == 0.0
+
+
+def test_exploratory_measures_of_minimal_valid(inspection, spec):
+    from hexa.benches.blender.auditor.analysis.exploratory import (
+        emit_blender_exploratory,
+        measure_blender,
+    )
+    from hexa.core.engine.exploratory import EXPLORATORY_PHASE
+
+    imagery = {"silhouettes": {"front": {"iou": 0.5}, "side": {"iou": 0.3}, "back": {}}}
+    measures = measure_blender(inspection, imagery, spec)
+    assert measures["iou_mean"] == 0.4 and measures["iou_min"] == 0.3
+    assert measures["bones_per_limb_min"] >= spec["limbs"]["min_bones_per_limb"]
+    walk = measures["actions"]["walk"]
+    assert 0 < walk["moving_bones_pct"] <= 100
+    assert 0 < walk["limbs_moving"] <= walk["limbs_expected"]
+
+    audit_db = {"meta": {}, "phases": [], "indicators": []}
+    emit_blender_exploratory(audit_db, inspection, imagery, spec)
+    emit_blender_exploratory(audit_db, None, {}, spec)  # build en échec : rien ne casse
+    assert all(
+        i["phase_number"] == EXPLORATORY_PHASE and i["kind"] == "measured" and i["score"] is None
+        for i in audit_db["indicators"]
+    )

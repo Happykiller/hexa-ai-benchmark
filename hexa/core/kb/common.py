@@ -53,6 +53,25 @@ def extract_phase_indicators(data: dict[str, Any], phase_code: str) -> list[dict
     return indicators
 
 
+def exploratory_fields(data: dict[str, Any]) -> dict[str, Any]:
+    """Champs d'entrée portés par les KPI exploratoires (phase 8 du rapport).
+
+    Renvoie un dict VIDE pour un rapport antérieur à ces KPI : l'entrée ne gagne alors
+    aucune clé, et reste identique au texte déjà publié (dérivé reproductible bit à bit).
+    """
+    meta = data.get("meta", {})
+    if not meta.get("kpi_revision"):
+        return {}
+    return {
+        "kpi_revision": meta["kpi_revision"],
+        "token_source": meta.get("token_source"),
+        "exploratory_kpis": [
+            {key: indicator[key] for key in ("name", "measured_value", "remarks", "step")}
+            for indicator in extract_phase_indicators(data, "8")
+        ],
+    }
+
+
 def is_test_artifact(entry: dict[str, Any]) -> bool:
     target_path = entry.get("target_path", "")
     return target_path.startswith("/tmp/") or "pytest" in target_path

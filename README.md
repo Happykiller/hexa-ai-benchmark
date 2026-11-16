@@ -107,6 +107,7 @@ python3 -m hexa usage ~/.claude/projects/<cwd-encodé>/<session>.jsonl \
 | `--force-dynamic` | Lance `make test`, Docker, E2E et perf **même si `make build` échoue** |
 | `--fresh-docker` | `docker compose down -v` avant `make start` (repart de volumes vides) |
 | `--scoring v1\|v2\|v3` | Version du barème (défaut `v3` ; `v2` et `v1` rejouent les scores publiés) |
+| `--transcript <session.jsonl>` | Ajoute au rapport les tokens réellement consommés (KPI exploratoires, sans effet sur le score) |
 
 > ⚠️ **`--skip-dynamic` n'est pas un mode « sans Docker ».** `make setup`, `make lint`, `make build`
 > et `make test` s'exécutent quand même — or ces cibles passent par Docker dans le contrat livrable.

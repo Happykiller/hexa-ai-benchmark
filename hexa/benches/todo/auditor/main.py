@@ -23,6 +23,10 @@ from hexa.benches.todo.auditor.modules.dynamic_analysis import (
     PerformanceBenchmarker,
     precreate_bind_mount_dirs,
 )
+from hexa.benches.todo.auditor.modules.exploratory import (
+    emit_todo_exploratory,
+    session_start_from_trace,
+)
 from hexa.benches.todo.auditor.modules.static_analysis import (
     CodeSmellAnalyzer,
     ProjectStatsAnalyzer,
@@ -64,6 +68,7 @@ from hexa.core.engine import (  # noqa: F401 — ré-exports historiques (tests)
 )
 from hexa.core.engine import _compute_final_score_summary as _engine_final_score_summary
 from hexa.core.engine import _finalize_audit_db as _engine_finalize_audit_db
+from hexa.core.engine.exploratory import emit_session_kpis, measure_transcript
 from hexa.paths import cr_audits_dir
 
 console = Console()
@@ -214,12 +219,22 @@ def cli() -> None:
         "v2 reproduces published v2 scores; v1 reproduces legacy scores"
     ),
 )
+@click.option(
+    "--transcript",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help=(
+        "Transcript de la session d'agent (Claude Code ou Codex) : ajoute les tokens "
+        "réellement consommés aux KPI exploratoires. N'influence pas le score."
+    ),
+)
 def analyze(
     path: str,
     skip_dynamic: bool,
     force_dynamic: bool,
     fresh_docker: bool,
     scoring: str = SCORING_DEFAULT_VERSION,
+    transcript: str | None = None,
 ) -> None:
     """Analyze a deliverable at the given PATH"""
     if skip_dynamic and force_dynamic:
@@ -951,6 +966,20 @@ def analyze(
             stats.get(metric_key),
             as_measured=True,
         )
+
+    # KPI exploratoires (phase 8) : mesurés, jamais notés — aucun pilier ne les sélectionne.
+    emit_session_kpis(
+        audit_db, trace_metrics, audit_db["meta"]["cost"], measure_transcript(transcript)
+    )
+    emit_todo_exploratory(
+        audit_db,
+        path,
+        performance,
+        docker_start,
+        dynamic_ran=bool(e2e_results),
+        session_start=session_start_from_trace(traceability),
+        check_advisories=not skip_dynamic,  # même règle que le malus npm : pas de réseau
+    )
 
     _finalize_audit_db(audit_db, scoring)
     audit_db["meta"]["audit_finished_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

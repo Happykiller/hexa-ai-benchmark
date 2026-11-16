@@ -204,3 +204,24 @@ def section_overrides(entry: dict[str, Any]) -> dict[str, Any] | None:
         return None
     items = [item(field, str(entry.get(field)), "warn") for field in applied]
     return section("Corrections manuelles", items)
+
+
+def section_exploratory(entry: dict[str, Any]) -> dict[str, Any] | None:
+    """KPI exploratoires : mesurés, non notés. Absente des entrées auditées avant eux."""
+    kpis = entry.get("exploratory_kpis")
+    if not kpis:
+        return None
+    items = []
+    for kpi in kpis:
+        value = kpi.get("measured_value")
+        if isinstance(value, float):
+            value = f"{value:g}"
+        items.append(
+            item(
+                kpi["name"],
+                "non mesuré" if value is None else str(value),
+                "na" if value is None else None,
+                kpi.get("remarks") or None,
+            )
+        )
+    return section("KPI exploratoires (non notés)", items)
