@@ -82,6 +82,8 @@ def measure(path: Path) -> dict[str, Any]:
             elif (
                 event.get("type") == "user"
                 and not event.get("isSidechain")
+                # isMeta : notes du harnais (« [Image: …] » après un Read d'image), pas l'humain.
+                and not event.get("isMeta")
                 and isinstance(message, dict)
                 and isinstance(message.get("content"), str)
             ):
@@ -99,6 +101,10 @@ def measure(path: Path) -> dict[str, Any]:
                 if payload.get("effort") or payload.get("reasoning_effort"):
                     efforts.add(str(payload.get("effort") or payload.get("reasoning_effort")))
 
+    # Claude Code journalise ses messages internes (erreurs d'API, interruptions) sous le
+    # modèle « <synthetic> » : ce n'est pas un modèle, et trié en tête il rendait la session
+    # « non tarifée » (constaté le 2026-11-16 sur le run Fable 5.2).
+    models.discard("<synthetic>")
     result: dict[str, Any] = {
         "transcript": str(path),
         "models": sorted(models),

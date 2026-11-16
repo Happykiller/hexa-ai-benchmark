@@ -70,3 +70,29 @@ def test_measure_claude_code_dedupes_message_ids_and_includes_subagents(tmp_path
     comparison = compare(measured, trace)
     assert comparison["fields"]["total_input_tokens"]["delta_pct"] == -50.0
     assert comparison["declared_effort"] == "high"
+
+
+def test_synthetic_model_is_not_a_model(tmp_path: Path) -> None:
+    session = tmp_path / "s.jsonl"
+    synthetic = json.dumps(
+        {
+            "type": "assistant",
+            "timestamp": "2026-11-16T09:00:00Z",
+            "message": {"id": "err", "model": "<synthetic>", "usage": {"input_tokens": 0}},
+        }
+    )
+    session.write_text(
+        "\n".join([synthetic, _assistant("m1", "2026-11-16T09:01:00Z", input_tokens=5)]),
+        encoding="utf-8",
+    )
+    assert measure(session)["models"] == ["claude-opus-5-5"]
+
+
+def test_harness_meta_notes_are_not_human_prompts(tmp_path: Path) -> None:
+    session = tmp_path / "s.jsonl"
+    human = {"type": "user", "timestamp": "2026-11-16T09:43:16Z", "message": {"content": "go"}}
+    note = {**human, "isMeta": True, "message": {"content": "[Image: original 2240x560]"}}
+    lines = [json.dumps(e) for e in (human, note, note)]
+    lines.append(_assistant("m1", "2026-11-16T09:44:00Z", input_tokens=5))
+    session.write_text("\n".join(lines), encoding="utf-8")
+    assert measure(session)["user_prompts"] == 1
