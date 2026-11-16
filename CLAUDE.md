@@ -36,6 +36,24 @@ En fin de session de travail, lance `/cloture` : il capitalise, committe et pous
 dépôts du projet, puis arrête les conteneurs. Pour capitaliser seul, sans refermer la session :
 `/capitalize`.
 
+## Distro KoA
+
+Ce dépôt est aussi une **seed KoA** (`koa.profil`, `bootstrap.sh`) : KoA en fait une distro WSL
+dédiée, cluster `perso`, où tu démarres dans `~/hexa-ai-benchmark`. Le `bootstrap.sh` y installe
+Blender 4.5 LTS (`~/.local/bin/blender45`, hors PATH), le venv `venv/` et les dépendances web ;
+le socle KoA fournit Python, Node et Docker sans root.
+
+**À ta première consigne**, vérifie l'environnement puis rends compte en quelques lignes :
+`~/bootstrap.log` se termine par `terminé` ; `venv/bin/python -m hexa --help` répond ;
+`~/.local/bin/blender45 --version` donne 4.5 ; `docker info` et `docker compose version`
+répondent ; `ssh -T git@github.com` reconnaît la deploy key. Les dossiers `runs/*/livrables/`
+sont vides dans une distro neuve (gitignorés) : un livrable à auditer arrive par l'opérateur.
+
+**Périmètre** : ce seul dépôt, `Happykiller/hexa-ai-benchmark`. N'explore ni ne cite aucun autre
+projet que tes accès t'ouvriraient. Tu n'écris jamais toi-même de règle de permission : demande-la
+par `permission_demander`. Sous Docker sans root, les limites `--memory` / `--cpus` ne s'appliquent
+pas.
+
 Attention aux conteneurs : ils ne viennent pas du projet mais du **livrable audité**, et un audit
 même `--skip-dynamic` peut en laisser tourner. Un working tree propre ne prouve rien à ce sujet —
 `runs/` (livrables et rapports bruts) est gitignoré.

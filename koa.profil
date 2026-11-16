@@ -1,0 +1,37 @@
+{
+  // Seed KoA de hexa-ai-benchmark : l'auditeur Python (Todo List + Blender 3D) et sa KB web.
+  // Le socle dev fournit Python 3, Node, gh et Docker sans root ; bootstrap.sh ajoute Blender 4.5 LTS.
+  "version": 1,
+  "nom": "hexa-ai-benchmark",
+  "utilisateur": "happykiller",
+  // Bibliothèques partagées que Blender 4.5 charge même en mode -b (headless), et xz pour son archive.
+  "paquets": [
+    "xz-utils",
+    "libx11-6",
+    "libxext6",
+    "libxi6",
+    "libxxf86vm1",
+    "libxfixes3",
+    "libxrender1",
+    "libxkbcommon0",
+    "libsm6",
+    "libice6",
+    "libgl1"
+  ],
+  "bootstrap": "bootstrap.sh",
+  "repertoire": "~/hexa-ai-benchmark",
+  "cluster": "perso",
+  "agent": {
+    "nature": "claude",
+    "mode": "auto",
+    "consigne": "Prends connaissance du projet (CLAUDE.md, section « Distro KoA », puis docs/KB/README.md), vérifie l'environnement comme la section le décrit, rends compte en quelques lignes, puis attends la consigne de l'opérateur."
+  },
+  "cloisonnement": {
+    "interop": false,
+    "montage_windows": false
+  },
+  "secrets": {
+    // Clé privée d'une deploy key en écriture sur Happykiller/hexa-ai-benchmark, et sur lui seul.
+    "cle_github": { "type": "ssh" }
+  }
+}
