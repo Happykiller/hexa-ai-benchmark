@@ -85,6 +85,16 @@ log "node : $(node --version), dépendances web installées"
 docker compose version >/dev/null || { log "docker compose introuvable : audit Todo impossible"; exit 1; }
 log "docker : $(docker compose version --short 2>/dev/null)"
 
-# --- 6. Arborescence des données locales (gitignorée) -------------------------------------------
+# --- 6. Plugins Claude Code hors koa-skills (marketplaces Happykiller) -------------------------
+# Le champ « plugins » du profil ne couvre que koa-skills : les autres marketplaces s'installent ici.
+# Rejouable : marketplace add et install ne font rien de plus si l'élément est déjà là.
+for spec in "Happykiller/claude-cockpit:claude-cockpit:cockpit" "Happykiller/claude-chat-roles:claude-chat-roles:chat-roles"; do
+  repo="${spec%%:*}"; rest="${spec#*:}"; market="${rest%%:*}"; plugin="${rest#*:}"
+  claude plugin marketplace list 2>/dev/null | grep -q "$market" || claude plugin marketplace add "$repo" >/dev/null
+  claude plugin list 2>/dev/null | grep -q "$plugin@$market" || claude plugin install "$plugin@$market" >/dev/null
+  log "plugin : $plugin@$market"
+done
+
+# --- 7. Arborescence des données locales (gitignorée) -------------------------------------------
 mkdir -p runs/todo/livrables runs/todo/cr_audits runs/blender/livrables runs/blender/cr_audits
 log "terminé"

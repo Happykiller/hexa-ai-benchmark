@@ -28,7 +28,7 @@
   },
   "cloisonnement": {
     "interop": false,
-    "montage_windows": false
+    "montage_windows": true
   },
   "secrets": {
     // Clé privée d'une deploy key en écriture sur Happykiller/hexa-ai-benchmark, et sur lui seul.
