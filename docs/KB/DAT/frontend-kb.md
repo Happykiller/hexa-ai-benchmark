@@ -2,7 +2,7 @@
 titre: Frontend de consultation de la KB
 type: dat
 statut: actif
-maj: 2026-09-23
+maj: 2026-11-16
 ---
 
 # Frontend de la knowledge base
@@ -68,6 +68,9 @@ assumé, parce qu'il tient lieu de publication.
 
 ## À COMPLÉTER
 
+- Dans la distro KoA, pour la montrer à l'opérateur : servir `sites/` (`python -m http.server
+  8080 --bind 127.0.0.1` depuis `sites/`), l'adresse est `http://8080.<hôte de $KOA_FRONT>/todo/`
+  et `/blender/`. Un seul serveur pour les deux KB ; à arrêter à la clôture.
 - Où la KB est-elle publiée ? Aucun hébergement trouvé au 2026-09-22 (pas de GitHub Pages, rien
   dans le dépôt) : consultation locale, par double-clic ou `npm run dev`.
 - Y a-t-il des conventions d'affichage à préserver dans `App.jsx` (tri, filtres attendus) ?

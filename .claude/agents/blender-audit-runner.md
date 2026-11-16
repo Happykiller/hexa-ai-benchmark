@@ -10,7 +10,7 @@ Racine : le dépôt `hexa-ai-benchmark`. Python : `source venv/bin/activate` (nu
 
 ## Commande
 
-- Audit complet (le vrai bench, ~1 à 5 min) : `python3 -m hexa blender analyze runs/blender/livrables/<LIVRABLE>`
+- Audit complet (le vrai bench, ~1 à 5 min) : `python3 -m hexa blender analyze runs/blender/livrables/<LIVRABLE>` (ajoute `--transcript <session.jsonl>` quand le transcript est connu : tokens réels en KPI exploratoires, score inchangé)
 - Itération sans rendus (**score non publiable**, phase 5 en SKIPPED) : ajouter `--skip-render`.
 - `--keep-work` garde le dossier de travail (scène, GLB, rendus) ; `--reuse-work <dossier>` réanalyse sans relancer Blender.
 - Blender : `--blender <bin>` ou `HEXA_BLENDER_BIN` ; défaut `~/.local/bin/blender45` (Blender 4.5 LTS, hors PATH).

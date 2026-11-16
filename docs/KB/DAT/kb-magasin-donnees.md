@@ -2,7 +2,7 @@
 titre: Magasin de données KB — brut, overrides, dérivé
 type: dat
 statut: actif
-maj: 2026-09-30
+maj: 2026-11-16
 ---
 
 # Magasin de données de la knowledge base
@@ -73,6 +73,11 @@ en un seul endroit, pour les deux chemins de code.
 Les entrées d'avant le rangement du 2026-09-23 portent `cr_audits/…` et `livrables/…`, celles
 d'après `runs/todo/cr_audits/…` : les deux sont relatifs-dépôt et sans chemin machine. Écart sans
 effet (le front ne lit ni `source_file` ni `target_path`), à ne pas « harmoniser » à la main.
+
+Second cas, corrigé le 2026-11-16 : `target_path` n'était pas normalisé, et l'auditeur
+Blender y écrit un chemin résolu — les trois entrées Blender publiaient `/home/…`.
+`portable_path()` (`hexa/paths.py`) retire tout ce qui précède le nom du dépôt, sans rien
+résoudre (un chemin relatif tapé par l'opérateur reste tel quel).
 
 À retenir pour la suite : **aucun chemin machine ne doit entrer dans `data.json`**. Les chemins
 qui apparaissent dans les *sorties capturées* (logs npm, erreurs make) sont une autre affaire —

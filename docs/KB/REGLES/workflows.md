@@ -2,7 +2,7 @@
 titre: Workflows outillés
 type: regle
 statut: actif
-maj: 2026-09-30
+maj: 2026-11-16
 ---
 
 # Workflows
@@ -18,9 +18,15 @@ relativement à `~`) — veut dire **toute** la chaîne, sans redemander entre l
    vit hors de `~/test/` (`~/.claude/projects/…`, `~/.codex/sessions/…`) : la trace n'y est pas
    perdue. Décision du 2026-09-30, pour Todo **et** Blender (elle remplace « l'original reste la
    trace de la session »).
-3. **Auditer** (sous-agent `audit-runner` ou `blender-audit-runner`), puis **intégrer à la KB**
+   `concept.jpg` (la planche du défi Blender) est une **entrée de l'opérateur**, pas un livrable :
+   elle reste dans `~/test/` pour la session suivante.
+3. **Choisir le bon transcript** : `~/.claude/projects/-home-happykiller-test/` garde un fichier
+   par session lancée dans `~/test/`. Prendre celui dont les horodatages couvrent les phases
+   d'`audit_trace.json`, pas le plus récent ni le plus gros. Une tentative interrompue juste avant
+   (même énoncé, quelques appels) est fréquente : la signaler, ne pas l'additionner au run.
+4. **Auditer** (sous-agent `audit-runner` ou `blender-audit-runner`), puis **intégrer à la KB**
    (`kb-builder`, upsert `--add`) — voir les deux workflows ci-dessous.
-4. Ne committer qu'à la clôture (`/cloture`) ; ne jamais arrêter un conteneur qui n'est pas celui
+5. Ne committer qu'à la clôture (`/cloture`) ; ne jamais arrêter un conteneur qui n'est pas celui
    du livrable.
 
 Le nom du dossier n'est pas une source : `audit_trace.json` fait foi pour le modèle et l'effort
@@ -41,7 +47,9 @@ L'ordre compte : chaque étape suppose la précédente réussie.
    `MODEL_PRICING` (`hexa/core/engine/config.py`). Sinon « Coût non calculé » : le pilier Coût (12 %)
    vaut 0 et le run est pénalisé à tort (`gpt-6.1-sol`, 2026-09-30, 80,52 % avec 0/12). Ajouter le
    tarif **avant** l'audit, vérifié sur la page officielle (voir plus bas).
-3. **Lancer l'audit** (`analyze runs/todo/livrables/<...>`) — long, à traiter comme une tâche de fond.
+3. **Lancer l'audit** (`analyze runs/todo/livrables/<...> --transcript <session.jsonl>`) — long, à
+   traiter comme une tâche de fond. `--transcript` ne change pas le score : il écrit dans le rapport
+   les tokens réellement consommés ([KPI exploratoires](../DAF/kpi-exploratoires.md)).
    Le sous-agent [`audit-runner`](../MOTEUR.md) existe pour ça.
 4. **Lire le score par phase** avant de conclure : un total à 40 % appelle une vérification du cap
    (build réellement cassé, ou artefact d'environnement ?).
@@ -75,7 +83,8 @@ Les sessions d'agent tournent dans `~/test/` ; l'agent y crée son dossier
    compteurs de tokens dans `summary`, tracer l'opération dans `meta.config.operator_correction`
    (valeurs déclarées, source, raison). Ne pas corriger la durée si elle casse la cohérence avec les
    phases (±10 %) : on n'invente pas de bornes de phase.
-5. **Auditer** : `python3 -m hexa blender analyze runs/blender/livrables/<NOM> --keep-work`
+5. **Auditer** : `python3 -m hexa blender analyze runs/blender/livrables/<NOM> --keep-work
+   --transcript <session.jsonl>`
    (≈ 2 min ; sous-agent [`blender-audit-runner`](../MOTEUR.md)).
 6. **Lire avant de publier** : les 6 exécutions Blender OK, aucun cap dû à l'environnement, puis
    regarder les visuels. Un indicateur qui surprend se creuse : le 2026-09-23, « palette 1/8 » chez

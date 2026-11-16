@@ -2,7 +2,7 @@
 titre: Barème du benchmark Blender (b1)
 type: daf
 statut: actif
-maj: 2026-09-23
+maj: 2026-11-16
 ---
 
 # Barème Blender b1
@@ -61,10 +61,19 @@ supplémentaires, pour ne pas calibrer sur un seul modèle.
 | Fable 5.1 high | 18 / 18 / 18 | 15,0 | 6,0 | 0 (8,88 $) | 78,02 % |
 | GPT-6 Astra medium | 18 / 18 / 18 | 14,1 | 6,7 | 3 (tokens, non tarifé) | 77,75 % |
 
+**Quatrième run (2026-11-16)** — Fable 5.2 medium : 18 / 18 / 18, visuel 22,7, traça 8,3,
+coût 3 (5,25 $), **91,01 %**. IoU 0,60 à 0,62 : la fidélité visuelle discrimine bien, et l'œil
+confirme. Premier relevé des KPI exploratoires : 27 % des os bougent dans `idle` contre 98 % dans
+`walk`, pour un pilier Rig à 18/18 — c'est la mesure à promouvoir en b2.
+
 La saturation des piliers techniques se confirme sur trois modèles : b2 doit rendre ces piliers
 discriminants avant d'ajouter des runs.
 
 ## À COMPLÉTER
+
+- Depuis le 2026-11-16, les mesures qui préparent b2 (IoU en continu, os par membre, os et
+  membres réellement animés) sont émises en KPI exploratoires, sans effet sur le score b1 :
+  [`kpi-exploratoires.md`](kpi-exploratoires.md).
 
 - b2 : rendre les piliers techniques moins binaires (densité de détail, nombre d'os par membre, richesse des actions) et donner plus de poids à la fidélité visuelle.
 - Recaler `DETAIL_BANDS` (calibré sur la seule fixture) et les bandes d'IoU après les premiers runs :

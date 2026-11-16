@@ -10,7 +10,7 @@ maj: 2026-07-27
 | Page | Ce qu'elle couvre | Statut | MAJ |
 |---|---|---|---|
 | [process.md](process.md) | Comment on livre : branches, commits, revue | actif | 2026-07-27 |
-| [workflows.md](workflows.md) | Les enchaînements outillés, et dans quel ordre | actif | 2026-09-30 |
+| [workflows.md](workflows.md) | Les enchaînements outillés, et dans quel ordre | actif | 2026-11-16 |
 | [consignes.md](consignes.md) | Ce que l'utilisateur attend de Claude sur ce projet | actif | 2026-09-30 |
 | [normes.md](normes.md) | Normes de code, de nommage, de test | actif | 2026-07-27 |
 | [lois.md](lois.md) | Les invariants non négociables | actif | 2026-07-27 |

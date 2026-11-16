@@ -12,6 +12,8 @@ Répertoire racine : la racine du dépôt `hexa-ai-benchmark` (celle qui contien
 
 - Audit **complet** (statique + Docker/E2E/perf — le vrai bench) :
   `python3 -m hexa todo analyze runs/todo/livrables/<LIVRABLE>`
+  Ajoute `--transcript <session.jsonl>` dès que le transcript de la session est connu : il
+  alimente les KPI exploratoires (tokens réels) sans changer le score.
 - **Statique seul** (rapide, sans Docker ; score partiel — la phase Opérationnalité/dynamique n'est pas évaluée) :
   `python3 -m hexa todo analyze runs/todo/livrables/<LIVRABLE> --skip-dynamic`
 - Options : `--force-dynamic` (Docker même si build échoue), `--fresh-docker` (`compose down -v` d'abord), `--scoring v1|v2` (défaut v2).

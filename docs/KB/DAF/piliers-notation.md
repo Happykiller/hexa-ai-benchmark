@@ -2,7 +2,7 @@
 titre: Piliers de notation et seuils
 type: daf
 statut: actif
-maj: 2026-09-30
+maj: 2026-11-16
 ---
 
 # Piliers de notation
@@ -40,6 +40,10 @@ prenait 0/5, alors que des sessions interactives marquaient. En v3 : 1..2 = 100 
 sinon 0. Les runs v2 déjà publiés ne sont pas recalculés ; `--scoring v2` les rejoue. Les bandes
 sont choisies par `trace_scoring_config(version)` (`hexa/core/engine/config.py`) ; Blender garde
 les bandes communes.
+
+**Comparer malgré tout** : la KB affiche un *score livrable* (piliers mesurés, sur 100) qui
+vaut pour toutes les versions, et tout nouveau KPI entre d'abord en « mesuré, non noté » —
+voir [`kpi-exploratoires.md`](kpi-exploratoires.md).
 
 ## Le bonus n'est pas symétrique du malus (v2)
 
