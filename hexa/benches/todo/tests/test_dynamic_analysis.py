@@ -507,6 +507,17 @@ def test_normalize_model_id_maps_known_families() -> None:
     assert _normalize_model_id("gemini-2.5-pro") == "gemini-pro"
     assert _normalize_model_id("codex") == "gpt-5"  # Codex CLI → GPT-5 tier
     assert _normalize_model_id("gpt-5-codex") == "gpt-5"
+    # Successeurs tarifés à part de leur famille (2026-11-16).
+    assert _normalize_model_id("claude-fable-5-2") == "claude-fable-5-2"
+    assert _normalize_model_id("Claude Mythos 5.2") == "claude-fable-5-2"
+    assert _normalize_model_id("claude-fable-5-1") == "claude-fable-5-1"
+    assert _normalize_model_id("claude-sonnet-5-5") == "claude-sonnet-5-5"
+    assert _normalize_model_id("claude-sonnet-5") == "claude-sonnet"
+    assert _normalize_model_id("gpt-6.1-sol") == "gpt-6.1-sol"
+    assert _normalize_model_id("gpt-6-sol") == "gpt-6-sol"
+    assert _normalize_model_id("gpt-6-astra") == "gpt-6-astra"
+    assert _normalize_model_id("gpt-5.6-sol") == "gpt-5.6-sol"
+    assert _normalize_model_id("gpt-5.5-codex") == "gpt-5.5"
     assert _normalize_model_id("some-unknown-model") is None
     assert _normalize_model_id(None) is None
 

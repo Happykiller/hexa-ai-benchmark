@@ -22,6 +22,10 @@ def _normalize_model_id(model_id: str | None) -> str | None:
     s = str(model_id).lower()
     # Versioned entries first: a successor priced differently from its family must not
     # fall into the generic family key (Opus 5.5 ≠ Opus 5, Fable 5.1 cache ≠ Fable 5).
+    # Mythos est tarifé comme Fable, version pour version.
+    s = s.replace("mythos", "fable")
+    if re.search(r"fable[-_ ]?5[-_.]2", s):
+        return "claude-fable-5-2"
     if "fable" in s and re.search(r"fable[-_ ]?5[-_.]1", s):
         return "claude-fable-5-1"
     if "fable" in s:
@@ -30,10 +34,20 @@ def _normalize_model_id(model_id: str | None) -> str | None:
         return "claude-opus-5-5"
     if "opus" in s:
         return "claude-opus"
+    if re.search(r"sonnet[-_ ]?5[-_.]5", s):
+        return "claude-sonnet-5-5"
     if "sonnet" in s:
         return "claude-sonnet"
+    if re.search(r"haiku[-_ ]?5[-_.]5", s):
+        return "claude-haiku-5-5"
     if "haiku" in s:
         return "claude-haiku"
+    # Familles GPT nommées (gpt-6.1-sol, gpt-5.6-terra…) : la clé la plus longue d'abord,
+    # pour que « gpt-6.1-sol » ne tombe pas dans « gpt-6-sol ».
+    gpt = s.replace("_", "-").replace(" ", "-")
+    for key in sorted((k for k in MODEL_PRICING if k.startswith("gpt-")), key=len, reverse=True):
+        if key != "gpt-5" and key != "gpt-5.5" and key in gpt:
+            return key
     if "gpt" in s and "5.5" in s:
         return "gpt-5.5"
     if ("gpt" in s and "5" in s) or "codex" in s:  # Codex CLI is GPT-5-based

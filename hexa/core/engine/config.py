@@ -26,17 +26,32 @@ COST_SCORE_STEP_LABEL = "Coût de la session"
 # et le cache de Fable 5.1 coûte 0.025x au lieu de 0.1x.
 # Changer un prix n'affecte QUE les audits à venir : le coût est figé dans meta.cost du
 # cr_*.json au moment de l'audit, et la KB le relit tel quel (hexa/benches/*/kb/normalizer.py).
-PRICING_UPDATED = (
-    "2026-09-22 (tarifs officiels Anthropic, platform.claude.com/docs/en/about-claude/pricing)"
-)
+# 2026-11-16 : ajout de Fable 5.2, Sonnet 5.5 (cache 0.05x), Haiku 5.5 et des familles
+# GPT-6 / GPT-5.6, relevés sur les pages officielles (Anthropic et OpenAI, palier standard,
+# contexte court). GPT 5.5 corrigé (2/12 → 5/30). Haiku 5.5 a deux paliers selon la taille
+# du prompt ; une session d'agent dépasse 100k tokens, on retient donc le palier haut.
+# Les runs déjà publiés gardent le coût figé à leur audit (p. ex. gpt-5.6-sol tarifé comme
+# « gpt-5 », Sonnet 5.5 avec le cache de Sonnet 5) : ne pas les recalculer.
+PRICING_UPDATED = "2026-11-16 (pages de tarifs officielles Anthropic et OpenAI)"
 MODEL_PRICING = {
+    "claude-fable-5-2": {"input": 8.0, "output": 40.0, "cached_input": 0.20},
     "claude-fable-5-1": {"input": 10.0, "output": 50.0, "cached_input": 0.25},
     "claude-fable": {"input": 10.0, "output": 50.0, "cached_input": 1.0},
     "claude-opus-5-5": {"input": 4.0, "output": 20.0, "cached_input": 0.20},
     "claude-opus": {"input": 5.0, "output": 25.0, "cached_input": 0.50},
+    "claude-sonnet-5-5": {"input": 2.0, "output": 10.0, "cached_input": 0.10},
     "claude-sonnet": {"input": 2.0, "output": 10.0, "cached_input": 0.20},
+    "claude-haiku-5-5": {"input": 0.50, "output": 2.50, "cached_input": 0.05},
     "claude-haiku": {"input": 1.0, "output": 5.0, "cached_input": 0.10},
-    "gpt-5.5": {"input": 2.0, "output": 12.0, "cached_input": 0.20},
+    "gpt-6-astra": {"input": 10.0, "output": 50.0, "cached_input": 1.0},
+    "gpt-6.1-sol": {"input": 2.0, "output": 10.0, "cached_input": 0.10},
+    "gpt-6.1-terra": {"input": 1.0, "output": 5.0, "cached_input": 0.05},
+    "gpt-6-sol": {"input": 2.0, "output": 10.0, "cached_input": 0.20},
+    "gpt-6-luna": {"input": 0.10, "output": 0.50, "cached_input": 0.01},
+    "gpt-5.6-sol": {"input": 4.0, "output": 20.0, "cached_input": 0.40},
+    "gpt-5.6-terra": {"input": 2.0, "output": 12.0, "cached_input": 0.20},
+    "gpt-5.6-luna": {"input": 0.20, "output": 1.20, "cached_input": 0.02},
+    "gpt-5.5": {"input": 5.0, "output": 30.0, "cached_input": 0.50},
     "gpt-5": {"input": 1.25, "output": 10.0, "cached_input": 0.125},
     "gemini-flash": {"input": 0.30, "output": 2.50, "cached_input": 0.03},
     "gemini-pro": {"input": 1.25, "output": 10.0, "cached_input": 0.125},
